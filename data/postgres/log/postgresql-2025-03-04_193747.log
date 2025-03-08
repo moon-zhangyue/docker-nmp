@@ -1,0 +1,13 @@
+2025-03-04 19:37:47 CST [1]: [3-1] user=,db=,app=,client= LOG:  starting PostgreSQL 15.8 on x86_64-pc-linux-musl, compiled by gcc (Alpine 13.2.1_git20240309) 13.2.1 20240309, 64-bit
+2025-03-04 19:37:47 CST [1]: [4-1] user=,db=,app=,client= LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-03-04 19:37:47 CST [1]: [5-1] user=,db=,app=,client= LOG:  listening on IPv6 address "::", port 5432
+2025-03-04 19:37:48 CST [1]: [6-1] user=,db=,app=,client= LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-03-04 19:37:48 CST [29]: [1-1] user=,db=,app=,client= LOG:  database system was shut down at 2025-03-04 16:19:46 CST
+2025-03-04 19:37:50 CST [1]: [7-1] user=,db=,app=,client= LOG:  database system is ready to accept connections
+2025-03-04 19:40:06 CST [1]: [8-1] user=,db=,app=,client= LOG:  received fast shutdown request
+2025-03-04 19:40:06 CST [1]: [9-1] user=,db=,app=,client= LOG:  aborting any active transactions
+2025-03-04 19:40:06 CST [1]: [10-1] user=,db=,app=,client= LOG:  background worker "logical replication launcher" (PID 32) exited with exit code 1
+2025-03-04 19:40:06 CST [27]: [1-1] user=,db=,app=,client= LOG:  shutting down
+2025-03-04 19:40:06 CST [27]: [2-1] user=,db=,app=,client= LOG:  checkpoint starting: shutdown immediate
+2025-03-04 19:40:07 CST [27]: [3-1] user=,db=,app=,client= LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.025 s, sync=0.080 s, total=0.353 s; sync files=4, longest=0.030 s, average=0.020 s; distance=14 kB, estimate=14 kB
+2025-03-04 19:40:07 CST [1]: [11-1] user=,db=,app=,client= LOG:  database system is shut down
