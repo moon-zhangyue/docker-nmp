@@ -44,10 +44,10 @@ class KafkaQueue extends BaseController
                     ]
                 ]);
             } else {
-                Log::error('Kafka queue push failed:' . json_encode([
+                Log::error('Kafka queue push failed:queue=>{queue} data => {data}', [
                     'queue' => $jobQueueName,
                     'data' => $jobData
-                ]), JSON_UNESCAPED_UNICODE);
+                ]);
                 return json([
                     'code' => 1,
                     'msg' => 'Failed to add task to Kafka queue',
