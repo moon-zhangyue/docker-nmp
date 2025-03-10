@@ -48,6 +48,11 @@ class KafkaService
             $conf->set('group.id', $this->config['group_id']);
             $conf->set('client.id', $this->config['client_id']);
             $conf->set('auto.offset.reset', 'earliest');
+            $conf->set('socket.timeout.ms', '30000');
+            $conf->set('session.timeout.ms', '30000');
+            $conf->set('max.poll.interval.ms', '300000');
+            $conf->set('enable.auto.commit', 'true');
+            $conf->set('auto.commit.interval.ms', '5000');
             
             $this->consumer = new KafkaConsumer($conf);
         }
@@ -72,7 +77,7 @@ class KafkaService
             
             Log::info('User registration message sent successfully', $userData);
         } catch (\Exception $e) {
-            Log::error('Failed to send user registration message: ' . $e->getMessage());
+            Log::error('Failed to send user registration message: {message}', ['message' => $e->getMessage()]);
             throw $e;
         }
     }
@@ -87,7 +92,7 @@ class KafkaService
             $consumer->subscribe(['user-registration']);
 
             while (true) {
-                $message = $consumer->consume(120 * 1000);
+                $message = $consumer->consume(30 * 1000);
                 
                 switch ($message->err) {
                     case RD_KAFKA_RESP_ERR_NO_ERROR:
@@ -101,12 +106,12 @@ class KafkaService
                         Log::info('Timed out waiting for message');
                         break;
                     default:
-                        Log::error('Kafka error: ' . $message->errstr());
+                        Log::error('Kafka error: {error}', ['error' => $message->errstr()]);
                         throw new \Exception($message->errstr(), $message->err);
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Kafka consumer error: ' . $e->getMessage());
+            Log::error('Kafka consumer error: {message}', ['message' => $e->getMessage()]);
             throw $e;
         }
     }

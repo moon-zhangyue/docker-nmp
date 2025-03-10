@@ -70,9 +70,10 @@ class KafkaQueueConsumer extends Command
                     sleep(1);
                 }
             } catch (\Exception $e) {
-                Log::error('Kafka queue error: ' . $e->getMessage(), [
+                Log::error('Kafka queue error: {error} {trace} {job_id}', [
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
+                    'job_id' => $job->getJobId() ?? 'unknown'
                 ]);
 
                 $output->writeln(sprintf(
@@ -80,8 +81,8 @@ class KafkaQueueConsumer extends Command
                     $e->getMessage()
                 ));
 
-                // 出错后短暂等待
-                sleep(1);
+                // 出错后短暂等待，使用更短的时间避免长时间阻塞
+                usleep(500000); // 500毫秒
             }
         }
 

@@ -36,9 +36,28 @@ class KafkaJob extends Job
         parent::delete();
         // 显式提交消息偏移量 - 使用同步提交确保偏移量被正确提交
         if ($this->message instanceof \RdKafka\Message) {
-            // 改用同步提交替代异步提交，确保消息被确认
-            $this->connection->consumer->commit($this->message);
-            // $this->connection->consumer->commitAsync($this->message); // 异步提交
+            try {
+                // 改用同步提交替代异步提交，确保消息被确认
+                $this->connection->consumer->commit($this->message);
+                // 记录提交成功日志
+                if (class_exists('\think\facade\Log')) {
+                    \think\facade\Log::debug('Kafka message committed successfully-{topic},{partition},{offset}', [
+                        'topic' => $this->message->topic_name,
+                        'partition' => $this->message->partition,
+                        'offset' => $this->message->offset
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // 记录提交失败日志
+                if (class_exists('\think\facade\Log')) {
+                    \think\facade\Log::error('Failed to commit Kafka message-{topic},{partition},{offset},{error}', [
+                        'error' => $e->getMessage(),
+                        'topic' => $this->message->topic_name ?? 'unknown',
+                        'partition' => $this->message->partition ?? -1,
+                        'offset' => $this->message->offset ?? -1
+                    ]);
+                }
+            }
         }
     }
 
@@ -48,13 +67,13 @@ class KafkaJob extends Job
 
         // 解析当前payload
         $payload = json_decode($this->message->payload, true);
-        
+
         // 增加尝试次数
         $payload['attempts'] = $this->attempts() + 1;
-        
+
         // 获取最大重试次数，默认为3次
         $maxTries = $payload['maxTries'] ?? 3;
-        
+
         // 如果超过最大重试次数，则放入死信队列
         if ($payload['attempts'] > $maxTries) {
             // 将任务放入死信队列（使用原队列名称加上_dead_letter后缀）
@@ -63,15 +82,17 @@ class KafkaJob extends Job
                 json_encode($payload),
                 $deadLetterQueue
             );
-            
+
             // 记录日志
             if (class_exists('\think\facade\Log')) {
-                \think\facade\Log::warning('Job exceeded maximum retry attempts and moved to dead letter queue', [
-                    'job' => $payload,
-                    'queue' => $this->queue,
-                    'dead_letter_queue' => $deadLetterQueue,
-                    'attempts' => $payload['attempts'],
-                    'max_tries' => $maxTries
+                \think\facade\Log::warning('Job exceeded maximum retry attempts and moved to dead letter queue: {job_info}', [
+                    'job_info' => [
+                        'job' => $payload,
+                        'queue' => $this->queue,
+                        'dead_letter_queue' => $deadLetterQueue,
+                        'attempts' => $payload['attempts'],
+                        'max_tries' => $maxTries
+                    ]
                 ]);
             }
         } else {
@@ -82,18 +103,18 @@ class KafkaJob extends Job
                 // 指数退避策略：尝试次数越多，等待时间越长
                 $delay = min(900, pow(2, $payload['attempts']) * 10); // 最大延迟15分钟
             }
-            
+
             // 如果需要延迟执行，使用延迟队列
             if ($delay > 0) {
                 $delayQueue = $this->queue . '_delayed';
                 $payload['available_at'] = time() + $delay; // 记录任务可执行的时间
                 $payload['original_queue'] = $this->queue; // 记录原始队列名称
-                
+
                 $this->connection->pushRaw(
                     json_encode($payload),
                     $delayQueue
                 );
-                
+
                 // 记录日志
                 if (class_exists('\think\facade\Log')) {
                     \think\facade\Log::info('Job released with delay', [

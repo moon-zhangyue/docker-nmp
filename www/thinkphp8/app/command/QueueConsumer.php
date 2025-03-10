@@ -143,12 +143,15 @@ class QueueConsumer extends Command
             // 模拟处理时间
             sleep(1);
 
-            Log::info(
-                'Task processed successfully,task_id: ' .
-                    'task_id' . $task['id'] . '-data:' . $task['data']
-            );
+            Log::info('Task processed successfully', [
+                'task_id' => $task['id'],
+                'data' => $task['data']
+            ]);
         } catch (\Exception $e) {
-            Log::error('Task processing failed: ' . $e->getMessage() . '-task_id:' . $task['id']);
+            Log::error('Task processing failed: {message} {task_id}', [
+                'message' => $e->getMessage(),
+                'task_id' => $task['id']
+            ]);
             throw $e;
         }
     }

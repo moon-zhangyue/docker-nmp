@@ -36,7 +36,7 @@ class User extends BaseController
                 'data' => null
             ]);
         } catch (\Exception $e) {
-            Log::error('Registration error: ' . $e->getMessage());
+            Log::error('Registration error: {message}', ['message' => $e->getMessage()]);
 
             return json([
                 'code' => 1,
@@ -63,7 +63,7 @@ class User extends BaseController
                 'data' => $res
             ]);
         } catch (\Exception $e) {
-            Log::error('redis_queue push error: ' . $e->getMessage());
+            Log::error('redis_queue push error: {message}', ['message' => $e->getMessage()]);
 
             return json([
                 'code' => 1,
@@ -106,7 +106,7 @@ class User extends BaseController
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Kafka queue push error: ' . $e->getMessage());
+            Log::error('Kafka queue push error: {message}', ['message' => $e->getMessage()]);
 
             return json([
                 'code' => 1,

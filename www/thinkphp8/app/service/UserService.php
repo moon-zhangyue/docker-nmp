@@ -30,7 +30,7 @@ class UserService
             
             return true;
         } catch (\Exception $e) {
-            Log::error('Registration failed: ' . $e->getMessage());
+            Log::error('Registration failed: {message}', ['message' => $e->getMessage()]);
             throw $e;
         }
     }
@@ -74,8 +74,8 @@ class UserService
             
             Log::info('User registered successfully', ['user_id' => $user->id]);
         } catch (\Exception $e) {
-            Log::error('Failed to process registration: ' . $e->getMessage());
+            Log::error('Failed to process registration: {message}', ['message' => $e->getMessage()]);
             throw $e;
         }
     }
-} 
+}

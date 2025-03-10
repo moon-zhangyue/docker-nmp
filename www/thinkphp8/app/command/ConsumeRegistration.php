@@ -38,13 +38,13 @@ class ConsumeRegistration extends Command
                     $output->writeln('Registration processed successfully');
                 } catch (\Exception $e) {
                     $output->writeln('Error processing registration: ' . $e->getMessage());
-                    Log::error('Consumer error: ' . $e->getMessage());
+                    Log::error('Consumer error: {message}', ['message' => $e->getMessage()]);
                 }
             });
         } catch (\Exception $e) {
             $output->writeln('Consumer error: ' . $e->getMessage());
-            Log::error('Consumer error: ' . $e->getMessage());
+            Log::error('Consumer error: {message}', ['message' => $e->getMessage()]);
             return 1;
         }
     }
-} 
+}
