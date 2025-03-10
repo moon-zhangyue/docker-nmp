@@ -12,6 +12,16 @@ class ProcessTask
 {
     public function fire(Job $job, $data)
     {
+        // 模拟前三次执行失败
+        // $attempts = $job->attempts();
+        // Log::info('Current attempt: ' . $attempts);
+
+        // if ($attempts <= 3) {
+        //     // 模拟任务失败，抛出异常
+        //     Log::info('模拟任务执行失败，当前尝试次数: ' . json_encode($attempts, JSON_UNESCAPED_UNICODE));
+
+        //     $job->release($attempts);
+        // } else {
         try {
             Log::info('Processing task: ' . json_encode($data, JSON_UNESCAPED_UNICODE));
 
@@ -37,4 +47,5 @@ class ProcessTask
             }
         }
     }
+    // }
 }
