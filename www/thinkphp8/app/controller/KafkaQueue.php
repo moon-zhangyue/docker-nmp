@@ -54,10 +54,10 @@ class KafkaQueue extends BaseController
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Failed to push task to Kafka: {error} {trace}', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
+            Log::error('Failed to push task to Kafka:' . json_encode([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], JSON_UNESCAPED_UNICODE));
 
             return json([
                 'code' => 1,

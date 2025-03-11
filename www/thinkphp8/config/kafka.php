@@ -1,13 +1,24 @@
 <?php
 
 return [
-    'default' => [
-        'brokers' => env('KAFKA_BROKERS', 'kafka:9092'),
-        'debug' => env('KAFKA_DEBUG', false),
-        'topics' => [
-            'default' => 'kafka-topic'
+    'default' => 'kafka',
+    'connections' => [
+        'kafka' => [
+            'driver' => 'kafka',
+            'queue' => 'default',
+            'consumer_group_id' => 'thinkphp_consumer_group',
+            'brokers' => 'kafka:9092',
+            'topics' => ['default'],
+            'consumer' => [
+                'enable.auto.commit' => 'true',
+                'auto.commit.interval.ms' => '1000',
+                'auto.offset.reset' => 'earliest',
+                'session.timeout.ms' => '30000',
+            ],
+            'producer' => [
+                'compression.codec' => 'snappy',
+                'message.send.max.retries' => 3,
+            ],
         ],
-        'group_id' => env('KAFKA_GROUP_ID', 'thinkphp-group'),
-        'client_id' => env('KAFKA_CLIENT_ID', 'thinkphp-client'),
-    ]
+    ],
 ];

@@ -37,15 +37,36 @@ class KafkaJob extends Job
         // 显式提交消息偏移量 - 使用同步提交确保偏移量被正确提交
         if ($this->message instanceof \RdKafka\Message) {
             try {
+                // 记录处理开始时间，用于计算处理时间
+                $startTime = microtime(true);
+                
                 // 改用同步提交替代异步提交，确保消息被确认
                 $this->connection->consumer->commit($this->message);
+                
+                // 计算处理时间（秒）
+                $processingTime = microtime(true) - $startTime;
+                
                 // 记录提交成功日志
                 if (class_exists('\think\facade\Log')) {
-                    \think\facade\Log::debug('Kafka message committed successfully-{topic},{partition},{offset}', [
+                    \think\facade\Log::debug('Kafka message committed successfully-{topic},{partition},{offset},{time}', [
                         'topic' => $this->message->topic_name,
                         'partition' => $this->message->partition,
-                        'offset' => $this->message->offset
+                        'offset' => $this->message->offset,
+                        'time' => round($processingTime, 4)
                     ]);
+                }
+                
+                // 解析消息内容
+                $payload = json_decode($this->message->payload, true);
+                $messageId = $payload['message_id'] ?? uniqid('msg_', true);
+                
+                // 使用新的幂等性检查和指标收集功能
+                if (method_exists($this->connection, 'markMessageAsProcessed')) {
+                    $this->connection->markMessageAsProcessed(
+                        $messageId,
+                        $this->message->topic_name,
+                        $processingTime
+                    );
                 }
             } catch (\Exception $e) {
                 // 记录提交失败日志
@@ -56,6 +77,21 @@ class KafkaJob extends Job
                         'partition' => $this->message->partition ?? -1,
                         'offset' => $this->message->offset ?? -1
                     ]);
+                }
+                
+                // 解析消息内容
+                $payload = json_decode($this->message->payload, true);
+                $messageId = $payload['message_id'] ?? uniqid('msg_', true);
+                
+                // 使用新的死信队列和指标收集功能
+                if (method_exists($this->connection, 'markMessageAsFailed')) {
+                    $this->connection->markMessageAsFailed(
+                        $messageId,
+                        $this->message->topic_name,
+                        $payload,
+                        $e->getMessage(),
+                        0.0
+                    );
                 }
             }
         }
@@ -95,6 +131,9 @@ class KafkaJob extends Job
                     ]
                 ]);
             }
+            
+            // 更新失败指标
+            $this->updateMetrics('failed');
         } else {
             // 未超过最大重试次数，继续放回原队列重试
             // 计算延迟时间，使用指数退避策略
@@ -144,7 +183,82 @@ class KafkaJob extends Job
 
     public function getJobId()
     {
-        // 使用消息的 offset 作为任务 ID
-        return $this->message->offset;
+        // 优先使用消息ID作为任务ID，如果不存在则使用offset
+        $payload = json_decode($this->getRawBody(), true);
+        return $payload['message_id'] ?? $this->message->offset;
+    }
+
+    /**
+     * 更新队列处理指标
+     * @param string $status 处理状态：success或failed
+     */
+    protected function updateMetrics(string $status)
+    {
+        try {
+            // 从缓存中获取当前指标数据
+            $metrics = \think\facade\Cache::get('queue_metrics', []);
+            
+            // 初始化当前队列的指标数据
+            if (!isset($metrics[$this->queue])) {
+                $metrics[$this->queue] = [
+                    'success' => 0,
+                    'failed' => 0,
+                    'last_processed_at' => 0
+                ];
+            }
+            
+            // 更新指标
+            $metrics[$this->queue][$status]++;
+            $metrics[$this->queue]['last_processed_at'] = time();
+            
+            // 保存更新后的指标数据到缓存
+            \think\facade\Cache::set('queue_metrics', $metrics);
+        } catch (\Exception $e) {
+            // 记录错误日志但不中断处理流程
+            if (class_exists('\think\facade\Log')) {
+                \think\facade\Log::error('Failed to update queue metrics: ' . $e->getMessage());
+            }
+        }
+    }
+    /**
+     * 标记任务为失败
+     * 
+     * @return void
+     */
+    public function fail()
+    {
+        parent::markAsFailed();
+        
+        // 记录日志
+        if (class_exists('\think\facade\Log')) {
+            \think\facade\Log::error('Job marked as failed', [
+                'topic' => $this->message->topic_name ?? 'unknown',
+                'partition' => $this->message->partition ?? -1,
+                'offset' => $this->message->offset ?? -1,
+                'payload' => json_decode($this->getRawBody(), true)
+            ]);
+        }
+        
+        // 更新失败指标
+        if (method_exists($this->connection, 'updateMetrics')) {
+            $this->connection->updateMetrics('failed');
+        }
+        
+        // 同时更新本地缓存中的失败指标
+        $this->updateMetrics('failed');
+        
+        // 提交消息偏移量，确认已处理（即使失败也需要确认，避免消息被重复消费）
+        if ($this->message instanceof \RdKafka\Message) {
+            try {
+                $this->connection->consumer->commit($this->message);
+            } catch (\Exception $e) {
+                // 记录提交失败日志
+                if (class_exists('\think\facade\Log')) {
+                    \think\facade\Log::error('Failed to commit Kafka message after marking as failed: {error}', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        }
     }
 }
