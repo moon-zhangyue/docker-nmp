@@ -35,6 +35,7 @@ class Kafka extends Connector
     protected $configManager; // 配置热加载管理器
     protected $partitionManager; // 分区管理器
     protected $lastRebalanceCheck = 0; // 上次分区重平衡检查时间
+    protected $processedMessageIds = []; // 已处理消息ID列表，用于幂等性检查
 
     public function __construct(array $options) // 构造函数，接收配置选项数组
     {
@@ -53,21 +54,21 @@ class Kafka extends Connector
 
         // 初始化指标收集器
         $this->metricsCollector = PrometheusCollector::getInstance();
-        
+
         // 初始化幂等性检查工具
         $this->idempotent = new RedisIdempotent([
             'expire_time' => $options['idempotent']['expire_time'] ?? 86400
         ]);
-        
+
         // 初始化死信队列处理器
         $this->deadLetterQueue = new DeadLetterQueue([
             'expire_time' => $options['dead_letter']['expire_time'] ?? 604800,
             'alert_threshold' => $options['dead_letter']['alert_threshold'] ?? 10
         ]);
-        
+
         // 初始化配置热加载管理器
         $this->configManager = HotReloadManager::getInstance();
-        
+
         // 初始化分区管理器
         $this->partitionManager = new PartitionManager();
 
@@ -111,10 +112,10 @@ class Kafka extends Connector
         $brokers = $this->configManager->get('kafka.connections.kafka.brokers', $this->options['brokers']);
         // 设置broker列表
         $conf->set('metadata.broker.list', $brokers);
-        
+
         // 从consumer配置组中获取配置
         $consumerConfig = $this->options['consumer'] ?? [];
-        
+
         // 设置消费者组ID
         $conf->set('group.id', $consumerConfig['group.id'] ?? $this->options['group.id'] ?? 'thinkphp_consumer_group');
         // 设置偏移量重置策略
@@ -131,7 +132,7 @@ class Kafka extends Connector
         $conf->set('max.poll.interval.ms', (string)($this->options['max.poll.interval.ms'] ?? '300000'));
         // 设置套接字超时时间
         $conf->set('socket.timeout.ms', (string)($this->options['socket.timeout.ms'] ?? '30000'));
-        
+
         // 设置客户端ID
         if (isset($this->options['client.id'])) {
             $conf->set('client.id', $this->options['client.id']);
@@ -262,19 +263,19 @@ class Kafka extends Connector
                 $this->consumer->commit($message);
                 return null;
             }
-            
+
             // 检查是否需要重新平衡分区
             if ($this->partitionManager->needRebalance($queueName, $this->lastRebalanceCheck)) {
                 $this->lastRebalanceCheck = time();
                 $consumerId = $this->options['client.id'] ?? gethostname();
                 $partitions = $this->partitionManager->getConsumerPartitions($queueName, $consumerId);
-                
+
                 Log::info('Rebalancing partitions', [
                     'topic' => $queueName,
                     'consumer_id' => $consumerId,
                     'partitions' => $partitions
                 ]);
-                
+
                 // 重新订阅指定分区
                 $this->consumer->unsubscribe();
                 $topicPartitions = [];
@@ -527,7 +528,7 @@ class Kafka extends Connector
             $message->topic_name ?? $this->options['topic'] // 获取消息的主题名称或默认主题
         );
     }
-    
+
     /**
      * 处理消息成功
      * 
@@ -543,17 +544,17 @@ class Kafka extends Connector
             'processed_at' => time(),
             'processing_time' => $processingTime
         ]);
-        
+
         // 更新监控指标
         $this->metricsCollector->recordSuccess($this->connectionName ?? 'kafka', $queue, $processingTime);
-        
+
         Log::info('Message processed successfully', [
             'message_id' => $messageId,
             'queue' => $queue,
             'processing_time' => round($processingTime, 4)
         ]);
     }
-    
+
     /**
      * 处理消息失败
      * 
@@ -568,11 +569,11 @@ class Kafka extends Connector
     {
         // 添加到死信队列
         $this->deadLetterQueue->add($messageId, $queue, $payload, $error);
-        
+
         // 更新监控指标
         $this->metricsCollector->recordFailure($this->connectionName ?? 'kafka', $queue, $processingTime);
-        
-        Log::error('Message processing failed', [
+
+        Log::error('Message processing failed: message_id={message_id}, queue={queue}, error={error}, processing_time={processing_time}', [
             'message_id' => $messageId,
             'queue' => $queue,
             'error' => $error,
