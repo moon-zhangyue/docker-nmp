@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace think\queue\config;
@@ -17,27 +18,27 @@ class HotReloadManager
      * Redis缓存键前缀
      */
     protected $keyPrefix = 'queue:config:';
-    
+
     /**
      * 配置刷新间隔（秒）
      */
     protected $refreshInterval = 60;
-    
+
     /**
      * 上次刷新时间
      */
     protected $lastRefreshTime = 0;
-    
+
     /**
      * 缓存的配置
      */
     protected $cachedConfig = [];
-    
+
     /**
      * 单例实例
      */
     private static $instance = null;
-    
+
     /**
      * 私有构造函数，防止外部实例化
      */
@@ -46,7 +47,7 @@ class HotReloadManager
         $this->lastRefreshTime = time();
         $this->loadConfigFromCache();
     }
-    
+
     /**
      * 获取单例实例
      * 
@@ -57,10 +58,10 @@ class HotReloadManager
         if (self::$instance === null) {
             self::$instance = new self();
         }
-        
+
         return self::$instance;
     }
-    
+
     /**
      * 获取配置值
      * 
@@ -72,11 +73,11 @@ class HotReloadManager
     {
         // 检查是否需要刷新配置
         $this->checkRefresh();
-        
+
         // 从缓存的配置中获取值
         return $this->cachedConfig[$key] ?? $default;
     }
-    
+
     /**
      * 设置配置值
      * 
@@ -88,20 +89,20 @@ class HotReloadManager
     {
         // 更新本地缓存
         $this->cachedConfig[$key] = $value;
-        
+
         // 保存到Redis
         $cacheKey = $this->getKey($key);
         $result = Cache::set($cacheKey, $value);
-        
+
         if ($result) {
             Log::info('Queue config updated', ['key' => $key, 'value' => $value]);
         } else {
             Log::error('Failed to update queue config', ['key' => $key]);
         }
-        
+
         return $result;
     }
-    
+
     /**
      * 批量设置配置
      * 
@@ -111,16 +112,16 @@ class HotReloadManager
     public function setMultiple(array $config): bool
     {
         $success = true;
-        
+
         foreach ($config as $key => $value) {
             if (!$this->set($key, $value)) {
                 $success = false;
             }
         }
-        
+
         return $success;
     }
-    
+
     /**
      * 删除配置
      * 
@@ -133,18 +134,18 @@ class HotReloadManager
         if (isset($this->cachedConfig[$key])) {
             unset($this->cachedConfig[$key]);
         }
-        
+
         // 从Redis中删除
         $cacheKey = $this->getKey($key);
         $result = Cache::delete($cacheKey);
-        
+
         if ($result) {
             Log::info('Queue config deleted', ['key' => $key]);
         }
-        
+
         return $result;
     }
-    
+
     /**
      * 检查是否需要刷新配置
      * 
@@ -153,14 +154,14 @@ class HotReloadManager
     protected function checkRefresh(): void
     {
         $now = time();
-        
+
         // 如果距离上次刷新时间超过刷新间隔，则刷新配置
         if ($now - $this->lastRefreshTime >= $this->refreshInterval) {
             $this->loadConfigFromCache();
             $this->lastRefreshTime = $now;
         }
     }
-    
+
     /**
      * 从Redis缓存加载配置
      * 
@@ -170,26 +171,26 @@ class HotReloadManager
     {
         // 获取所有配置键
         $keys = Cache::get($this->keyPrefix . 'keys', []);
-        
+
         if (empty($keys)) {
             // 如果没有缓存的配置键，则初始化配置
             $this->initializeConfig();
             return;
         }
-        
+
         // 加载每个配置项
         foreach ($keys as $key) {
             $cacheKey = $this->getKey($key);
             $value = Cache::get($cacheKey);
-            
+
             if ($value !== null) {
                 $this->cachedConfig[$key] = $value;
             }
         }
-        
-        Log::debug('Loaded queue config from cache', ['count' => count($keys)]);
+
+        Log::debug('Loaded queue config from cache ,count => {count}', ['count' => count($keys)]);
     }
-    
+
     /**
      * 初始化配置
      * 
@@ -200,10 +201,10 @@ class HotReloadManager
         // 从ThinkPHP配置中获取队列配置
         $queueConfig = Config::get('queue', []);
         $kafkaConfig = Config::get('kafka', []);
-        
+
         // 合并配置
         $config = array_merge($queueConfig, $kafkaConfig);
-        
+
         // 保存到Redis
         $keys = [];
         foreach ($config as $key => $value) {
@@ -218,13 +219,13 @@ class HotReloadManager
                 $this->cachedConfig[$key] = $value;
             }
         }
-        
+
         // 保存配置键列表
         Cache::set($this->keyPrefix . 'keys', $keys);
-        
-        Log::info('Initialized queue config', ['count' => count($keys)]);
+
+        Log::info('Initialized queue config: {count}', ['count' => count($keys)]);
     }
-    
+
     /**
      * 保存数组类型的配置
      * 
@@ -237,7 +238,7 @@ class HotReloadManager
     {
         foreach ($config as $key => $value) {
             $fullKey = $prefix . '.' . $key;
-            
+
             if (is_array($value)) {
                 // 递归处理嵌套数组
                 $this->saveArrayConfig($fullKey, $value, $keys);
@@ -250,7 +251,7 @@ class HotReloadManager
             }
         }
     }
-    
+
     /**
      * 生成Redis缓存键
      * 
@@ -261,7 +262,7 @@ class HotReloadManager
     {
         return $this->keyPrefix . str_replace('.', ':', $key);
     }
-    
+
     /**
      * 设置刷新间隔
      * 
@@ -272,7 +273,7 @@ class HotReloadManager
     {
         $this->refreshInterval = $interval;
     }
-    
+
     /**
      * 强制刷新配置
      * 

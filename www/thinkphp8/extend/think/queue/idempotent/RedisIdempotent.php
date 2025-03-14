@@ -72,12 +72,12 @@ class RedisIdempotent
         $result = Cache::set($key, $data, $this->expireTime);
         
         if ($result) {
-            Log::debug('Marked message as processed', [
+            Log::debug('Marked message as processed: {message_id}', [
                 'message_id' => $messageId,
                 'queue' => $queue
             ]);
         } else {
-            Log::error('Failed to mark message as processed', [
+            Log::error('Failed to mark message as processed: {message_id}', [
                 'message_id' => $messageId,
                 'queue' => $queue
             ]);

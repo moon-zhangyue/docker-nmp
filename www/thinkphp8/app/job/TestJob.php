@@ -13,7 +13,7 @@ class TestJob
     {
         try {
             // 记录任务开始
-            Log::info('Processing job', ['data' => $data]);
+            Log::info('Processing job: {data}', ['data' => $data]);
 
             // 执行具体的任务逻辑
             $this->handleJob($data);
@@ -22,10 +22,10 @@ class TestJob
             $job->delete();
 
             // 记录任务完成
-            Log::info('Job completed successfully', ['data' => $data]);
+            Log::info('Job completed successfully: {data}', ['data' => $data]);
         } catch (\Exception $e) {
             // 记录错误
-            Log::error('Job failed', [
+            Log::error('Job failed: {error}, data: {data}', [
                 'error' => $e->getMessage(),
                 'data' => $data
             ]);

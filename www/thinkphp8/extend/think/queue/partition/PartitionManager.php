@@ -61,7 +61,7 @@ class PartitionManager
     public function setPartitionCount(string $topic, int $count): bool
     {
         if ($count < 1) {
-            Log::error('Invalid partition count', ['topic' => $topic, 'count' => $count]);
+            Log::error('Invalid partition count: {topic}, count: {count}', ['topic' => $topic, 'count' => $count]);
             return false;
         }
         
@@ -71,7 +71,7 @@ class PartitionManager
         if ($result) {
             // 同时更新配置热加载管理器中的配置
             $this->configManager->set('kafka.connections.kafka.partitions.' . $topic, $count);
-            Log::info('Partition count updated', ['topic' => $topic, 'count' => $count]);
+            Log::info('Partition count updated: {topic}, count: {count}', ['topic' => $topic, 'count' => $count]);
         }
         
         return $result;
@@ -114,7 +114,7 @@ class PartitionManager
             $partitions[] = $i;
         }
         
-        Log::debug('Consumer partitions calculated', [
+        Log::debug('Consumer partitions calculated: {topic}, consumer_id: {consumer_id}, partitions: {partitions}', [
             'topic' => $topic,
             'consumer_id' => $consumerId,
             'partitions' => $partitions,
@@ -168,7 +168,7 @@ class PartitionManager
             $result = $this->setTopicConsumers($topic, $consumers);
             
             if ($result) {
-                Log::info('Consumer registered', ['topic' => $topic, 'consumer_id' => $consumerId]);
+                Log::info('Consumer registered: {topic}, consumer_id: {consumer_id}', ['topic' => $topic, 'consumer_id' => $consumerId]);
                 
                 // 触发分区重新平衡
                 $this->rebalancePartitions($topic);
@@ -198,7 +198,7 @@ class PartitionManager
             $result = $this->setTopicConsumers($topic, $consumers);
             
             if ($result) {
-                Log::info('Consumer unregistered', ['topic' => $topic, 'consumer_id' => $consumerId]);
+                Log::info('Consumer unregistered: {topic}, consumer_id: {consumer_id}', ['topic' => $topic, 'consumer_id' => $consumerId]);
                 
                 // 触发分区重新平衡
                 $this->rebalancePartitions($topic);
@@ -225,7 +225,7 @@ class PartitionManager
             return;
         }
         
-        Log::info('Rebalancing partitions', [
+        Log::info('Rebalancing partitions: {topic}, consumers: {consumers}', [
             'topic' => $topic,
             'partition_count' => $partitionCount,
             'consumer_count' => count($consumers)

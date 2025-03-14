@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace app\service;
 
 use think\facade\Log;
-use Redis;
 
 class RedisQueue
 {
@@ -60,12 +59,16 @@ class RedisQueue
         while ($retryCount < self::MAX_RETRY) {
             try {
                 $config = config('redis.default');
-                $this->redis = new Redis();
+                // 确保已安装PHP Redis扩展
+                if (!extension_loaded('redis')) {
+                    throw new \RuntimeException('Redis扩展未安装');
+                }
+                $this->redis = new \Redis(); // 使用完整的命名空间引用Redis类
 
                 // 设置连接超时时间
                 $timeout = $config['timeout'] ?? 5;
 
-                Log::info('Connecting to Redis', [
+                Log::info('Connecting to Redis: host: {host}, port: {port}, timeout: {timeout}, attempt: {attempt}', [
                     'host' => $config['host'],
                     'port' => $config['port'],
                     'timeout' => $timeout,
@@ -104,7 +107,7 @@ class RedisQueue
                 $lastError = $e;
                 $retryCount++;
 
-                Log::warning('Redis connection attempt failed', [
+                Log::warning('Redis connection attempt failed: {error}, attempt: {attempt}/{max_attempts}', [
                     'error' => $e->getMessage(),
                     'attempt' => $retryCount,
                     'max_attempts' => self::MAX_RETRY
@@ -116,8 +119,9 @@ class RedisQueue
             }
         }
 
-        Log::error('Redis connection failed after ' . self::MAX_RETRY . ' attempts', [
-            'last_error' => $lastError ? $lastError->getMessage() : null
+        Log::error('Redis connection failed after {max_retry} attempts: {last_error}', [
+            'last_error' => $lastError ? $lastError->getMessage() : null,
+            'max_retry' => self::MAX_RETRY
         ]);
         throw new \Exception('Redis connection failed: ' . ($lastError ? $lastError->getMessage() : 'Unknown error'));
     }
@@ -172,7 +176,7 @@ class RedisQueue
 
             $result = $this->redis->lPush($queue, json_encode($message));
 
-            Log::info('Task pushed to queue', [
+            Log::info('Task pushed to queue: {queue}, task_id: {task_id}', [
                 'queue' => $queue,
                 'task_id' => $message['id'],
                 'data' => $data
@@ -180,7 +184,7 @@ class RedisQueue
 
             return $result > 0;
         } catch (\Exception $e) {
-            Log::error('Failed to push task to queue', [
+            Log::error('Failed to push task to queue: {queue}, error: {error}', [
                 'queue' => $queue,
                 'data' => $data,
                 'error' => $e->getMessage()
@@ -201,7 +205,7 @@ class RedisQueue
             $failedQueue = $this->getFailedQueueName($queue);
             $result = $this->redis->lPush($failedQueue, json_encode($message));
 
-            Log::info('Task marked as failed', [
+            Log::info('Task marked as failed: {queue}, task_id: {task_id}, error: {error}', [
                 'queue' => $queue,
                 'task_id' => $message['id'],
                 'error' => $error
@@ -209,7 +213,7 @@ class RedisQueue
 
             return $result > 0;
         } catch (\Exception $e) {
-            Log::error('Failed to mark task as failed', [
+            Log::error('Failed to mark task as failed: {queue}, task_id: {task_id}, error: {error}', [
                 'queue' => $queue,
                 'task_id' => $message['id'],
                 'error' => $e->getMessage()
@@ -237,7 +241,7 @@ class RedisQueue
             $retryQueue = $this->getRetryQueueName($queue);
             $result = $this->redis->lPush($retryQueue, json_encode($message));
 
-            Log::info('Task scheduled for retry', [
+            Log::info('Task scheduled for retry: {queue}, task_id: {task_id}, attempts: {attempts}', [
                 'queue' => $queue,
                 'task_id' => $message['id'],
                 'attempts' => $message['attempts']
@@ -245,7 +249,7 @@ class RedisQueue
 
             return $result > 0;
         } catch (\Exception $e) {
-            Log::error('Failed to retry task', [
+            Log::error('Failed to retry task: {queue}, task_id: {task_id}, error: {error}', [
                 'queue' => $queue,
                 'task_id' => $message['id'],
                 'error' => $e->getMessage()
@@ -267,7 +271,7 @@ class RedisQueue
                 return json_decode($item, true);
             }, $items);
         } catch (\Exception $e) {
-            Log::error('Failed to get failed tasks', [
+            Log::error('Failed to get failed tasks: {queue}, error: {error}', [
                 'queue' => $queue,
                 'error' => $e->getMessage()
             ]);
@@ -284,7 +288,7 @@ class RedisQueue
             $failedQueue = $this->getFailedQueueName($queue);
             return $this->redis->del($failedQueue) !== false;
         } catch (\Exception $e) {
-            Log::error('Failed to clear failed tasks', [
+            Log::error('Failed to clear failed tasks: {queue}, error: {error}', [
                 'queue' => $queue,
                 'error' => $e->getMessage()
             ]);
@@ -310,7 +314,7 @@ class RedisQueue
 
             return $retryCount;
         } catch (\Exception $e) {
-            Log::error('Failed to retry all failed tasks', [
+            Log::error('Failed to retry all failed tasks: {queue}, error: {error}', [
                 'queue' => $queue,
                 'error' => $e->getMessage()
             ]);
@@ -343,14 +347,14 @@ class RedisQueue
 
             $message = json_decode($result, true);
             if (!$message) {
-                Log::warning('Invalid message format in queue', [
+                Log::warning('Invalid message format in queue: {queue}, raw_data: {raw_data}', [
                     'queue' => $queue,
                     'raw_data' => $result
                 ]);
                 return null;
             }
 
-            Log::info('Task popped from queue', [
+            Log::info('Task popped from queue: {queue}, task_id: {task_id}, attempts: {attempts}', [
                 'queue' => $queue,
                 'task_id' => $message['id'],
                 'attempts' => $message['attempts'] ?? 0
@@ -358,7 +362,7 @@ class RedisQueue
 
             return $message;
         } catch (\Exception $e) {
-            Log::error('Failed to pop task from queue', [
+            Log::error('Failed to pop task from queue: {queue}, error: {error}', [
                 'queue' => $queue,
                 'error' => $e->getMessage()
             ]);

@@ -82,7 +82,7 @@ class DeadLetterQueue
         $result = Cache::lPush($key, json_encode($data));
         
         if ($result) {
-            Log::warning('Message added to dead letter queue', [
+            Log::warning('Message added to dead letter queue: {message_id}, queue: {queue}, error: {error}', [
                 'message_id' => $messageId,
                 'queue' => $queue,
                 'error' => $error
@@ -102,7 +102,7 @@ class DeadLetterQueue
             
             return true;
         } else {
-            Log::error('Failed to add message to dead letter queue', [
+            Log::error('Failed to add message to dead letter queue: {message_id}, queue: {queue}', [
                 'message_id' => $messageId,
                 'queue' => $queue
             ]);
@@ -182,7 +182,7 @@ class DeadLetterQueue
             // 从死信队列中移除消息
             Cache::lRem($key, 1, $messages[0]);
             
-            Log::info('Message retried from dead letter queue', [
+            Log::info('Message retried from dead letter queue: {message_id}, queue: {queue}', [
                 'message_id' => $data['message_id'],
                 'queue' => $queue,
                 'retry_count' => $data['payload']['retry_count']
@@ -247,7 +247,7 @@ class DeadLetterQueue
         if ($count >= $this->alertThreshold) {
             $analysis = $this->analyzeErrors($queue);
             
-            Log::alert('Dead letter queue threshold exceeded', [
+            Log::alert('Dead letter queue threshold exceeded: {queue}, count: {count}, threshold: {threshold}', [
                 'queue' => $queue,
                 'count' => $count,
                 'threshold' => $this->alertThreshold,
@@ -334,10 +334,10 @@ class DeadLetterQueue
         curl_close($ch);
         
         if ($httpCode >= 200 && $httpCode < 300) {
-            Log::info('Webhook alert sent successfully', ['url' => $url, 'response' => $response]);
+            Log::info('Webhook alert sent successfully: {url}, response: {response}', ['url' => $url, 'response' => $response]);
             return true;
         } else {
-            Log::error('Failed to send webhook alert', ['url' => $url, 'http_code' => $httpCode, 'response' => $response]);
+            Log::error('Failed to send webhook alert: {url}, http_code: {http_code}, response: {response}', ['url' => $url, 'http_code' => $httpCode, 'response' => $response]);
             return false;
         }
     }

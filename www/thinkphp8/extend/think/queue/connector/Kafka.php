@@ -259,7 +259,7 @@ class Kafka extends Connector
             // 检查消息ID是否已处理（使用Redis进行幂等性检查）
             $payload = json_decode($message->payload, true);
             if (isset($payload['message_id']) && $this->idempotent->isProcessed($payload['message_id'], $queueName)) {
-                Log::info('Skipping already processed message', ['message_id' => $payload['message_id']]);
+                Log::info('Skipping already processed message: {message_id}', ['message_id' => $payload['message_id']]);
                 $this->consumer->commit($message);
                 return null;
             }
@@ -270,7 +270,7 @@ class Kafka extends Connector
                 $consumerId = $this->options['client.id'] ?? gethostname();
                 $partitions = $this->partitionManager->getConsumerPartitions($queueName, $consumerId);
 
-                Log::info('Rebalancing partitions', [
+                Log::info('Rebalancing partitions: topic: {topic}, consumer_id: {consumer_id}, partitions: {partitions}', [
                     'topic' => $queueName,
                     'consumer_id' => $consumerId,
                     'partitions' => $partitions
@@ -295,7 +295,7 @@ class Kafka extends Connector
                         $this->pushRaw($message->payload, $queueName);
                         // 提交消息偏移量，表示已经处理过这条消息
                         $this->consumer->commit($message);
-                        Log::info('Delayed message not ready yet, put back to delayed queue', [
+                        Log::info('Delayed message not ready yet, put back to delayed queue: {queue}, available_at: {available_at}, now: {now}', [
                             'queue' => $queueName,
                             'available_at' => date('Y-m-d H:i:s', $payload['available_at']),
                             'now' => date('Y-m-d H:i:s')
@@ -307,7 +307,7 @@ class Kafka extends Connector
                     $this->pushRaw($message->payload, $payload['original_queue']);
                     // 提交消息偏移量，表示已经处理过这条消息
                     $this->consumer->commit($message);
-                    Log::info('Delayed message ready, moved to original queue', [
+                    Log::info('Delayed message ready, moved to original queue: {from_queue}, to_queue: {to_queue}', [
                         'from_queue' => $queueName,
                         'to_queue' => $payload['original_queue']
                     ]);
@@ -315,7 +315,7 @@ class Kafka extends Connector
                 }
             }
 
-            Log::info('Kafka pop success!', ['topic' => $this->options['topic'], 'queue' => $queueName]);
+            Log::info('Kafka pop success! topic: {topic}, queue: {queue}', ['topic' => $this->options['topic'], 'queue' => $queueName]);
             return $this->createJob($message); // 创建并返回KafkaJob实例
         } catch (\Exception $e) {
             Log::error('Kafka pop error: ' . $e->getMessage()); // 记录错误日志
@@ -377,7 +377,7 @@ class Kafka extends Connector
                 // 检查消息ID是否已处理（幂等性检查）
                 $payload = json_decode($message->payload, true);
                 if (isset($payload['message_id']) && in_array($payload['message_id'], $this->processedMessageIds)) {
-                    Log::info('Skipping already processed message', ['message_id' => $payload['message_id']]);
+                    Log::info('Skipping already processed message: {message_id}', ['message_id' => $payload['message_id']]);
                     $this->consumer->commit($message);
                     continue;
                 }

@@ -72,7 +72,7 @@ class UserService
             // 这里可以添加其他注册后的处理逻辑
             // 例如：发送欢迎邮件、初始化用户配置等
             
-            Log::info('User registered successfully', ['user_id' => $user->id]);
+            Log::info('User registered successfully: {user_id}', ['user_id' => $user->id]);
         } catch (\Exception $e) {
             Log::error('Failed to process registration: {message}', ['message' => $e->getMessage()]);
             throw $e;

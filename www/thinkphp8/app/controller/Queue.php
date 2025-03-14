@@ -49,7 +49,7 @@ class Queue extends BaseController
                     ]
                 ]);
             } else {
-                Log::error('Queue push failed with no exception', [
+                Log::error('Queue push failed with no exception: {queue}, data: {data}', [
                     'queue' => $queueName,
                     'data' => $data
                 ]);
@@ -136,4 +136,4 @@ class Queue extends BaseController
             ]);
         }
     }
-} 
+}

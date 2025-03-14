@@ -156,7 +156,7 @@ class KafkaJob extends Job
 
                 // 记录日志
                 if (class_exists('\think\facade\Log')) {
-                    \think\facade\Log::info('Job released with delay', [
+                    \think\facade\Log::info('Job released with delay: {queue}, delay: {delay}, delay_queue: {delay_queue}, available_at: {available_at}', [
                         'job' => $payload,
                         'queue' => $this->queue,
                         'delay_queue' => $delayQueue,
@@ -216,7 +216,7 @@ class KafkaJob extends Job
         } catch (\Exception $e) {
             // 记录错误日志但不中断处理流程
             if (class_exists('\think\facade\Log')) {
-                \think\facade\Log::error('Failed to update queue metrics: ' . $e->getMessage());
+                \think\facade\Log::error('Failed to update queue metrics: {message}', ['message' => $e->getMessage()]);
             }
         }
     }
@@ -231,7 +231,7 @@ class KafkaJob extends Job
         
         // 记录日志
         if (class_exists('\think\facade\Log')) {
-            \think\facade\Log::error('Job marked as failed', [
+            \think\facade\Log::error('Job marked as failed: topic: {topic}, partition: {partition}, offset: {offset}', [
                 'topic' => $this->message->topic_name ?? 'unknown',
                 'partition' => $this->message->partition ?? -1,
                 'offset' => $this->message->offset ?? -1,
