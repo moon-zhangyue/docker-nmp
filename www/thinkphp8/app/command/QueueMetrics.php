@@ -6,7 +6,6 @@ namespace app\command;
 
 use think\console\Command;
 use think\console\Input;
-use think\console\input\Argument;
 use think\console\input\Option;
 use think\console\Output;
 use think\facade\Cache;
@@ -57,18 +56,18 @@ class QueueMetrics extends Command
     protected function displayMetrics(array $metrics, Output $output)
     {
         $output->writeln("\n<info>队列监控指标：</info>");
-        
+
         foreach ($metrics as $queue => $data) {
             $output->writeln("\n<comment>队列：{$queue}</comment>");
             $output->writeln("成功处理：{$data['success']} 个任务");
             $output->writeln("失败处理：{$data['failed']} 个任务");
-            
-            $successRate = $data['success'] + $data['failed'] > 0 
-                ? round(($data['success'] / ($data['success'] + $data['failed'])) * 100, 2) 
+
+            $successRate = $data['success'] + $data['failed'] > 0
+                ? round(($data['success'] / ($data['success'] + $data['failed'])) * 100, 2)
                 : 0;
-                
+
             $output->writeln("成功率：{$successRate}%");
-            
+
             if (isset($data['last_processed_at'])) {
                 $lastProcessed = date('Y-m-d H:i:s', $data['last_processed_at']);
                 $output->writeln("最后处理时间：{$lastProcessed}");

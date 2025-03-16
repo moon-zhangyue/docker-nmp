@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace think\queue\deadletter;
@@ -18,45 +19,48 @@ class DeadLetterQueue
      * Redis缓存键前缀
      */
     protected $keyPrefix = 'queue:deadletter:';
-    
+
     /**
      * 过期时间（秒）
      */
     protected $expireTime = 604800; // 默认7天
-    
+
     /**
      * 报警阈值
      */
     protected $alertThreshold = 10;
-    
+
     /**
      * 指标收集器
      */
     protected $metricsCollector;
-    
+
     /**
      * 构造函数
      * 
      * @param array $options 配置选项
+     *  - key_prefix: Redis缓存键前缀
+     *  - expire_time: 过期时间（秒）
+     *  - alert_threshold: 报警阈值
      */
     public function __construct(array $options = [])
     {
         if (isset($options['key_prefix'])) {
             $this->keyPrefix = $options['key_prefix'];
         }
-        
+
         if (isset($options['expire_time'])) {
             $this->expireTime = (int)$options['expire_time'];
         }
-        
+
         if (isset($options['alert_threshold'])) {
             $this->alertThreshold = (int)$options['alert_threshold'];
         }
-        
+
         // 初始化指标收集器
         $this->metricsCollector = PrometheusCollector::getInstance();
     }
-    
+
     /**
      * 添加消息到死信队列
      * 
@@ -77,29 +81,29 @@ class DeadLetterQueue
             'failed_at' => time(),
             'retry_count' => $payload['retry_count'] ?? 0
         ];
-        
+
         // 使用Redis列表存储死信队列消息
         $result = Cache::lPush($key, json_encode($data));
-        
+
         if ($result) {
             Log::warning('Message added to dead letter queue: {message_id}, queue: {queue}, error: {error}', [
                 'message_id' => $messageId,
                 'queue' => $queue,
                 'error' => $error
             ]);
-            
+
             // 设置过期时间
             Cache::expire($key, $this->expireTime);
-            
+
             // 更新指标
             $this->metricsCollector->increment('queue_jobs_deadletter', [
                 'connection' => 'kafka',
                 'queue' => $queue
             ]);
-            
+
             // 检查是否需要触发报警
             $this->checkAlertThreshold($queue);
-            
+
             return true;
         } else {
             Log::error('Failed to add message to dead letter queue: {message_id}, queue: {queue}', [
@@ -109,7 +113,7 @@ class DeadLetterQueue
             return false;
         }
     }
-    
+
     /**
      * 获取死信队列中的消息
      * 
@@ -122,11 +126,11 @@ class DeadLetterQueue
     {
         $key = $this->getKey($queue);
         $messages = Cache::lRange($key, $start, $end);
-        
+
         if (!is_array($messages)) {
             return [];
         }
-        
+
         $result = [];
         foreach ($messages as $message) {
             $data = json_decode($message, true);
@@ -134,10 +138,10 @@ class DeadLetterQueue
                 $result[] = $data;
             }
         }
-        
+
         return $result;
     }
-    
+
     /**
      * 获取死信队列长度
      * 
@@ -149,7 +153,7 @@ class DeadLetterQueue
         $key = $this->getKey($queue);
         return Cache::lLen($key) ?: 0;
     }
-    
+
     /**
      * 重试死信队列中的消息
      * 
@@ -162,38 +166,38 @@ class DeadLetterQueue
     {
         $key = $this->getKey($queue);
         $messages = Cache::lRange($key, $index, $index);
-        
+
         if (empty($messages)) {
             return false;
         }
-        
+
         $data = json_decode($messages[0], true);
         if (!$data) {
             return false;
         }
-        
+
         // 增加重试次数
         $data['payload']['retry_count'] = ($data['payload']['retry_count'] ?? 0) + 1;
-        
+
         // 调用回调函数重试消息
         $result = $callback($data['payload']);
-        
+
         if ($result) {
             // 从死信队列中移除消息
             Cache::lRem($key, 1, $messages[0]);
-            
+
             Log::info('Message retried from dead letter queue: {message_id}, queue: {queue}', [
                 'message_id' => $data['message_id'],
                 'queue' => $queue,
                 'retry_count' => $data['payload']['retry_count']
             ]);
-            
+
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * 清空死信队列
      * 
@@ -205,7 +209,7 @@ class DeadLetterQueue
         $key = $this->getKey($queue);
         return Cache::delete($key) ? true : false;
     }
-    
+
     /**
      * 分析死信队列中的错误
      * 
@@ -216,7 +220,7 @@ class DeadLetterQueue
     {
         $messages = $this->getMessages($queue);
         $errorStats = [];
-        
+
         foreach ($messages as $message) {
             $error = $message['error'] ?? 'Unknown error';
             if (!isset($errorStats[$error])) {
@@ -224,16 +228,16 @@ class DeadLetterQueue
             }
             $errorStats[$error]++;
         }
-        
+
         // 按错误出现次数排序
         arsort($errorStats);
-        
+
         return [
             'total_messages' => count($messages),
             'error_stats' => $errorStats
         ];
     }
-    
+
     /**
      * 检查是否需要触发报警
      * 
@@ -243,22 +247,22 @@ class DeadLetterQueue
     protected function checkAlertThreshold(string $queue): void
     {
         $count = $this->count($queue);
-        
+
         if ($count >= $this->alertThreshold) {
             $analysis = $this->analyzeErrors($queue);
-            
+
             Log::alert('Dead letter queue threshold exceeded: {queue}, count: {count}, threshold: {threshold}', [
                 'queue' => $queue,
                 'count' => $count,
                 'threshold' => $this->alertThreshold,
                 'analysis' => $analysis
             ]);
-            
+
             // 这里可以添加其他报警方式，如发送邮件、短信等
             $this->sendAlert($queue, $count, $analysis);
         }
     }
-    
+
     /**
      * 发送报警
      * 
@@ -271,20 +275,20 @@ class DeadLetterQueue
     {
         // 获取报警配置
         $alertConfig = Config::get('queue.dead_letter.alert', []);
-        
+
         // 如果没有配置报警方式，则只记录日志
         if (empty($alertConfig) || empty($alertConfig['type'])) {
             return;
         }
-        
+
         // 构建报警消息
         $message = "死信队列报警：队列 {$queue} 中有 {$count} 条失败消息，超过阈值 {$this->alertThreshold}。\n";
         $message .= "错误分析：\n";
-        
+
         foreach ($analysis['error_stats'] as $error => $errorCount) {
             $message .= "- {$error}: {$errorCount} 条\n";
         }
-        
+
         // 根据配置的报警方式发送报警
         switch ($alertConfig['type']) {
             case 'email':
@@ -297,7 +301,7 @@ class DeadLetterQueue
                     );
                 }
                 break;
-                
+
             case 'webhook':
                 // 实现webhook报警
                 if (!empty($alertConfig['webhook_url'])) {
@@ -312,7 +316,7 @@ class DeadLetterQueue
                 break;
         }
     }
-    
+
     /**
      * 发送Webhook报警
      * 
@@ -328,11 +332,11 @@ class DeadLetterQueue
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        
+
         if ($httpCode >= 200 && $httpCode < 300) {
             Log::info('Webhook alert sent successfully: {url}, response: {response}', ['url' => $url, 'response' => $response]);
             return true;
@@ -341,7 +345,7 @@ class DeadLetterQueue
             return false;
         }
     }
-    
+
     /**
      * 生成Redis缓存键
      * 

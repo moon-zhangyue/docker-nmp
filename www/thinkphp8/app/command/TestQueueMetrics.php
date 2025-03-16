@@ -9,7 +9,6 @@ use think\console\Input;
 use think\console\input\Option;
 use think\console\Output;
 use think\facade\Queue;
-use think\facade\Log;
 
 class TestQueueMetrics extends Command
 {
@@ -38,7 +37,7 @@ class TestQueueMetrics extends Command
 
             // 推送到队列
             $result = Queue::push('app\\job\\TestJob', $data, $queue);
-            
+
             if ($result) {
                 $output->writeln("<info>任务 #{$i} 已推送到队列</info>");
             } else {

@@ -1,50 +1,49 @@
 <?php
-declare (strict_types = 1);
 
-namespace app\command;
+declare(strict_types=1); // 启用严格类型模式，确保代码中的类型声明是强制的
 
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\input\Option;
-use think\console\Output;
-use app\service\UserService;
-use app\service\KafkaService;
-use think\facade\Log;
+namespace app\command; // 定义当前类所在的命名空间
 
-class ConsumeRegistration extends Command
+use think\console\Command; // 引入think框架的Command类
+use think\console\Input; // 引入think框架的Input类
+use think\console\Output; // 引入think框架的Output类
+use app\service\UserService; // 引入应用服务层的UserService类
+use app\service\KafkaService; // 引入应用服务层的KafkaService类
+use think\facade\Log; // 引入think框架的Log门面
+
+class ConsumeRegistration extends Command // 定义ConsumeRegistration类，继承自Command类
 {
-    protected function configure()
+    protected function configure() // 配置命令
     {
-        $this->setName('consume:registration')
-             ->setDescription('Consume user registration messages from Kafka');
+        $this->setName('consume:registration') // 设置命令名称
+            ->setDescription('Consume user registration messages from Kafka'); // 设置命令描述
     }
 
-    protected function execute(Input $input, Output $output)
+    protected function execute(Input $input, Output $output) // 执行命令
     {
-        $output->writeln('Starting user registration consumer...');
-        
+        $output->writeln('Starting user registration consumer...'); // 输出开始信息
+
         try {
-            $kafkaService = new KafkaService();
-            $userService = new UserService();
-            
-            $output->writeln('Connected to Kafka broker: ' . env('KAFKA_BROKERS', 'localhost:9092'));
-            $output->writeln('Using consumer group: ' . env('KAFKA_GROUP_ID', 'user-registration-group'));
-            
-            $kafkaService->consumeUserRegistrationMessages(function($userData) use ($userService, $output) {
+            $kafkaService = new KafkaService(); // 创建KafkaService实例
+            $userService = new UserService(); // 创建UserService实例
+
+            $output->writeln('Connected to Kafka broker: ' . env('KAFKA_BROKERS', 'localhost:9092')); // 输出Kafka broker连接信息
+            $output->writeln('Using consumer group: ' . env('KAFKA_GROUP_ID', 'user-registration-group')); // 输出使用的消费者组信息
+
+            $kafkaService->consumeUserRegistrationMessages(function ($userData) use ($userService, $output) { // 消费用户注册消息
                 try {
-                    $output->writeln('Processing registration for user: ' . $userData['username']);
-                    $userService->processRegistration($userData);
-                    $output->writeln('Registration processed successfully');
-                } catch (\Exception $e) {
-                    $output->writeln('Error processing registration: ' . $e->getMessage());
-                    Log::error('Consumer error: {message}', ['message' => $e->getMessage()]);
+                    $output->writeln('Processing registration for user: ' . $userData['username']); // 输出正在处理的信息
+                    $userService->processRegistration($userData); // 调用UserService处理注册
+                    $output->writeln('Registration processed successfully'); // 输出处理成功信息
+                } catch (\Exception $e) { // 捕获异常
+                    $output->writeln('Error processing registration: ' . $e->getMessage()); // 输出错误信息
+                    Log::error('Consumer error: {message}', ['message' => $e->getMessage()]); // 记录错误日志
                 }
             });
-        } catch (\Exception $e) {
-            $output->writeln('Consumer error: ' . $e->getMessage());
-            Log::error('Consumer error: {message}', ['message' => $e->getMessage()]);
-            return 1;
+        } catch (\Exception $e) { // 捕获异常
+            $output->writeln('Consumer error: ' . $e->getMessage()); // 输出错误信息
+            Log::error('Consumer error: {message}', ['message' => $e->getMessage()]); // 记录错误日志
+            return 1; // 返回错误码
         }
     }
 }
