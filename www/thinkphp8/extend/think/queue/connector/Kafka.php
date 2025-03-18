@@ -196,8 +196,8 @@ class Kafka extends Connector
             throw new Exception('Kafka push error: ' . $e->getMessage()); // 捕获异常并抛出
         }
     }
-
-    public function later($delay, $job, $data = '', $queue = null) // 延迟推送消息
+    // 延迟推送消息
+    public function later($delay, $job, $data = '', $queue = null)
     {
         // 创建payload
         $payload = $this->createPayload($job, $data);
@@ -217,8 +217,8 @@ class Kafka extends Connector
 
         return $this->pushRaw($payload, $delayQueue);
     }
-
-    public function pop($queue = null) // 从队列中弹出消息
+    // 从队列中弹出消息
+    public function pop($queue = null)
     {
         try {
             // 如果正在关闭，则返回null

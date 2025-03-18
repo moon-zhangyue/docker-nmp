@@ -87,7 +87,7 @@ services:
     extra_hosts:
       - "www.site1.com:172.17.0.1"
     volumes:
-      - ${SOURCE_DIR}:/www/:rw
+      - ${SOURCE_DIR}:/www/:rwx
       - ${PHP82_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
       - ${PHP82_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
       - ${PHP82_LOG_DIR}:/var/log/php
@@ -235,15 +235,15 @@ services:
     networks:
       - default
 
-  mongodb:
-    image: mongo:4.4
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - ${DATA_DIR}/mongo:/data/db:rw
-    networks:
-      - default
+  # mongodb:
+  #   image: mongo:4.4
+  #   container_name: mongodb
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - ${DATA_DIR}/mongo:/data/db:rw
+  #   networks:
+  #     - default
 
 
   #  memcached:
@@ -290,7 +290,7 @@ services:
   #      - TZ=$TZ
 
   #  phpredisadmin:
-  #    image: erikdubbelboer/phpredisadmin:latest
+  #    image: erikdubbelbau/phpredisadmin:latest
   #    container_name: phpredisadmin
   #    ports:
   #      - "${REDISMYADMIN_HOST_PORT}:80"
@@ -521,7 +521,24 @@ services:
       - default
     restart: always
 
-  # Add this service to your docker-compose.yml
+  # Prometheus 服务
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    container_name: prometheus
+    restart: always
+    ports:
+      - "${PROMETHEUS_HOST_PORT}:9090"
+    volumes:
+      - ${PROMETHEUS_CONF_FILE}:/etc/prometheus/prometheus.yml
+      - ${PROMETHEUS_DATA_DIR}:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - default
+
   xhgui:
     image: mongo:4.4    # 改用官方的 mongo 镜像
     container_name: xhgui-mongo
@@ -550,6 +567,119 @@ services:
     networks:
       - default
     restart: always
+
+  # 添加监控服务
+
+  
+  # Prometheus 服务已存在，保持不变
+  
+  # Node Exporter - 系统指标监控
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    ports:
+      - "${NODE_EXPORTER_PORT}:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - default
+  
+  # MySQL Exporter - MySQL 监控
+  mysql-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: mysql-exporter
+    restart: always
+    ports:
+      - "${MYSQL_EXPORTER_PORT}:9104"
+    environment:
+      - DATA_SOURCE_NAME=root:${MYSQL5_ROOT_PASSWORD}@(mysql5:3306)/
+    depends_on:
+      - mysql5
+    networks:
+      - default
+  
+  # Redis Exporter - Redis 监控
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    restart: always
+    ports:
+      - "${REDIS_EXPORTER_PORT}:9121"
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+    networks:
+      - default
+  
+  # Nginx Exporter - Nginx 监控
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: nginx-exporter
+    restart: always
+    ports:
+      - "${NGINX_EXPORTER_PORT}:9113"
+    command:
+      - '-nginx.scrape-uri=http://nginx20:80/nginx_status'
+    depends_on:
+      - nginx
+    networks:
+      - default
+  
+  # PHP-FPM Exporter - PHP-FPM 监控
+  php-fpm-exporter:
+    image: hipages/php-fpm_exporter:latest
+    container_name: php-fpm-exporter
+    restart: always
+    ports:
+      - "${PHP_FPM_EXPORTER_PORT}:9253"
+    environment:
+      - PHP_FPM_SCRAPE_URI=tcp://php82:9000/status
+    depends_on:
+      - php
+    networks:
+      - default
+  
+  # MongoDB Exporter - MongoDB 监控
+  # mongodb-exporter:
+  #   image: percona/mongodb_exporter:latest
+  #   container_name: mongodb-exporter
+  #   restart: always
+  #   ports:
+  #     - "${MONGODB_EXPORTER_PORT}:9216"
+  #   command:
+  #     - '--mongodb.uri=mongodb://mongodb:27017'
+  #   depends_on:
+  #     - mongodb
+  #   networks:
+  #     - default
+  
+  # Grafana - 可视化监控数据
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    container_name: grafana
+    restart: always
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    volumes:
+      - ${GRAFANA_DATA_DIR}:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    networks:
+      - default
 
 networks:
   default:

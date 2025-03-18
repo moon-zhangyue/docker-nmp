@@ -1,11 +1,11 @@
 <?php
 
-declare(strict_types=1); // 严格类型声明，确保代码中的类型安全
+declare(strict_types=1);
 
-namespace think\queue\idempotent; // 定义命名空间，用于组织代码和避免类名冲突
+namespace think\queue\idempotent;
 
-use think\facade\Cache; // 引入think框架的Cache门面，用于操作缓存
-use think\facade\Log; // 引入think框架的Log门面，用于记录日志
+use think\facade\Cache;
+use think\facade\Log;
 
 /**
  * Redis幂等性检查工具

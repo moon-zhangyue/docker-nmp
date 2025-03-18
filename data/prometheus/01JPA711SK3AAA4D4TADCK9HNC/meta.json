@@ -1,0 +1,17 @@
+{
+	"ulid": "01JPA711SK3AAA4D4TADCK9HNC",
+	"minTime": 1741939210190,
+	"maxTime": 1741946400000,
+	"stats": {
+		"numSamples": 1185116,
+		"numSeries": 3548,
+		"numChunks": 9895
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01JPA711SK3AAA4D4TADCK9HNC"
+		]
+	},
+	"version": 1
+}
