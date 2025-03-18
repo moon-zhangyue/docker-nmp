@@ -17,6 +17,10 @@ use think\queue\idempotent\RedisIdempotent;
 use think\queue\deadletter\DeadLetterQueue;
 use think\queue\config\HotReloadManager;
 use think\queue\partition\PartitionManager;
+use think\queue\transaction\KafkaTransaction;
+use think\queue\error\SentryReporter;
+use think\queue\health\HealthCheck;
+use think\queue\config\ConfigValidator;
 
 class Kafka extends Connector
 {
@@ -36,12 +40,30 @@ class Kafka extends Connector
     protected $partitionManager; // 分区管理器
     protected $lastRebalanceCheck = 0; // 上次分区重平衡检查时间
     protected $processedMessageIds = []; // 已处理消息ID列表，用于幂等性检查
+    protected $transaction; // 事务管理器
+    protected $sentryReporter; // Sentry错误报告器
+    protected $healthCheck; // 健康检查器
+    protected $configValidator; // 配置验证器
+    protected $consumerId; // 消费者唯一标识
 
     public function __construct(array $options) // 构造函数，接收配置选项数组
     {
+        // 验证配置的合法性
+        $this->configValidator = new ConfigValidator();
+        $validationResult = $this->configValidator->validate('kafka', $options);
+
+        if (!$validationResult['valid']) {
+            $errorMessage = 'Kafka queue configuration validation failed: ' . json_encode($validationResult['errors']);
+            Log::error($errorMessage);
+            throw new \InvalidArgumentException($errorMessage);
+        }
+
         // 设置传入的配置选项
         $this->options = $options;
         Log::info('Kafka Queue Connector Initialized' . json_encode($options, JSON_UNESCAPED_UNICODE));
+
+        // 生成消费者唯一ID
+        $this->consumerId = 'consumer-' . gethostname() . '-' . getmypid() . '-' . uniqid();
 
         // 获取容器实例，用于依赖注入和管理不同服务或对象
         $this->container = Container::getInstance();
@@ -72,6 +94,15 @@ class Kafka extends Connector
         // 初始化分区管理器
         $this->partitionManager = new PartitionManager();
 
+        // 初始化事务管理器
+        $this->transaction = new KafkaTransaction($options);
+
+        // 初始化Sentry错误报告器
+        $this->sentryReporter = SentryReporter::getInstance();
+
+        // 初始化健康检查器
+        $this->healthCheck = HealthCheck::getInstance();
+
         // 初始化生产者，准备消息队列的发送功能
         $this->initProducer();
 
@@ -80,6 +111,30 @@ class Kafka extends Connector
 
         // 注册信号处理器，用于优雅关闭
         $this->registerSignalHandlers();
+
+        // 注册消费者健康状态
+        $this->registerConsumerHealth();
+    }
+
+    /**
+     * 注册消费者健康状态
+     */
+    protected function registerConsumerHealth(): void
+    {
+        // 更新消费者心跳
+        $this->healthCheck->updateHeartbeat($this->consumerId, [
+            'connection' => $this->connectionName,
+            'topic' => $this->options['topic'] ?? '',
+            'group_id' => $this->options['group_id'] ?? '',
+            'status' => 'active'
+        ]);
+
+        // 记录健康检查指标
+        $this->metricsCollector->incrementGauge('consumer_health_status', 1, [
+            'consumer_id' => $this->consumerId,
+            'connection' => $this->connectionName ?? 'kafka',
+            'status' => 'active'
+        ]);
     }
 
     protected function initProducer() // 初始化生产者
@@ -90,12 +145,159 @@ class Kafka extends Connector
         $brokers = $this->configManager->get('kafka.connections.kafka.brokers', $this->options['brokers']);
         $conf->set('metadata.broker.list', $brokers); // 设置broker列表
 
+        // 启用幂等性和事务支持
+        $enableTransactions = $this->options['enable_transactions'] ?? false;
+        if ($enableTransactions) {
+            // 设置事务ID
+            $transactionId = $this->options['transaction_id'] ?? 'txn-' . uniqid('', true);
+            $conf->set('transactional.id', $transactionId);
+
+            // 启用幂等性
+            $conf->set('enable.idempotence', 'true');
+
+            // 设置确认机制为全部确认
+            $conf->set('acks', 'all');
+
+            Log::info('Kafka producer initialized with transaction support', ['transaction_id' => $transactionId]);
+        }
+
+        // 设置压缩编码
+        if (isset($this->options['producer']['compression.codec'])) {
+            $conf->set('compression.codec', $this->options['producer']['compression.codec']);
+        }
+
+        // 设置重试次数
+        if (isset($this->options['producer']['message.send.max.retries'])) {
+            $conf->set('message.send.max.retries', (string)$this->options['producer']['message.send.max.retries']);
+        }
+
+        // 设置批量大小
+        if (isset($this->options['producer']['batch.size'])) {
+            $conf->set('batch.size', (string)$this->options['producer']['batch.size']);
+        }
+
+        // 设置linger.ms (消息批处理延迟时间)
+        if (isset($this->options['producer']['linger.ms'])) {
+            $conf->set('linger.ms', (string)$this->options['producer']['linger.ms']);
+        }
+
         if (isset($this->options['debug']) && $this->options['debug']) {
             $conf->set('debug', 'all'); // 如果配置中启用了调试模式，则设置调试选项
         }
+
         Log::info('Kafka producer init success');
         // 使用配置好的 $conf 对象创建一个新的 Kafka 生产者实例，并赋值给 $this->producer
         $this->producer = new Producer($conf);
+
+        // 如果启用了事务，初始化事务
+        if ($enableTransactions) {
+            try {
+                $this->producer->initTransactions(10000); // 10秒超时
+                Log::info('Kafka producer transactions initialized');
+            } catch (\Exception $e) {
+                $errorMessage = 'Failed to initialize Kafka transactions: ' . $e->getMessage();
+                Log::error($errorMessage);
+                $this->sentryReporter->captureException($e, [
+                    'component' => 'kafka_producer',
+                    'action' => 'init_transactions'
+                ]);
+            }
+        }
+    }
+
+    public function push($job, $data = '', $queue = null) // 推送消息到队列
+    {
+        try {
+            // 创建payload
+            $payload = $this->createPayload($job, $data);
+
+            // 解析payload为数组
+            $payloadArray = json_decode($payload, true);
+
+            // 添加唯一消息ID用于幂等性处理
+            if (!isset($payloadArray['message_id'])) {
+                $payloadArray['message_id'] = uniqid('msg_', true);
+            }
+
+            // 重新编码payload
+            $payload = json_encode($payloadArray);
+
+            // 添加Sentry面包屑
+            $this->sentryReporter->addBreadcrumb(
+                'Pushing job to queue',
+                'queue',
+                [
+                    'job' => is_object($job) ? get_class($job) : $job,
+                    'queue' => $queue ?: $this->options['topic'],
+                    'message_id' => $payloadArray['message_id']
+                ]
+            );
+
+            // 使用事务发送消息
+            $enableTransactions = $this->options['enable_transactions'] ?? false;
+            if ($enableTransactions) {
+                return $this->pushWithTransaction($payload, $queue);
+            }
+
+            return $this->pushRaw($payload, $queue);
+        } catch (\Exception $e) {
+            // 报告异常到Sentry
+            $this->sentryReporter->captureException($e, [
+                'component' => 'kafka_producer',
+                'action' => 'push',
+                'job' => is_object($job) ? get_class($job) : $job,
+                'queue' => $queue ?: $this->options['topic']
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * 使用事务推送消息到队列
+     * 
+     * @param string $payload 消息内容
+     * @param string|null $queue 队列名称
+     * @return bool 是否成功
+     */
+    protected function pushWithTransaction($payload, $queue = null)
+    {
+        try {
+            // 开始事务
+            $this->producer->beginTransaction();
+
+            // 创建一个新的Topic对象
+            $topic = $this->producer->newTopic($queue ?: $this->options['topic']);
+
+            // 向Topic中生产消息
+            $topic->produce(RD_KAFKA_PARTITION_UA, 0, $payload);
+
+            // 提交事务
+            $this->producer->commitTransaction(10000); // 10秒超时
+
+            Log::info('Message pushed with transaction', [
+                'queue' => $queue ?: $this->options['topic'],
+                'payload_size' => strlen($payload)
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            // 中止事务
+            try {
+                $this->producer->abortTransaction(10000); // 10秒超时
+            } catch (\Exception $abortException) {
+                Log::error('Failed to abort Kafka transaction: ' . $abortException->getMessage());
+            }
+
+            // 报告异常到Sentry
+            $this->sentryReporter->captureException($e, [
+                'component' => 'kafka_producer',
+                'action' => 'push_with_transaction',
+                'queue' => $queue ?: $this->options['topic']
+            ]);
+
+            throw new \Exception('Kafka transaction push error: ' . $e->getMessage(), 0, $e);
+        }
     }
 
     /**
@@ -136,6 +338,15 @@ class Kafka extends Connector
         // 设置客户端ID
         if (isset($this->options['client.id'])) {
             $conf->set('client.id', $this->options['client.id']);
+        } else {
+            // 使用消费者唯一ID作为客户端ID
+            $conf->set('client.id', $this->consumerId);
+        }
+
+        // 设置隔离级别，用于事务支持
+        if ($this->options['enable_transactions'] ?? false) {
+            // 设置为读已提交，确保只读取已提交的事务消息
+            $conf->set('isolation.level', 'read_committed');
         }
 
         Log::info('Kafka consumer init success');
@@ -147,25 +358,6 @@ class Kafka extends Connector
     {
         // Kafka 不支持直接获取队列大小
         return 0;
-    }
-
-    public function push($job, $data = '', $queue = null) // 推送消息到队列
-    {
-        // 创建payload
-        $payload = $this->createPayload($job, $data);
-
-        // 解析payload为数组
-        $payloadArray = json_decode($payload, true);
-
-        // 添加唯一消息ID用于幂等性处理
-        if (!isset($payloadArray['message_id'])) {
-            $payloadArray['message_id'] = uniqid('msg_', true);
-        }
-
-        // 重新编码payload
-        $payload = json_encode($payloadArray);
-
-        return $this->pushRaw($payload, $queue);
     }
 
     // 定义一个方法pushRaw，用于将原始数据推送到Kafka队列
@@ -193,30 +385,76 @@ class Kafka extends Connector
 
             return true;
         } catch (Exception $e) {
+            // 报告异常到Sentry
+            $this->sentryReporter->captureException($e, [
+                'component' => 'kafka_producer',
+                'action' => 'push_raw',
+                'queue' => $queue ?: $this->options['topic']
+            ]);
+
             throw new Exception('Kafka push error: ' . $e->getMessage()); // 捕获异常并抛出
         }
     }
+
     // 延迟推送消息
     public function later($delay, $job, $data = '', $queue = null)
     {
-        // 创建payload
-        $payload = $this->createPayload($job, $data);
+        try {
+            // 创建payload
+            $payload = $this->createPayload($job, $data);
 
-        // 解析payload
-        $payloadArray = json_decode($payload, true);
+            // 解析payload
+            $payloadArray = json_decode($payload, true);
 
-        // 添加可执行时间
-        $payloadArray['available_at'] = $this->availableAt($delay);
-        $payloadArray['original_queue'] = $queue ?: $this->options['topic'];
+            // 添加可执行时间
+            $payloadArray['available_at'] = $this->availableAt($delay);
+            $payloadArray['original_queue'] = $queue ?: $this->options['topic'];
 
-        // 重新编码payload
-        $payload = json_encode($payloadArray);
+            // 添加唯一消息ID用于幂等性处理
+            if (!isset($payloadArray['message_id'])) {
+                $payloadArray['message_id'] = uniqid('msg_', true);
+            }
 
-        // 将消息推送到延迟队列
-        $delayQueue = ($queue ?: $this->options['topic']) . '_delayed';
+            // 重新编码payload
+            $payload = json_encode($payloadArray);
 
-        return $this->pushRaw($payload, $delayQueue);
+            // 添加Sentry面包屑
+            $this->sentryReporter->addBreadcrumb(
+                'Pushing delayed job to queue',
+                'queue',
+                [
+                    'job' => is_object($job) ? get_class($job) : $job,
+                    'queue' => $queue ?: $this->options['topic'],
+                    'message_id' => $payloadArray['message_id'],
+                    'delay' => $delay,
+                    'available_at' => date('Y-m-d H:i:s', $payloadArray['available_at'])
+                ]
+            );
+
+            // 将消息推送到延迟队列
+            $delayQueue = ($queue ?: $this->options['topic']) . '_delayed';
+
+            // 使用事务发送消息
+            $enableTransactions = $this->options['enable_transactions'] ?? false;
+            if ($enableTransactions) {
+                return $this->pushWithTransaction($payload, $delayQueue);
+            }
+
+            return $this->pushRaw($payload, $delayQueue);
+        } catch (\Exception $e) {
+            // 报告异常到Sentry
+            $this->sentryReporter->captureException($e, [
+                'component' => 'kafka_producer',
+                'action' => 'later',
+                'job' => is_object($job) ? get_class($job) : $job,
+                'queue' => $queue ?: $this->options['topic'],
+                'delay' => $delay
+            ]);
+
+            throw $e;
+        }
     }
+
     // 从队列中弹出消息
     public function pop($queue = null)
     {
@@ -226,6 +464,9 @@ class Kafka extends Connector
                 Log::info('Consumer is shutting down, not consuming more messages');
                 return null;
             }
+
+            // 更新消费者健康状态
+            $this->updateHealthStatus('consuming');
 
             // 确定要消费的队列名称
             $queueName = $queue ?: $this->options['topic'];
@@ -253,7 +494,21 @@ class Kafka extends Connector
                 ) {
                     return null;
                 }
-                throw new Exception($message->errstr()); // 抛出异常
+
+                // 报告错误到Sentry
+                $errorMessage = $message->errstr();
+                $this->sentryReporter->captureMessage(
+                    'Kafka consumer error: ' . $errorMessage,
+                    [
+                        'component' => 'kafka_consumer',
+                        'action' => 'consume',
+                        'queue' => $queueName,
+                        'error_code' => $message->err
+                    ],
+                    'error'
+                );
+
+                throw new Exception($errorMessage); // 抛出异常
             }
 
             // 检查消息ID是否已处理（使用Redis进行幂等性检查）
@@ -265,204 +520,159 @@ class Kafka extends Connector
             }
 
             // 检查是否需要重新平衡分区
-            if ($this->partitionManager->needRebalance($queueName, $this->lastRebalanceCheck)) {
-                $this->lastRebalanceCheck = time();
-                $consumerId = $this->options['client.id'] ?? gethostname();
-                $partitions = $this->partitionManager->getConsumerPartitions($queueName, $consumerId);
-
-                Log::info('Rebalancing partitions: topic: {topic}, consumer_id: {consumer_id}, partitions: {partitions}', [
-                    'topic' => $queueName,
-                    'consumer_id' => $consumerId,
-                    'partitions' => $partitions
-                ]);
-
-                // 重新订阅指定分区
-                $this->consumer->unsubscribe();
-                $topicPartitions = [];
-                foreach ($partitions as $partition) {
-                    $topicPartitions[] = new \RdKafka\TopicPartition($queueName, $partition);
-                }
-                $this->consumer->assign($topicPartitions);
-            }
+            $this->checkPartitionRebalance($queueName);
 
             // 如果是延迟队列，检查消息是否已经到达可执行时间
-            if ($isDelayedQueue) {
-                // 检查消息是否包含可执行时间和原始队列信息
-                if (isset($payload['available_at']) && isset($payload['original_queue'])) {
-                    // 如果当前时间小于可执行时间，说明消息还不能执行
-                    if (time() < $payload['available_at']) {
-                        // 将消息放回延迟队列，等待下次处理
-                        $this->pushRaw($message->payload, $queueName);
-                        // 提交消息偏移量，表示已经处理过这条消息
-                        $this->consumer->commit($message);
-                        Log::info('Delayed message not ready yet, put back to delayed queue: {queue}, available_at: {available_at}, now: {now}', [
-                            'queue' => $queueName,
-                            'available_at' => date('Y-m-d H:i:s', $payload['available_at']),
-                            'now' => date('Y-m-d H:i:s')
-                        ]);
-                        return null;
-                    }
-
-                    // 消息已经到达可执行时间，将其移回原始队列
-                    $this->pushRaw($message->payload, $payload['original_queue']);
-                    // 提交消息偏移量，表示已经处理过这条消息
-                    $this->consumer->commit($message);
-                    Log::info('Delayed message ready, moved to original queue: {from_queue}, to_queue: {to_queue}', [
-                        'from_queue' => $queueName,
-                        'to_queue' => $payload['original_queue']
-                    ]);
-                    return null;
-                }
+            if ($isDelayedQueue && isset($payload['available_at']) && isset($payload['original_queue'])) {
+                return $this->handleDelayedMessage($message, $payload, $queueName);
             }
 
+            // 添加Sentry面包屑
+            $this->sentryReporter->addBreadcrumb(
+                'Message popped from queue',
+                'queue',
+                [
+                    'queue' => $queueName,
+                    'message_id' => $payload['message_id'] ?? 'unknown',
+                    'offset' => $message->offset,
+                    'partition' => $message->partition
+                ]
+            );
+
             Log::info('Kafka pop success! topic: {topic}, queue: {queue}', ['topic' => $this->options['topic'], 'queue' => $queueName]);
+
+            // 更新消费者健康状态
+            $this->updateHealthStatus('processing', [
+                'current_message_id' => $payload['message_id'] ?? 'unknown',
+                'current_offset' => $message->offset,
+                'current_partition' => $message->partition
+            ]);
+
             return $this->createJob($message); // 创建并返回KafkaJob实例
         } catch (\Exception $e) {
             Log::error('Kafka pop error: ' . $e->getMessage()); // 记录错误日志
+
+            // 报告异常到Sentry
+            $this->sentryReporter->captureException($e, [
+                'component' => 'kafka_consumer',
+                'action' => 'pop',
+                'queue' => $queue ?: $this->options['topic']
+            ]);
+
             $this->consumer->unsubscribe(); // 取消订阅
 
             // 记录失败指标
             if (isset($this->options['topic'])) {
-                $this->metricsCollector->recordFailure($this->connectionName ?? 'kafka', $this->options['topic'], 0);
+                $this->metricsCollector->incrementCounter('consumer_errors_total', 1, [
+                    'connection' => $this->connectionName ?? 'kafka',
+                    'topic' => $this->options['topic']
+                ]);
             }
+
+            // 更新消费者健康状态
+            $this->updateHealthStatus('error', [
+                'error' => $e->getMessage(),
+                'error_time' => time()
+            ]);
 
             return null;
         }
     }
 
     /**
-     * 批量处理消息
+     * 检查是否需要重新平衡分区
      * 
-     * @param string|null $queue 队列名称
-     * @param callable $callback 回调函数，用于处理消息
-     * @param int $count 批量处理数量
-     * @param int $timeout 超时时间（秒）
-     * @return int 成功处理的消息数量
+     * @param string $queueName 队列名称
+     * @return void
      */
-    public function batch(callable $callback, $queue = null, $count = 0, $timeout = 60)
+    protected function checkPartitionRebalance(string $queueName): void
     {
-        $processed = 0;
-        $startTime = time();
-        $batchSize = $count > 0 ? $count : $this->batchSize;
-        $messages = [];
+        // 检查是否需要重新平衡分区
+        if ($this->partitionManager->needRebalance($queueName, $this->lastRebalanceCheck)) {
+            $this->lastRebalanceCheck = time();
 
-        try {
-            // 确定要消费的队列名称
-            $queueName = $queue ?: $this->options['topic'];
+            // 获取消费者应该消费的分区
+            $partitions = $this->partitionManager->getConsumerPartitions($queueName, $this->consumerId);
 
-            // 订阅指定的队列或主题
-            $this->consumer->subscribe([$queueName]);
-
-            Log::info("Starting batch processing", ['queue' => $queueName, 'batch_size' => $batchSize]);
-
-            // 收集消息直到达到批量大小或超时
-            while ($processed < $batchSize && (time() - $startTime) < $timeout && !$this->isShuttingDown) {
-                // 从订阅的队列或主题中消费消息，使用较短的超时时间以便于检查关闭状态
-                $message = $this->consumer->consume(1000);
-
-                if ($message === null) {
-                    continue;
-                }
-
-                if ($message->err) {
-                    if (
-                        $message->err === RD_KAFKA_RESP_ERR__PARTITION_EOF ||
-                        $message->err === RD_KAFKA_RESP_ERR__TIMED_OUT
-                    ) {
-                        continue;
-                    }
-                    throw new Exception($message->errstr());
-                }
-
-                // 检查消息ID是否已处理（幂等性检查）
-                $payload = json_decode($message->payload, true);
-                if (isset($payload['message_id']) && in_array($payload['message_id'], $this->processedMessageIds)) {
-                    Log::info('Skipping already processed message: {message_id}', ['message_id' => $payload['message_id']]);
-                    $this->consumer->commit($message);
-                    continue;
-                }
-
-                // 将消息添加到批处理数组
-                $messages[] = $message;
-                $processed++;
-
-                // 如果达到批量大小，处理这批消息
-                if (count($messages) >= $batchSize) {
-                    break;
-                }
-            }
-
-            // 处理收集到的消息
-            if (!empty($messages)) {
-                Log::info("Processing batch of messages", ['count' => count($messages)]);
-
-                // 调用回调函数处理消息
-                call_user_func($callback, $messages);
-
-                // 提交所有消息的偏移量
-                foreach ($messages as $message) {
-                    $this->consumer->commit($message);
-
-                    // 记录成功指标
-                    $this->metricsCollector->recordSuccess($this->connectionName ?? 'kafka', $queueName, 0);
-
-                    // 保存消息ID到已处理列表
-                    $payload = json_decode($message->payload, true);
-                    if (isset($payload['message_id'])) {
-                        $this->updateProcessedMessageIds($payload['message_id']);
-                    }
-                }
-            }
-
-            return $processed;
-        } catch (\Exception $e) {
-            Log::error('Kafka batch processing error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'processed' => $processed
+            Log::info('Rebalancing partitions: topic: {topic}, consumer_id: {consumer_id}, partitions: {partitions}', [
+                'topic' => $queueName,
+                'consumer_id' => $this->consumerId,
+                'partitions' => $partitions
             ]);
 
-            // 记录失败指标
-            $queueName = $queue ?: $this->options['topic'];
-            $this->metricsCollector->recordFailure($this->connectionName ?? 'kafka', $queueName, 0);
+            // 重新订阅指定分区
+            $this->consumer->unsubscribe();
+            $topicPartitions = [];
+            foreach ($partitions as $partition) {
+                $topicPartitions[] = new \RdKafka\TopicPartition($queueName, $partition);
+            }
+            $this->consumer->assign($topicPartitions);
 
-            return $processed;
+            // 添加Sentry面包屑
+            $this->sentryReporter->addBreadcrumb(
+                'Partitions rebalanced',
+                'queue',
+                [
+                    'topic' => $queueName,
+                    'consumer_id' => $this->consumerId,
+                    'partitions' => $partitions
+                ]
+            );
+
+            // 更新健康状态
+            $this->updateHealthStatus('rebalancing', [
+                'partitions' => $partitions,
+                'rebalance_time' => time()
+            ]);
         }
     }
 
     /**
-     * 更新已处理消息ID列表
+     * 处理延迟队列中的消息
      * 
-     * @param string $messageId 消息ID
-     * @param int $maxSize 最大保存的ID数量
-     * @return void
+     * @param \RdKafka\Message $message 消息对象
+     * @param array $payload 消息内容
+     * @param string $queueName 队列名称
+     * @return null
      */
-    public function updateProcessedMessageIds($messageId, $maxSize = 1000)
+    protected function handleDelayedMessage(\RdKafka\Message $message, array $payload, string $queueName)
     {
-        // 添加消息ID到已处理列表
-        $this->processedMessageIds[] = $messageId;
-
-        // 如果列表超过最大大小，移除最旧的ID
-        if (count($this->processedMessageIds) > $maxSize) {
-            array_shift($this->processedMessageIds);
+        // 如果当前时间小于可执行时间，说明消息还不能执行
+        if (time() < $payload['available_at']) {
+            // 将消息放回延迟队列，等待下次处理
+            $this->pushRaw($message->payload, $queueName);
+            // 提交消息偏移量，表示已经处理过这条消息
+            $this->consumer->commit($message);
+            Log::info('Delayed message not ready yet, put back to delayed queue: {queue}, available_at: {available_at}, now: {now}', [
+                'queue' => $queueName,
+                'available_at' => date('Y-m-d H:i:s', $payload['available_at']),
+                'now' => date('Y-m-d H:i:s')
+            ]);
+            return null;
         }
-    }
 
-    /**
-     * 更新监控指标
-     * 
-     * @param string $status 状态（success或failed）
-     * @return void
-     */
-    public function updateMetrics($status)
-    {
-        $connection = $this->connectionName ?? 'kafka';
-        $queue = $this->options['topic'] ?? 'default';
+        // 消息已经到达可执行时间，将其移回原始队列
+        $this->pushRaw($message->payload, $payload['original_queue']);
+        // 提交消息偏移量，表示已经处理过这条消息
+        $this->consumer->commit($message);
+        Log::info('Delayed message ready, moved to original queue: {from_queue}, to_queue: {to_queue}', [
+            'from_queue' => $queueName,
+            'to_queue' => $payload['original_queue']
+        ]);
 
-        if ($status === 'success') {
-            $this->metricsCollector->recordSuccess($connection, $queue, 0);
-        } else {
-            $this->metricsCollector->recordFailure($connection, $queue, 0);
-        }
+        // 添加Sentry面包屑
+        $this->sentryReporter->addBreadcrumb(
+            'Delayed message moved to original queue',
+            'queue',
+            [
+                'from_queue' => $queueName,
+                'to_queue' => $payload['original_queue'],
+                'message_id' => $payload['message_id'] ?? 'unknown',
+                'available_at' => date('Y-m-d H:i:s', $payload['available_at'])
+            ]
+        );
+
+        return null;
     }
 
     /**
@@ -505,6 +715,9 @@ class Kafka extends Connector
         $this->isShuttingDown = true;
         Log::info('Shutting down Kafka consumer gracefully...');
 
+        // 更新健康状态
+        $this->updateHealthStatus('shutting_down');
+
         // 取消订阅
         if ($this->consumer) {
             try {
@@ -512,11 +725,33 @@ class Kafka extends Connector
                 Log::info('Kafka consumer unsubscribed successfully');
             } catch (\Exception $e) {
                 Log::error('Error unsubscribing Kafka consumer: ' . $e->getMessage());
+
+                // 报告异常到Sentry
+                $this->sentryReporter->captureException($e, [
+                    'component' => 'kafka_consumer',
+                    'action' => 'shutdown'
+                ]);
             }
+        }
+
+        // 注销消费者
+        try {
+            $topic = $this->options['topic'] ?? 'default';
+            $this->partitionManager->unregisterConsumer($topic, $this->consumerId);
+            Log::info('Consumer unregistered: {consumer_id}', ['consumer_id' => $this->consumerId]);
+        } catch (\Exception $e) {
+            Log::error('Error unregistering consumer: ' . $e->getMessage());
         }
 
         Log::info('Kafka consumer shutdown complete');
     }
+
+    /**
+     * 创建KafkaJob实例
+     * 
+     * @param \RdKafka\Message $message 消息对象
+     * @return KafkaJob
+     */
     protected function createJob($message) // 创建KafkaJob实例
     {
         // 返回一个新的 KafkaJob 实例
@@ -527,32 +762,6 @@ class Kafka extends Connector
             $this->connectionName,
             $message->topic_name ?? $this->options['topic'] // 获取消息的主题名称或默认主题
         );
-    }
-
-    /**
-     * 处理消息成功
-     * 
-     * @param string $messageId 消息ID
-     * @param string $queue 队列名称
-     * @param float $processingTime 处理时间（秒）
-     * @return void
-     */
-    public function markMessageAsProcessed(string $messageId, string $queue, float $processingTime = 0.0): void
-    {
-        // 使用Redis进行幂等性检查，标记消息为已处理
-        $this->idempotent->markAsProcessed($messageId, $queue, [
-            'processed_at' => time(),
-            'processing_time' => $processingTime
-        ]);
-
-        // 更新监控指标
-        $this->metricsCollector->recordSuccess($this->connectionName ?? 'kafka', $queue, $processingTime);
-
-        Log::info('Message processed successfully', [
-            'message_id' => $messageId,
-            'queue' => $queue,
-            'processing_time' => round($processingTime, 4)
-        ]);
     }
 
     /**
@@ -571,7 +780,31 @@ class Kafka extends Connector
         $this->deadLetterQueue->add($messageId, $queue, $payload, $error);
 
         // 更新监控指标
-        $this->metricsCollector->recordFailure($this->connectionName ?? 'kafka', $queue, $processingTime);
+        $this->metricsCollector->incrementCounter('failed_messages_total', 1, [
+            'connection' => $this->connectionName ?? 'kafka',
+            'topic' => $queue
+        ]);
+
+        // 更新健康状态
+        $this->updateHealthStatus('error', [
+            'last_failed_message_id' => $messageId,
+            'last_error' => $error,
+            'error_time' => time()
+        ]);
+
+        // 报告错误到Sentry
+        $this->sentryReporter->captureMessage(
+            'Message processing failed: ' . $error,
+            [
+                'component' => 'kafka_job',
+                'action' => 'process',
+                'message_id' => $messageId,
+                'queue' => $queue,
+                'processing_time' => round($processingTime, 4),
+                'payload' => $payload
+            ],
+            'error'
+        );
 
         Log::error('Message processing failed: message_id={message_id}, queue={queue}, error={error}, processing_time={processing_time}', [
             'message_id' => $messageId,
@@ -579,5 +812,13 @@ class Kafka extends Connector
             'error' => $error,
             'processing_time' => round($processingTime, 4)
         ]);
+    }
+    protected function updateHealthStatus(string $status, array $metadata = []): void
+    {
+        try {
+            $this->healthCheck->setConsumerStatus($this->consumerId, $status, $metadata);
+        } catch (\Exception $e) {
+            Log::error('Failed to update consumer health status: ' . $e->getMessage());
+        }
     }
 }

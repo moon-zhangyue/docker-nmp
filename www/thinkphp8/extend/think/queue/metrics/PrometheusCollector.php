@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace think\queue\metrics;
@@ -14,32 +15,35 @@ class PrometheusCollector
 {
     // 单例实例
     private static $instance = null;
-    
+
     // 指标数据
     private $metrics = [
         'queue_jobs_total' => [],        // 总处理任务数
         'queue_jobs_success' => [],      // 成功处理任务数
         'queue_jobs_failed' => [],       // 失败任务数
-        'queue_jobs_processing_time' => [] // 任务处理时间
+        'queue_jobs_processing_time' => [], // 任务处理时间
+        'consumer_health_status' => []   // 消费者健康状态
     ];
-    
+
     // 标签定义
     private $labels = [
         'connection', // 连接名
         'queue',      // 队列名
+        'consumer_id' // 消费者ID
     ];
-    
+
     // 指标描述
     private $descriptions = [
         'queue_jobs_total' => 'Total number of queue jobs processed',
         'queue_jobs_success' => 'Number of queue jobs processed successfully',
         'queue_jobs_failed' => 'Number of queue jobs that failed processing',
-        'queue_jobs_processing_time' => 'Time spent processing queue jobs'
+        'queue_jobs_processing_time' => 'Time spent processing queue jobs',
+        'consumer_health_status' => 'Health status of queue consumers'
     ];
-    
+
     // Redis缓存键
     private $cacheKey = 'prometheus_metrics';
-    
+
     /**
      * 私有构造函数，防止外部实例化
      */
@@ -48,7 +52,7 @@ class PrometheusCollector
         // 从Redis加载指标数据
         $this->loadMetricsFromCache();
     }
-    
+
     /**
      * 获取单例实例
      * 
@@ -59,10 +63,10 @@ class PrometheusCollector
         if (self::$instance === null) {
             self::$instance = new self();
         }
-        
+
         return self::$instance;
     }
-    
+
     /**
      * 增加指标计数
      * 
@@ -74,20 +78,33 @@ class PrometheusCollector
     public function increment(string $metric, array $labels, float $value = 1.0)
     {
         $labelKey = $this->getLabelKey($labels);
-        
+
         if (!isset($this->metrics[$metric][$labelKey])) {
             $this->metrics[$metric][$labelKey] = [
                 'value' => 0,
                 'labels' => $labels
             ];
         }
-        
+
         $this->metrics[$metric][$labelKey]['value'] += $value;
-        
+
         // 保存到Redis缓存
         $this->saveMetricsToCache();
     }
-    
+
+    /**
+     * incrementCounter方法作为increment方法的别名
+     * 
+     * @param string $metric 指标名称
+     * @param float $value 增加的值
+     * @param array $labels 标签值
+     * @return void
+     */
+    public function incrementCounter(string $metric, float $value, array $labels)
+    {
+        $this->increment($metric, $labels, $value);
+    }
+
     /**
      * 记录任务处理成功
      * 
@@ -102,14 +119,14 @@ class PrometheusCollector
             'connection' => $connection,
             'queue' => $queue
         ];
-        
+
         $this->increment('queue_jobs_total', $labels);
         $this->increment('queue_jobs_success', $labels);
         $this->increment('queue_jobs_processing_time', $labels, $processingTime);
-        
+
         Log::debug('Recorded queue job success', $labels);
     }
-    
+
     /**
      * 记录任务处理失败
      * 
@@ -124,14 +141,14 @@ class PrometheusCollector
             'connection' => $connection,
             'queue' => $queue
         ];
-        
+
         $this->increment('queue_jobs_total', $labels);
         $this->increment('queue_jobs_failed', $labels);
         $this->increment('queue_jobs_processing_time', $labels, $processingTime);
-        
+
         Log::debug('Recorded queue job failure', $labels);
     }
-    
+
     /**
      * 获取标签键
      * 
@@ -141,14 +158,14 @@ class PrometheusCollector
     private function getLabelKey(array $labels): string
     {
         $parts = [];
-        
+
         foreach ($this->labels as $label) {
             $parts[] = $label . '="' . ($labels[$label] ?? '') . '"';
         }
-        
+
         return implode(',', $parts);
     }
-    
+
     /**
      * 导出Prometheus格式的指标数据
      * 
@@ -157,24 +174,24 @@ class PrometheusCollector
     public function export(): string
     {
         $output = [];
-        
+
         foreach ($this->metrics as $metric => $data) {
             // 添加指标说明
             $output[] = '# HELP ' . $metric . ' ' . ($this->descriptions[$metric] ?? '');
             $output[] = '# TYPE ' . $metric . ' counter';
-            
+
             // 添加指标数据
             foreach ($data as $item) {
                 $labelString = $this->formatLabels($item['labels']);
                 $output[] = $metric . $labelString . ' ' . $item['value'];
             }
-            
+
             $output[] = '';
         }
-        
+
         return implode("\n", $output);
     }
-    
+
     /**
      * 格式化标签为Prometheus格式
      * 
@@ -186,16 +203,16 @@ class PrometheusCollector
         if (empty($labels)) {
             return '';
         }
-        
+
         $parts = [];
-        
+
         foreach ($labels as $key => $value) {
             $parts[] = $key . '="' . $value . '"';
         }
-        
+
         return '{' . implode(',', $parts) . '}';
     }
-    
+
     /**
      * 重置所有指标数据
      * 
@@ -206,11 +223,11 @@ class PrometheusCollector
         foreach ($this->metrics as $metric => $data) {
             $this->metrics[$metric] = [];
         }
-        
+
         // 清除Redis缓存
         $this->saveMetricsToCache();
     }
-    
+
     /**
      * 从Redis缓存加载指标数据
      * 
@@ -219,13 +236,13 @@ class PrometheusCollector
     private function loadMetricsFromCache()
     {
         $cachedMetrics = Cache::get($this->cacheKey);
-        
+
         if (!empty($cachedMetrics) && is_array($cachedMetrics)) {
             $this->metrics = $cachedMetrics;
             Log::debug('Loaded metrics from Redis cache');
         }
     }
-    
+
     /**
      * 保存指标数据到Redis缓存
      * 
@@ -236,7 +253,7 @@ class PrometheusCollector
         Cache::set($this->cacheKey, $this->metrics);
         Log::debug('Saved metrics to Redis cache');
     }
-    
+
     /**
      * 获取原始指标数据
      * 
@@ -245,5 +262,95 @@ class PrometheusCollector
     public function getMetrics(): array
     {
         return $this->metrics;
+    }
+
+    /**
+     * 获取格式化的队列监控指标数据
+     * 
+     * @return array 格式化的队列监控指标数据
+     */
+    public function getQueueMetrics(): array
+    {
+        $queueMetrics = [];
+
+        // 处理成功任务数
+        if (!empty($this->metrics['queue_jobs_success'])) {
+            foreach ($this->metrics['queue_jobs_success'] as $labelKey => $data) {
+                $queue = $data['labels']['queue'] ?? 'default';
+
+                if (!isset($queueMetrics[$queue])) {
+                    $queueMetrics[$queue] = [
+                        'success' => 0,
+                        'failed' => 0,
+                        'processing_time' => 0,
+                    ];
+                }
+
+                $queueMetrics[$queue]['success'] = $data['value'];
+            }
+        }
+
+        // 处理失败任务数
+        if (!empty($this->metrics['queue_jobs_failed'])) {
+            foreach ($this->metrics['queue_jobs_failed'] as $labelKey => $data) {
+                $queue = $data['labels']['queue'] ?? 'default';
+
+                if (!isset($queueMetrics[$queue])) {
+                    $queueMetrics[$queue] = [
+                        'success' => 0,
+                        'failed' => 0,
+                        'processing_time' => 0,
+                    ];
+                }
+
+                $queueMetrics[$queue]['failed'] = $data['value'];
+            }
+        }
+
+        // 处理时间
+        if (!empty($this->metrics['queue_jobs_processing_time'])) {
+            foreach ($this->metrics['queue_jobs_processing_time'] as $labelKey => $data) {
+                $queue = $data['labels']['queue'] ?? 'default';
+
+                if (!isset($queueMetrics[$queue])) {
+                    $queueMetrics[$queue] = [
+                        'success' => 0,
+                        'failed' => 0,
+                        'processing_time' => 0,
+                    ];
+                }
+
+                $queueMetrics[$queue]['processing_time'] = $data['value'];
+                $queueMetrics[$queue]['last_processed_at'] = time();
+            }
+        }
+
+        return $queueMetrics;
+    }
+
+    /**
+     * 设置仪表盘类型指标的值
+     * 
+     * @param string $metric 指标名称
+     * @param float $value 设置的值
+     * @param array $labels 标签值
+     * @return void
+     */
+    public function incrementGauge(string $metric, float $value, array $labels)
+    {
+        $labelKey = $this->getLabelKey($labels);
+
+        $this->metrics[$metric][$labelKey] = [
+            'value' => $value,
+            'labels' => $labels
+        ];
+
+        // 保存到Redis缓存
+        $this->saveMetricsToCache();
+
+        Log::debug('Updated gauge metric: ' . $metric, [
+            'value' => $value,
+            'labels' => $labels
+        ]);
     }
 }

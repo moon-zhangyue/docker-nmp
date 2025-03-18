@@ -52,7 +52,15 @@ class QueueMetrics extends Command
         Cache::delete('queue_metrics');
         $output->writeln('<info>队列监控指标已重置</info>');
     }
-
+    /**
+     * 显示队列监控指标
+     *
+     * 该方法负责将给定的队列监控指标输出到控制台它接收一个包含队列监控数据的数组，
+     * 以及一个Output对象，用于将指标数据写入控制台
+     *
+     * @param array $metrics 队列监控指标数据的数组，每个键值对包含队列名和相应的监控数据
+     * @param Output $output 用于输出监控指标的Output对象
+     */
     protected function displayMetrics(array $metrics, Output $output)
     {
         $output->writeln("\n<info>队列监控指标：</info>");
