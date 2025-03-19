@@ -91,8 +91,9 @@ return [
     'sentry_config' => [  // 定义一个名为 'sentry_config' 的数组，用于配置 Sentry 错误追踪服务
         'environment' => 'developmentddd',  // 设置当前环境为 'developmentddd'，通常用于标识开发环境
         'release' => '1.0.0',  // 设置当前应用的版本号为 '1.0.0'
-        'traces_sample_rate' => 0.2,  // 设置性能追踪的采样率为 20%，即每 5 个请求中随机采样 1 个进行追踪
+        'traces_sample_rate' => 1.0,  // 设置性能追踪的采样率为 100%，即每个请求都进行追踪
         'max_breadcrumbs' => 50,  // 设置最大面包屑数量为 50，面包屑用于记录用户操作路径
+        'profiles_sample_rate' => 1.0,  // 设置性能分析文件的采样率为 100%，即每个请求都进行性能分析
     ],
     // 配置验证
     'config_validation' => [
