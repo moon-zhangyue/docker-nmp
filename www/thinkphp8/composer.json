@@ -29,7 +29,8 @@
         "ext-redis": "*",
         "kwn/php-rdkafka-stubs": "*",
         "sentry/sdk": "^3.5",
-        "sentry/sentry": "^3.22"
+        "sentry/sentry": "^3.22",
+        "topthink/think-view": "^2.0"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",

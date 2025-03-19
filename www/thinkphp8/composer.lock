@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4de678b0bff68e48e5478fbde1dfbc90",
+    "content-hash": "3d5be803efc74bde2b20cb67072c70b7",
     "packages": [
         {
             "name": "carbonphp/carbon-doctrine-types",
@@ -3114,6 +3114,47 @@
             "time": "2025-03-15T08:30:16+00:00"
         },
         {
+            "name": "topthink/think-template",
+            "version": "v3.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/top-think/think-template.git",
+                "reference": "0b88bd449f0f7626dd75b05f557c8bc208c08b0c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/top-think/think-template/zipball/0b88bd449f0f7626dd75b05f557c8bc208c08b0c",
+                "reference": "0b88bd449f0f7626dd75b05f557c8bc208c08b0c",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0.0",
+                "psr/simple-cache": ">=1.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "think\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "liu21st",
+                    "email": "liu21st@gmail.com"
+                }
+            ],
+            "description": "the php template engine",
+            "support": {
+                "issues": "https://github.com/top-think/think-template/issues",
+                "source": "https://github.com/top-think/think-template/tree/v3.0.2"
+            },
+            "time": "2024-10-16T03:41:06+00:00"
+        },
+        {
             "name": "topthink/think-validate",
             "version": "v3.0.5",
             "source": {
@@ -3156,6 +3197,47 @@
                 "source": "https://github.com/top-think/think-validate/tree/v3.0.5"
             },
             "time": "2025-03-05T06:11:48+00:00"
+        },
+        {
+            "name": "topthink/think-view",
+            "version": "v2.0.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/top-think/think-view.git",
+                "reference": "e6a68e4179baf8d795700d62b710da86d7c3f783"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/top-think/think-view/zipball/e6a68e4179baf8d795700d62b710da86d7c3f783",
+                "reference": "e6a68e4179baf8d795700d62b710da86d7c3f783",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0.0",
+                "topthink/think-template": "^3.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "think\\view\\driver\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "liu21st",
+                    "email": "liu21st@gmail.com"
+                }
+            ],
+            "description": "thinkphp template driver",
+            "support": {
+                "issues": "https://github.com/top-think/think-view/issues",
+                "source": "https://github.com/top-think/think-view/tree/v2.0.4"
+            },
+            "time": "2025-01-10T08:49:57+00:00"
         }
     ],
     "packages-dev": [

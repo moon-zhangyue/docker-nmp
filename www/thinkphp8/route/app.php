@@ -30,6 +30,7 @@ Route::post('kafkaqueue/push', 'kafkaqueue/push'); //kafka队列
 
 //监控指标
 Route::get('metrics/prometheus', 'metrics/prometheus'); //Prometheus指标
+Route::get('metrics/index', 'metrics/index');
 
 // 队列测试路由
 Route::post('queue/test', 'QueueTest/push');
