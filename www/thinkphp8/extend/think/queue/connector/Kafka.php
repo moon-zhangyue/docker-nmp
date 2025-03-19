@@ -49,7 +49,7 @@ class Kafka extends Connector
     public function __construct(array $options) // 构造函数，接收配置选项数组
     {
         // 验证配置的合法性
-        $this->configValidator = new ConfigValidator();
+        $this->configValidator = ConfigValidator::getInstance();
         $validationResult = $this->configValidator->validate('kafka', $options);
 
         if (!$validationResult['valid']) {
