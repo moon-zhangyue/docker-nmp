@@ -26,11 +26,14 @@ Route::post('queue/clear', 'Queue/clear');
 
 //think-queue队列
 Route::post('user/redis_queue', 'user/redis_queue'); //redis队列
+Route::post('user/kafka_queue', 'user/kafka_queue'); //kafka队列（User控制器）
 Route::post('kafkaqueue/push', 'kafkaqueue/push'); //kafka队列
 
 //监控指标
 Route::get('metrics/prometheus', 'metrics/prometheus'); //Prometheus指标
 Route::get('metrics/index', 'metrics/index');
+Route::get('metrics/health', 'metrics/health'); //健康检查接口
+Route::post('metrics/reset', 'metrics/reset'); //重置监控指标
 
 // 队列测试路由
 Route::post('queue/test', 'QueueTest/push');
