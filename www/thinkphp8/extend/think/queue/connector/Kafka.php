@@ -522,23 +522,6 @@ class Kafka extends Connector
             // 检查是否需要重新平衡分区
             $this->checkPartitionRebalance($queueName);
 
-            // 使用负载均衡器更新消息速率并检查是否需要调整分区
-            try {
-                $loadBalancer = \think\queue\balance\LoadBalancer::getInstance();
-                $loadBalancer->updateMessageRate($queueName, 1);
-
-                // 获取检查间隔时间
-                $checkInterval = $this->configManager->get(
-                    'kafka.connections.kafka.balance.check_interval',
-                    300
-                );
-
-                // 检查并调整分区
-                $loadBalancer->checkAndAdjustPartitions($queueName, $checkInterval);
-            } catch (\Exception $e) {
-                Log::error('Failed to perform load balancing: ' . $e->getMessage());
-            }
-
             // 如果是延迟队列，检查消息是否已经到达可执行时间
             if ($isDelayedQueue && isset($payload['available_at']) && isset($payload['original_queue'])) {
                 return $this->handleDelayedMessage($message, $payload, $queueName);
