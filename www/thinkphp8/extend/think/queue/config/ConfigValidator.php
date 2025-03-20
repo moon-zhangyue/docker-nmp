@@ -90,7 +90,6 @@ class ConfigValidator
     {
         // 查找匹配的规则
         $matchedRule = null;
-        $matchedPath = null;
 
         foreach ($this->rules as $rulePath => $rule) {
             // 将通配符转换为正则表达式
@@ -98,7 +97,6 @@ class ConfigValidator
 
             if (preg_match($pattern, $path)) {
                 $matchedRule = $rule;
-                $matchedPath = $rulePath;
                 break;
             }
         }

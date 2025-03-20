@@ -103,6 +103,8 @@ class Kafka extends Connector
         // 初始化健康检查器
         $this->healthCheck = HealthCheck::getInstance();
 
+        // 事务配置已在transaction.enabled中定义，无需额外映射
+
         // 初始化生产者，准备消息队列的发送功能
         $this->initProducer();
 
@@ -146,7 +148,7 @@ class Kafka extends Connector
         $conf->set('metadata.broker.list', $brokers); // 设置broker列表
 
         // 启用幂等性和事务支持
-        $enableTransactions = $this->options['enable_transactions'] ?? false;
+        $enableTransactions = $this->options['transaction']['enabled'] ?? false;
         if ($enableTransactions) {
             // 设置事务ID
             $transactionId = $this->options['transaction_id'] ?? 'txn-' . uniqid('', true);
@@ -234,7 +236,7 @@ class Kafka extends Connector
             );
 
             // 使用事务发送消息
-            $enableTransactions = $this->options['enable_transactions'] ?? false;
+            $enableTransactions = $this->options['transaction']['enabled'] ?? false;
             if ($enableTransactions) {
                 return $this->pushWithTransaction($payload, $queue);
             }
@@ -344,9 +346,10 @@ class Kafka extends Connector
         }
 
         // 设置隔离级别，用于事务支持
-        if ($this->options['enable_transactions'] ?? false) {
+        if ($this->options['transaction']['enabled'] ?? false) {
             // 设置为读已提交，确保只读取已提交的事务消息
             $conf->set('isolation.level', 'read_committed');
+            Log::info('Kafka consumer configured with read_committed isolation level for transaction support');
         }
 
         Log::info('Kafka consumer init success');
@@ -435,7 +438,7 @@ class Kafka extends Connector
             $delayQueue = ($queue ?: $this->options['topic']) . '_delayed';
 
             // 使用事务发送消息
-            $enableTransactions = $this->options['enable_transactions'] ?? false;
+            $enableTransactions = $this->options['transaction']['enabled'] ?? false;
             if ($enableTransactions) {
                 return $this->pushWithTransaction($payload, $delayQueue);
             }

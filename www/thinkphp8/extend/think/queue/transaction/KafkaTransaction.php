@@ -51,6 +51,8 @@ class KafkaTransaction
         // 设置超时时间
         if (isset($options['timeout'])) {
             $this->timeout = (int)$options['timeout'];
+        } elseif (isset($options['transaction']['timeout'])) {
+            $this->timeout = (int)$options['transaction']['timeout'];
         }
 
         // 初始化生产者

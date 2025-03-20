@@ -17,8 +17,8 @@ class ProcessTask
         $attempts = $job->attempts();
         Log::info('Current attempt: ' . $attempts);
 
+        // 模拟任务失败，抛出异常
         // if ($attempts <= 3) {
-        //     // 模拟任务失败，抛出异常
         //     Log::info('模拟任务执行失败，当前尝试次数: ' . json_encode($attempts, JSON_UNESCAPED_UNICODE));
 
         //     $job->release($attempts);
@@ -27,12 +27,16 @@ class ProcessTask
             Log::info('Processing task: ' . json_encode($data, JSON_UNESCAPED_UNICODE));
 
             // 在这里处理你的任务逻辑
-            Db::name('user')->save($data);
+            $result = Db::name('user')->save($data);
 
-            // 任务执行成功后删除任务
-            $job->delete();
+            if ($result == true) {
+                // 任务执行成功后删除任务
+                $job->delete();
 
-            Log::info('Task processed successfully: ' . json_encode($data, JSON_UNESCAPED_UNICODE));
+                Log::info('Task processed successfully: ' . json_encode($data, JSON_UNESCAPED_UNICODE));
+            } else {
+                Log::info('Task processed failed: 注册用户失败！');
+            }
         } catch (\Exception $e) {
             Log::error(
                 'Task processing failed:' .
