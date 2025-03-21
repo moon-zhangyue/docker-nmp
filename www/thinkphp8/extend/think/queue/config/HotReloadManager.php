@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace think\queue\config;
 
-use think\facade\Cache;
 use think\facade\Log;
 use think\facade\Config;
+use think\facade\Cache;
 
 /**
  * 配置热加载管理器
- * 用于在运行时动态调整队列配置，避免重启消费者
+ * 用于在运行时动态加载和更新配置
  */
 class HotReloadManager
 {
@@ -20,9 +20,9 @@ class HotReloadManager
     protected $keyPrefix = 'queue:config:';
 
     /**
-     * 配置刷新间隔（秒）
+     * 缓存的配置
      */
-    protected $refreshInterval = 60;
+    protected $cachedConfig = [];
 
     /**
      * 上次刷新时间
@@ -30,36 +30,47 @@ class HotReloadManager
     protected $lastRefreshTime = 0;
 
     /**
-     * 缓存的配置
+     * 刷新间隔（秒）
      */
-    protected $cachedConfig = [];
+    protected $refreshInterval = 60;
 
     /**
-     * 单例实例
+     * 租户ID
      */
-    private static $instance = null;
+    protected $tenantId = 'default';
+
+    /**
+     * 单例实例映射
+     * 按租户ID存储不同的实例
+     */
+    private static $instances = [];
 
     /**
      * 私有构造函数，防止外部实例化
+     * 
+     * @param string $tenantId 租户ID
      */
-    private function __construct()
+    private function __construct(string $tenantId = 'default')
     {
-        $this->lastRefreshTime = time();
+        $this->tenantId = $tenantId;
+        $this->keyPrefix = 'queue:config:' . $tenantId . ':';
         $this->loadConfigFromCache();
+        $this->lastRefreshTime = time();
     }
 
     /**
-     * 获取单例实例
+     * 获取实例
      * 
+     * @param string $tenantId 租户ID
      * @return HotReloadManager
      */
-    public static function getInstance()
+    public static function getInstance(string $tenantId = 'default'): HotReloadManager
     {
-        if (self::$instance === null) {
-            self::$instance = new self();
+        if (!isset(self::$instances[$tenantId])) {
+            self::$instances[$tenantId] = new self($tenantId);
         }
 
-        return self::$instance;
+        return self::$instances[$tenantId];
     }
 
     /**
@@ -69,7 +80,7 @@ class HotReloadManager
      * @param mixed $default 默认值
      * @return mixed 配置值
      */
-    public function get(string $key, $default = null)
+    public function get(string $key, mixed $default = null): mixed
     {
         // 检查是否需要刷新配置
         $this->checkRefresh();

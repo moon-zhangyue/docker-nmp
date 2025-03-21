@@ -60,6 +60,7 @@ return [
                 'enabled' => true,  // 启用事务支持
                 'timeout' => 10000,  // 事务超时时间（毫秒）
             ],
+
             // 负载均衡配置
             'balance' => [
                 'message_rate_threshold' => 10.0,  // 消息速率阈值

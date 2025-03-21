@@ -1,28 +1,28 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types=1); // 严格类型声明
 
-namespace think\queue\connector;
+namespace think\queue\connector; // 命名空间声明
 
-use think\queue\Connector;
-use think\queue\InteractsWithTime;
-use think\queue\KafkaJob;
-use RdKafka\Producer;
-use RdKafka\Conf;
-use Exception;
-use think\Container;
-use think\facade\Log;
-use think\queue\metrics\PrometheusCollector;
-use think\queue\idempotent\RedisIdempotent;
-use think\queue\deadletter\DeadLetterQueue;
-use think\queue\config\HotReloadManager;
-use think\queue\partition\PartitionManager;
-use think\queue\transaction\KafkaTransaction;
-use think\queue\error\SentryReporter;
-use think\queue\health\HealthCheck;
-use think\queue\config\ConfigValidator;
+use think\queue\Connector; // 引入Connector类
+use think\queue\InteractsWithTime; // 引入InteractsWithTime trait
+use think\queue\KafkaJob; // 引入KafkaJob类
+use RdKafka\Producer; // 引入RdKafka\Producer类
+use RdKafka\Conf; // 引入RdKafka\Conf类
+use Exception; // 引入Exception类
+use think\Container; // 引入Container类
+use think\facade\Log; // 引入Log门面
+use think\queue\metrics\PrometheusCollector; // 引入PrometheusCollector类
+use think\queue\idempotent\RedisIdempotent; // 引入RedisIdempotent类
+use think\queue\deadletter\DeadLetterQueue; // 引入DeadLetterQueue类
+use think\queue\config\HotReloadManager; // 引入HotReloadManager类
+use think\queue\partition\PartitionManager; // 引入PartitionManager类
+use think\queue\transaction\KafkaTransaction; // 引入KafkaTransaction类
+use think\queue\error\SentryReporter; // 引入SentryReporter类
+use think\queue\health\HealthCheck; // 引入HealthCheck类
+use think\queue\config\ConfigValidator; // 引入ConfigValidator类
 
-class Kafka extends Connector
+class Kafka extends Connector // Kafka类继承自Connector
 {
     use InteractsWithTime; // 使用InteractsWithTime trait，提供时间相关的功能
 
