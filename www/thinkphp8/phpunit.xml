@@ -1,32 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd"
          bootstrap="extend/think/queue/tests/bootstrap.php"
          colors="true"
-         stopOnFailure="false"
          cacheDirectory=".phpunit.cache"
-         displayDetailsOnTestsThatTriggerWarnings="true"
-         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
          displayDetailsOnTestsThatTriggerErrors="true"
-         displayDetailsOnIncompleteTests="true"
-         displayDetailsOnSkippedTests="true">
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         failOnDeprecation="true"
+         failOnEmptyTestSuite="true"
+         failOnNotice="true"
+         failOnWarning="true"
+         processIsolation="true"
+         requireCoverageMetadata="true"
+         stopOnDefect="true">
     <testsuites>
         <testsuite name="Queue Tests">
-            <directory>extend/think/queue/tests</directory>
+            <directory>./tests/queue</directory>
         </testsuite>
     </testsuites>
     <php>
         <env name="APP_ENV" value="testing"/>
-        <env name="CACHE_DRIVER" value="array"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
     </php>
-    <source>
-        <include>
-            <directory suffix=".php">extend/think/queue</directory>
-        </include>
-        <exclude>
-            <directory suffix=".php">extend/think/queue/tests</directory>
-        </exclude>
-    </source>
-</phpunit>
+</phpunit> 

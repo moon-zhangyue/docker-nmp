@@ -1,0 +1,155 @@
+<?php
+
+declare(strict_types=1);
+
+namespace tests\queue;
+
+use PHPUnit\Framework\TestCase;
+use think\queue\tenant\TenantManager;
+use think\facade\Cache;
+use think\facade\Config;
+
+/**
+ * 租户管理器测试
+ */
+class TenantManagerTest extends TestCase
+{
+    protected $manager;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->manager = TenantManager::getInstance();
+    }
+
+    /**
+     * 测试获取实例
+     */
+    public function testGetInstance()
+    {
+        $instance = TenantManager::getInstance();
+        $this->assertInstanceOf(TenantManager::class, $instance);
+    }
+
+    /**
+     * 测试创建租户
+     */
+    public function testCreateTenant()
+    {
+        $tenantId = 'test_tenant';
+        $result = $this->manager->createTenant($tenantId);
+        $this->assertTrue($result);
+        
+        // 验证租户配置是否存在
+        $config = Cache::get('tenant:' . $tenantId . ':config');
+        $this->assertNotNull($config);
+    }
+
+    /**
+     * 测试创建已存在的租户
+     */
+    public function testCreateExistingTenant()
+    {
+        $tenantId = 'existing_tenant';
+        $this->manager->createTenant($tenantId);
+        
+        // 尝试再次创建
+        $result = $this->manager->createTenant($tenantId);
+        $this->assertFalse($result);
+    }
+
+    /**
+     * 测试删除租户
+     */
+    public function testDeleteTenant()
+    {
+        $tenantId = 'delete_tenant';
+        $this->manager->createTenant($tenantId);
+        
+        $result = $this->manager->deleteTenant($tenantId);
+        $this->assertTrue($result);
+        
+        // 验证租户配置是否已删除
+        $config = Cache::get('tenant:' . $tenantId . ':config');
+        $this->assertNull($config);
+    }
+
+    /**
+     * 测试删除不存在的租户
+     */
+    public function testDeleteNonExistingTenant()
+    {
+        $tenantId = 'non_existing_tenant';
+        $result = $this->manager->deleteTenant($tenantId);
+        $this->assertFalse($result);
+    }
+
+    /**
+     * 测试获取所有租户
+     */
+    public function testGetAllTenants()
+    {
+        $tenantIds = ['tenant1', 'tenant2'];
+        foreach ($tenantIds as $id) {
+            $this->manager->createTenant($id);
+        }
+        
+        $tenants = $this->manager->getAllTenants();
+        $this->assertCount(2, $tenants);
+        $this->assertContains('tenant1', $tenants);
+        $this->assertContains('tenant2', $tenants);
+    }
+
+    /**
+     * 测试设置和获取当前租户
+     */
+    public function testSetAndGetCurrentTenant()
+    {
+        $tenantId = 'current_tenant';
+        $this->manager->createTenant($tenantId);
+        
+        $this->manager->setCurrentTenant($tenantId);
+        $current = $this->manager->getCurrentTenant();
+        $this->assertEquals($tenantId, $current);
+    }
+
+    /**
+     * 测试设置和获取租户配置
+     */
+    public function testSetAndGetTenantConfig()
+    {
+        $tenantId = 'config_tenant';
+        $this->manager->createTenant($tenantId);
+        
+        $config = ['key' => 'value'];
+        $this->manager->setTenantConfig($tenantId, $config);
+        
+        $retrieved = $this->manager->getTenantConfig($tenantId);
+        $this->assertEquals($config, $retrieved);
+    }
+
+    /**
+     * 测试设置租户配置项
+     */
+    public function testSetTenantConfigItem()
+    {
+        $tenantId = 'item_tenant';
+        $this->manager->createTenant($tenantId);
+        
+        $this->manager->setTenantConfigItem($tenantId, 'key', 'value');
+        $value = $this->manager->getTenantConfigItem($tenantId, 'key');
+        $this->assertEquals('value', $value);
+    }
+
+    /**
+     * 测试获取租户特定主题
+     */
+    public function testGetTenantSpecificTopic()
+    {
+        $tenantId = 'topic_tenant';
+        $this->manager->createTenant($tenantId);
+        
+        $topic = $this->manager->getTenantSpecificTopic($tenantId, 'test_topic');
+        $this->assertEquals('test_topic_' . $tenantId, $topic);
+    }
+}

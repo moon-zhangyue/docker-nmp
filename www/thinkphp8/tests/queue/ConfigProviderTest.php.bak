@@ -1,0 +1,148 @@
+<?php
+
+declare(strict_types=1);
+
+namespace tests\queue;
+
+use PHPUnit\Framework\TestCase;
+use think\queue\config\RedisConfigProvider;
+use think\queue\config\ConsulConfigProvider;
+use think\queue\config\EtcdConfigProvider;
+use think\queue\config\ZookeeperConfigProvider;
+use think\queue\config\ConfigProviderFactory;
+use think\facade\Cache;
+use think\facade\Config;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
+
+/**
+ * 配置提供者单元测试
+ */
+class ConfigProviderTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        // 初始化应用容器，在bootstrap.php中已经完成
+        // 不需要在这里重复初始化
+    }
+
+    /**
+     * 测试Redis配置提供者
+     */
+    public function testRedisConfigProvider()
+    {
+        $config = [
+            'host' => 'redis',
+            'port' => 6379,
+            'password' => '',
+            'select' => 0,
+            'timeout' => 0,
+            'persistent' => false,
+        ];
+        
+        $provider = new RedisConfigProvider('test', $config);
+        $this->assertInstanceOf(RedisConfigProvider::class, $provider);
+    }
+
+    /**
+     * 测试Consul配置提供者
+     */
+    public function testConsulConfigProvider()
+    {
+        $config = [
+            'host' => 'consul',
+            'port' => 8500,
+            'token' => '',
+        ];
+        
+        $provider = new ConsulConfigProvider('http://consul:8500', 'test');
+        $this->assertInstanceOf(ConsulConfigProvider::class, $provider);
+    }
+
+    /**
+     * 测试Etcd配置提供者
+     */
+    public function testEtcdConfigProvider()
+    {
+        $config = [
+            'host' => 'etcd',
+            'port' => 2379,
+            'username' => '',
+            'password' => '',
+        ];
+        
+        $provider = new EtcdConfigProvider('http://etcd:2379', 'test');
+        $this->assertInstanceOf(EtcdConfigProvider::class, $provider);
+    }
+
+    /**
+     * 测试ZooKeeper配置提供者
+     */
+    public function testZookeeperConfigProvider()
+    {
+        $config = [
+            'host' => 'zookeeper',
+            'port' => 2181,
+            'timeout' => 10000,
+        ];
+        
+        $provider = new ZookeeperConfigProvider('zookeeper:2181', 'test');
+        $this->assertInstanceOf(ZookeeperConfigProvider::class, $provider);
+    }
+
+    /**
+     * 测试配置提供者工厂
+     */
+    public function testConfigProviderFactory()
+    {
+        // 测试创建Redis配置提供者
+        $redisProvider = ConfigProviderFactory::create('redis', 'test');
+        $this->assertInstanceOf(RedisConfigProvider::class, $redisProvider);
+
+        // 测试创建Consul配置提供者
+        $consulProvider = ConfigProviderFactory::create('consul', 'test');
+        $this->assertInstanceOf(ConsulConfigProvider::class, $consulProvider);
+
+        // 测试创建Etcd配置提供者
+        $etcdProvider = ConfigProviderFactory::create('etcd', 'test');
+        $this->assertInstanceOf(EtcdConfigProvider::class, $etcdProvider);
+
+        // 测试创建ZooKeeper配置提供者
+        $zkProvider = ConfigProviderFactory::create('zookeeper', 'test');
+        $this->assertInstanceOf(ZookeeperConfigProvider::class, $zkProvider);
+
+        // 测试无效类型
+        $this->expectException(\InvalidArgumentException::class);
+        ConfigProviderFactory::create('invalid', 'test');
+    }
+
+    /**
+     * 测试Redis连接
+     */
+    public function testRedisConnection()
+    {
+        // 创建Redis实例
+        $redis = new \Redis();
+        
+        // 尝试连接Redis
+        try {
+            $connected = $redis->connect('redis', 6379);
+            $this->assertTrue($connected, 'Redis 连接应该成功');
+            
+            // 设置一个测试值
+            $redis->set('test_key', 'test_value');
+            
+            // 获取值并验证
+            $value = $redis->get('test_key');
+            $this->assertEquals('test_value', $value, 'Redis 应该正确存储和检索值');
+            
+            // 清理
+            $redis->del('test_key');
+            
+        } catch (\Exception $e) {
+            $this->fail('Redis 连接失败: ' . $e->getMessage());
+        }
+    }
+}

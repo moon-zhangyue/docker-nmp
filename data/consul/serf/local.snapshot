@@ -1,2 +1,10 @@
 alive: consul-server 172.18.0.19:8301
 event-clock: 1
+alive: consul-server 172.18.0.10:8301
+event-clock: 2
+alive: consul-server 172.18.0.7:8301
+event-clock: 3
+alive: consul-server 172.18.0.5:8301
+event-clock: 4
+alive: consul-server 172.18.0.5:8301
+event-clock: 5

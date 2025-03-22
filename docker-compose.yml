@@ -648,39 +648,21 @@ services:
     networks:
       - default
   
-  # MongoDB Exporter - MongoDB 监控
-  # mongodb-exporter:
-  #   image: percona/mongodb_exporter:latest
-  #   container_name: mongodb-exporter
-  #   restart: always
-  #   ports:
-  #     - "${MONGODB_EXPORTER_PORT}:9216"
-  #   command:
-  #     - '--mongodb.uri=mongodb://mongodb:27017'
-  #   depends_on:
-  #     - mongodb
-  #   networks:
-  #     - default
-  
-  # Grafana - 可视化监控数据
-  grafana:
-    image: grafana/grafana:${GRAFANA_VERSION}
-    container_name: grafana
+  # Kafka Exporter - Kafka 监控
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-exporter
     restart: always
     ports:
-      - "${GRAFANA_PORT}:3000"
-    volumes:
-      - ${GRAFANA_DATA_DIR}:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=http://localhost:3000
-      - GF_SERVER_SERVE_FROM_SUB_PATH=false
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - "${KAFKA_EXPORTER_PORT}:9308"
+    command:
+      - '--kafka.server=kafka:9092'
+    depends_on:
+      - kafka
     networks:
       - default
-   # Consul - 服务发现和配置
+      
+  # Consul - 服务发现和配置
   consul:
     image: consul:${CONSUL_VERSION}
     container_name: consul
@@ -696,6 +678,9 @@ services:
       - CONSUL_BIND_INTERFACE=eth0
       - CONSUL_CLIENT_INTERFACE=eth0
     command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    depends_on:
+      - kafka
+      - zookeeper
     networks:
       - default
 
@@ -708,4 +693,6 @@ networks:
       # 解除下面的注释可以设置网段，用于nginx等容器固定容器IP
       #config:
       #  - subnet: 10.0.0.0/24
+
+      
 

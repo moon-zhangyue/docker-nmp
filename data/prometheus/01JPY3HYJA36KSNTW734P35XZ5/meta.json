@@ -1,0 +1,17 @@
+{
+	"ulid": "01JPY3HYJA36KSNTW734P35XZ5",
+	"minTime": 1742608803623,
+	"maxTime": 1742616000000,
+	"stats": {
+		"numSamples": 351546,
+		"numSeries": 1487,
+		"numChunks": 2986
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01JPY3HYJA36KSNTW734P35XZ5"
+		]
+	},
+	"version": 1
+}
