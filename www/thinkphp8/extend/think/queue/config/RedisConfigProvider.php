@@ -76,7 +76,7 @@ class RedisConfigProvider implements ConfigProviderInterface
             // 更新配置键列表
             $this->addKeyToList($key);
 
-            Log::info('Queue config updated in Redis', [
+            Log::info('Queue config updated in Redis: {key}, tenant_id: {tenant_id}', [
                 'key' => $key,
                 'tenant_id' => $this->tenantId
             ]);
@@ -119,7 +119,7 @@ class RedisConfigProvider implements ConfigProviderInterface
             // 从配置键列表中移除
             $this->removeKeyFromList($key);
 
-            Log::info('Queue config deleted from Redis', [
+            Log::info('Queue config deleted from Redis: {key}, tenant_id: {tenant_id}', [
                 'key' => $key,
                 'tenant_id' => $this->tenantId
             ]);

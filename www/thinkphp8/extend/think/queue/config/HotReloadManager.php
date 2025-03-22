@@ -106,7 +106,7 @@ class HotReloadManager
         $result = Cache::set($cacheKey, $value);
 
         if ($result) {
-            Log::info('Queue config updated', ['key' => $key, 'value' => $value]);
+            Log::info('Queue config updated: {key}, value: {value}', ['key' => $key, 'value' => $value]);
         } else {
             Log::error('Failed to update queue config', ['key' => $key]);
         }
@@ -151,7 +151,7 @@ class HotReloadManager
         $result = Cache::delete($cacheKey);
 
         if ($result) {
-            Log::info('Queue config deleted', ['key' => $key]);
+            Log::info('Queue config deleted: {key}', ['key' => $key]);
         }
 
         return $result;
@@ -234,7 +234,7 @@ class HotReloadManager
         // 保存配置键列表
         Cache::set($this->keyPrefix . 'keys', $keys);
 
-        Log::info('Initialized queue config: {count}', ['count' => count($keys)]);
+        Log::info('Initialized queue config, count: {count}', ['count' => count($keys)]);
     }
 
     /**

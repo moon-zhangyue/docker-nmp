@@ -116,7 +116,7 @@ class ConsulConfigProvider implements ConfigProviderInterface
                 // 更新本地缓存
                 $this->cachedConfig[$key] = $value;
 
-                Log::info('Queue config updated in Consul', [
+                Log::info('Queue config updated in Consul: {key}, tenant_id: {tenant_id}', [
                     'key' => $key,
                     'tenant_id' => $this->tenantId,
                     'value' => $value
@@ -175,7 +175,7 @@ class ConsulConfigProvider implements ConfigProviderInterface
                     unset($this->cachedConfig[$key]);
                 }
 
-                Log::info('Queue config deleted from Consul', [
+                Log::info('Queue config deleted from Consul: {key}, tenant_id: {tenant_id}', [
                     'key' => $key,
                     'tenant_id' => $this->tenantId
                 ]);
@@ -234,7 +234,7 @@ class ConsulConfigProvider implements ConfigProviderInterface
                 // 清空本地缓存
                 $this->cachedConfig = [];
 
-                Log::info('All queue configs cleared from Consul', [
+                Log::info('All queue configs cleared from Consul, tenant_id: {tenant_id}', [
                     'tenant_id' => $this->tenantId
                 ]);
 
@@ -278,7 +278,7 @@ class ConsulConfigProvider implements ConfigProviderInterface
         try {
             $prefix = $this->keyPrefix . $this->tenantId . '/';
 
-            Log::info('Attempting to load config from Consul', [
+            Log::info('Attempting to load config from Consul, tenant_id: {tenant_id}, api_url: {api_url}, prefix: {prefix}', [
                 'tenant_id' => $this->tenantId,
                 'api_url' => $this->apiUrl,
                 'prefix' => $prefix
@@ -303,7 +303,7 @@ class ConsulConfigProvider implements ConfigProviderInterface
 
                     $this->cachedConfig = $config;
 
-                    Log::info('Loaded queue config from Consul', [
+                    Log::info('Loaded queue config from Consul, tenant_id: {tenant_id}, count: {count}', [
                         'tenant_id' => $this->tenantId,
                         'count' => count($config),
                         'keys' => array_keys($config)
@@ -371,7 +371,7 @@ class ConsulConfigProvider implements ConfigProviderInterface
     {
         $this->loadConfigFromConsul();
         $this->lastRefreshTime = time();
-        Log::info('Force refreshed queue config from Consul', [
+        Log::info('Force refreshed queue config from Consul, tenant_id: {tenant_id}', [
             'tenant_id' => $this->tenantId
         ]);
     }

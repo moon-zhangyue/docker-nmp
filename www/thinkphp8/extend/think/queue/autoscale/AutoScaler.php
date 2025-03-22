@@ -190,14 +190,14 @@ class AutoScaler
     {
         // 检查冷却期
         if ($this->isInCooldown($topic, 'scale_up')) {
-            Log::info('Auto scale up is in cooldown period', [
+            Log::info('Auto scale up is in cooldown period, topic: {topic}, tenant_id: {tenant_id}', [
                 'topic' => $topic,
                 'tenant_id' => $this->tenantId
             ]);
             return false;
         }
 
-        Log::info('Scaling up consumers', [
+        Log::info('Scaling up consumers, topic: {topic}, count: {count}, tenant_id: {tenant_id}', [
             'topic' => $topic,
             'count' => $count,
             'tenant_id' => $this->tenantId
@@ -226,14 +226,14 @@ class AutoScaler
     {
         // 检查冷却期
         if ($this->isInCooldown($topic, 'scale_down')) {
-            Log::info('Auto scale down is in cooldown period', [
+            Log::info('Auto scale down is in cooldown period, topic: {topic}, tenant_id: {tenant_id}', [
                 'topic' => $topic,
                 'tenant_id' => $this->tenantId
             ]);
             return false;
         }
 
-        Log::info('Scaling down consumers', [
+        Log::info('Scaling down consumers, topic: {topic}, count: {count}, tenant_id: {tenant_id}', [
             'topic' => $topic,
             'count' => $count,
             'tenant_id' => $this->tenantId
@@ -307,7 +307,7 @@ class AutoScaler
     protected function recordScaleAction(string $topic, array $result): void
     {
         // 记录日志
-        Log::info('Auto scale action', $result);
+        Log::info('Auto scale action, topic: {topic}, action: {action}, current_count: {current_consumer_count}, desired_count: {desired_consumer_count}', $result);
 
         // 记录到缓存中，保存最近的扩展历史
         $historyKey = $this->keyPrefix . $this->tenantId . ':' . $topic . ':history';
