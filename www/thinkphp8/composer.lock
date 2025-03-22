@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dfa193a137459a64d1bdf0087c4a11fa",
+    "content-hash": "475acebbb8df456ad2b01344a65ec213",
     "packages": [
         {
             "name": "carbonphp/carbon-doctrine-types",
@@ -140,6 +140,61 @@
                 }
             ],
             "time": "2023-12-20T15:40:13+00:00"
+        },
+        {
+            "name": "friendsofphp/consul-php-sdk",
+            "version": "v5.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/FriendsOfPHP/consul-php-sdk.git",
+                "reference": "8ae4e60b48ae1abe2d235838db290d0b7e5dcfa2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/FriendsOfPHP/consul-php-sdk/zipball/8ae4e60b48ae1abe2d235838db290d0b7e5dcfa2",
+                "reference": "8ae4e60b48ae1abe2d235838db290d0b7e5dcfa2",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1",
+                "psr/log": "^1|^2|^3",
+                "symfony/http-client": "^5.4|^6.4|^7.0"
+            },
+            "require-dev": {
+                "symfony/phpunit-bridge": "^6.0|^7.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "5.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Consul\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Grégoire Pineau",
+                    "email": "lyrixx@lyrixx.info"
+                }
+            ],
+            "description": "SDK to talk with consul.io API",
+            "keywords": [
+                "consul",
+                "hashicorp",
+                "sdk"
+            ],
+            "support": {
+                "issues": "https://github.com/FriendsOfPHP/consul-php-sdk/issues",
+                "source": "https://github.com/FriendsOfPHP/consul-php-sdk/tree/v5.2.0"
+            },
+            "time": "2024-03-04T08:03:38+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",

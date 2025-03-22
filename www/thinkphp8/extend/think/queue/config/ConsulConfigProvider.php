@@ -278,12 +278,19 @@ class ConsulConfigProvider implements ConfigProviderInterface
         try {
             $prefix = $this->keyPrefix . $this->tenantId . '/';
 
+            Log::info('Attempting to load config from Consul', [
+                'tenant_id' => $this->tenantId,
+                'api_url' => $this->apiUrl,
+                'prefix' => $prefix
+            ]);
+
             $response = $this->client->get("/v1/kv/{$prefix}?recurse=true");
 
             if ($response->getStatusCode() === 200) {
-                $data = json_decode($response->getBody()->getContents(), true);
+                $content = $response->getBody()->getContents();
+                $data = json_decode($content, true);
 
-                if (is_array($data)) {
+                if (is_array($data) && !empty($data)) {
                     $config = [];
 
                     foreach ($data as $item) {
@@ -296,16 +303,39 @@ class ConsulConfigProvider implements ConfigProviderInterface
 
                     $this->cachedConfig = $config;
 
-                    Log::debug('Loaded queue config from Consul', [
+                    Log::info('Loaded queue config from Consul', [
                         'tenant_id' => $this->tenantId,
-                        'count' => count($config)
+                        'count' => count($config),
+                        'keys' => array_keys($config)
+                    ]);
+                } else {
+                    Log::warning('No config data found in Consul or invalid response', [
+                        'tenant_id' => $this->tenantId,
+                        'response_status' => $response->getStatusCode(),
+                        'is_array' => is_array($data),
+                        'data_count' => is_array($data) ? count($data) : 0
                     ]);
                 }
+            } else {
+                Log::warning('Unexpected response from Consul', [
+                    'tenant_id' => $this->tenantId,
+                    'status_code' => $response->getStatusCode()
+                ]);
             }
         } catch (GuzzleException $e) {
             Log::error('Failed to load queue config from Consul', [
                 'tenant_id' => $this->tenantId,
-                'error' => $e->getMessage()
+                'api_url' => $this->apiUrl,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_type' => get_class($e)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Unexpected error when loading config from Consul', [
+                'tenant_id' => $this->tenantId,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_type' => get_class($e)
             ]);
         }
     }

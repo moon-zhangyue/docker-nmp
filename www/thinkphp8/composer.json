@@ -32,7 +32,8 @@
         "sentry/sentry": "^3.22",
         "topthink/think-view": "^2.0",
         "guzzlehttp/guzzle": "^7.9",
-        "sparkinfluence/zookeeper": "^1.1"
+        "sparkinfluence/zookeeper": "^1.1",
+        "friendsofphp/consul-php-sdk": "^5.2"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",

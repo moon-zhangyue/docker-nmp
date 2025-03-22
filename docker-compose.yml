@@ -680,7 +680,26 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
     networks:
       - default
+   # Consul - 服务发现和配置
+  consul:
+    image: consul:${CONSUL_VERSION}
+    container_name: consul
+    restart: always
+    ports:
+      - "${CONSUL_UI_PORT}:8500"
+      - "${CONSUL_SERVER_PORT}:8300"
+      - "${CONSUL_DNS_PORT}:8600/udp"
+    volumes:
+      - ${CONSUL_DATA_DIR}:/consul/data
+      - ${CONSUL_CONFIG_DIR}:/consul/config
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - CONSUL_CLIENT_INTERFACE=eth0
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    networks:
+      - default
 
+      
 networks:
   default:
     driver: bridge
@@ -689,3 +708,4 @@ networks:
       # 解除下面的注释可以设置网段，用于nginx等容器固定容器IP
       #config:
       #  - subnet: 10.0.0.0/24
+
