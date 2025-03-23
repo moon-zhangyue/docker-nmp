@@ -75,3 +75,175 @@ ThinkPHP遵循Apache2开源协议发布，并提供免费使用。
 ThinkPHP® 商标和著作权所有者为上海顶想信息科技有限公司。
 
 更多细节参阅 [LICENSE.txt](LICENSE.txt)
+
+# ThinkPHP 8 多租户队列使用指南
+
+这个项目演示了如何在ThinkPHP 8中使用多租户队列功能，支持不同租户的任务隔离和资源管理。
+
+## 功能特点
+
+- 多租户隔离：不同租户的队列任务互相隔离
+- 租户配置管理：支持为不同租户配置不同的队列参数
+- 支持延迟任务：可以创建延迟执行的队列任务
+- 错误重试机制：任务执行失败时自动重试
+- 支持Redis和Kafka作为队列驱动
+
+## 使用方法
+
+### 1. 创建租户
+
+使用`TenantManager`创建新的租户：
+
+```php
+// 获取租户管理器实例
+$manager = TenantManager::getInstance();
+
+// 创建新租户配置
+$config = [
+    'redis' => [
+        'host' => 'redis',
+        'port' => 6379,
+        'password' => '',
+        'select' => 0,
+    ],
+    'kafka' => [
+        'brokers' => ['kafka:9092'],
+        'group_id' => 'think-queue-tenant-1',
+        'topics' => ['default'],
+    ]
+];
+
+// 创建租户
+$result = $manager->createTenant('tenant-1', $config);
+```
+
+### 2. 设置当前租户
+
+```php
+// 设置当前租户
+$manager->setCurrentTenant('tenant-1');
+```
+
+### 3. 创建租户特定的队列任务
+
+```php
+// 获取租户特定的队列名称
+$queueName = $manager->getTenantSpecificTopic('tenant-1', 'default');
+
+// 推送任务到队列
+$jobData = [
+    'tenant_id' => 'tenant-1',
+    'task_type' => 'process_data',
+    'created_at' => date('Y-m-d H:i:s')
+];
+$isPushed = Queue::push('app\job\TenantAwareJob', $jobData, $queueName);
+```
+
+### 4. 创建延迟任务
+
+```php
+// 60秒后执行
+$delay = 60;
+$isPushed = Queue::later($delay, 'app\job\TenantAwareJob', $jobData, $queueName);
+```
+
+## 任务处理类实现
+
+创建一个支持多租户的任务处理类：
+
+```php
+namespace app\job;
+
+use think\facade\Log;
+use think\queue\Job;
+use think\queue\tenant\TenantManager;
+
+class TenantAwareJob
+{
+    public function fire(Job $job, $data): void
+    {
+        try {
+            // 获取租户ID
+            $tenantId = $data['tenant_id'] ?? 'default';
+            
+            // 获取租户管理器实例
+            $manager = TenantManager::getInstance();
+            
+            // 设置当前租户
+            $manager->setCurrentTenant($tenantId);
+            
+            // 获取租户配置
+            $tenantConfig = $manager->getTenantConfig($tenantId);
+            
+            // 执行租户特定的业务逻辑
+            // ...
+            
+            // 标记任务为已完成
+            $job->delete();
+        } catch (\Exception $e) {
+            // 异常处理和重试逻辑
+            // ...
+        }
+    }
+}
+```
+
+## 示例代码
+
+项目中包含以下示例：
+
+- `app/controller/TenantQueueExample.php` - 多租户队列控制器示例
+- `app/controller/QueueTaskExample.php` - 基本队列控制器示例
+- `app/job/TenantAwareJob.php` - 多租户任务处理类
+- `app/job/TestJob.php` - 基本任务处理类
+
+## 启动队列处理
+
+启动队列监听程序：
+
+```bash
+# 启动默认队列处理
+php think queue:work
+
+# 启动指定队列处理
+php think queue:work --queue=tenant-1-default
+
+# 指定连接和队列
+php think queue:work --connection=redis --queue=tenant-1-default
+
+# 守护进程模式
+php think queue:work --daemon
+```
+
+## 测试队列功能
+
+1. 访问 `/tenant_queue_example/create_tenant_and_queue` 创建租户和队列任务
+2. 访问 `/tenant_queue_example/create_delayed_task` 创建延迟任务
+3. 访问 `/queue_task_example/create_task` 创建普通队列任务
+
+## 配置说明
+
+在`config/queue.php`中配置队列：
+
+```php
+return [
+    'default'     => 'redis',
+    'connections' => [
+        'redis' => [
+            'type'       => 'redis',
+            'host'       => 'redis',
+            'port'       => 6379,
+            'password'   => '',
+            'select'     => 0,
+            'timeout'    => 0,
+            'persistent' => false,
+        ],
+        'kafka' => [
+            'type'       => 'kafka',
+            'brokers'    => ['kafka:9092'],
+            'group_id'   => 'think-queue',
+            'topics'     => ['default'],
+        ],
+    ],
+];
+```

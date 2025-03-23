@@ -2,7 +2,7 @@
 
 // 返回一个配置数组，包含队列连接和错误追踪等配置信息
 return [
-    'default'     => 'kafka',  // 设置默认的队列连接为 'kafka'
+    'default'     => 'redis',  // 修改默认队列连接为redis而不是kafka
     'connections' => [  // 定义多个队列连接的配置
         'sync'     => [  // 同步队列配置
             'type' => 'sync',  // 队列类型为同步
@@ -26,10 +26,9 @@ return [
         ],
         'kafka' => [  // Kafka 队列配置
             'type'  => 'kafka',  // 队列类型为 Kafka
-            'queue' => 'default-kafka',  // 队列名称为 'default-kafka'
-            'host'  => 'kafka:9092',  // Kafka 服务器地址
-            'brokers'    => 'kafka:9092',  // Kafka 经纪人地址
-            'topic'      => 'default-topic',  // Kafka 主题名称
+            'queue' => 'default',  // 修改队列名称为更简单的名称
+            'brokers'    => '376e79a3a3f9:9092',  // 使用Kafka容器ID作为主机名
+            'topic'      => 'default',  // 修改为更简单的主题名称
             'options' => [  // Kafka 消费者配置选项
                 'group.id' => 'thinkphp_consumer_group',  // 消费者组 ID
                 'auto.offset.reset' => 'earliest',  // 自动重置偏移量为最早
@@ -90,7 +89,7 @@ return [
     // Sentry错误追踪配置
     'sentry' => 'https://6baf7b16aaedd3124c0da0714349bc6f@o4508997599166464.ingest.us.sentry.io/4508997601001472',  // Sentry DSN（Data Source Name）
     'sentry_config' => [  // 定义一个名为 'sentry_config' 的数组，用于配置 Sentry 错误追踪服务
-        'environment' => 'developmentddd',  // 设置当前环境为 'developmentddd'，通常用于标识开发环境
+        'environment' => 'development',  // 修正环境名称
         'release' => '1.0.0',  // 设置当前应用的版本号为 '1.0.0'
         'traces_sample_rate' => 1.0,  // 设置性能追踪的采样率为 100%，即每个请求都进行追踪
         'max_breadcrumbs' => 50,  // 设置最大面包屑数量为 50，面包屑用于记录用户操作路径

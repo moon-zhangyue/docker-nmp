@@ -10,7 +10,7 @@ return [
         'persistent' => false,
         'options'    => [
             // 使用常量值替代Redis类常量
-            -1 => -1, // 替代 \Redis::OPT_READ_TIMEOUT => -1
+            3 => -1, // Redis::OPT_READ_TIMEOUT => -1
         ],
     ],
 ];

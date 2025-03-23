@@ -117,8 +117,9 @@ class SentryReporter
                 });
             }
 
-            // 捕获异常
-            $eventId = \Sentry\captureException($exception);
+            // 捕获异常并将EventId对象转换为字符串
+            $eventIdObj = \Sentry\captureException($exception);
+            $eventId = $eventIdObj ? (string)$eventIdObj : null;
 
             Log::info('Exception reported to Sentry', ['event_id' => $eventId]);
             return $eventId;
@@ -153,8 +154,31 @@ class SentryReporter
                 });
             }
 
-            // 捕获消息
-            $eventId = \Sentry\captureMessage($message, constant('\\Sentry\\Severity::' . strtoupper($level)));
+            // 捕获消息 - 修复Severity类型
+            $severityLevel = null;
+            switch (strtolower($level)) {
+                case 'debug':
+                    $severityLevel = \Sentry\Severity::debug();
+                    break;
+                case 'info':
+                    $severityLevel = \Sentry\Severity::info();
+                    break;
+                case 'warning':
+                    $severityLevel = \Sentry\Severity::warning();
+                    break;
+                case 'error':
+                    $severityLevel = \Sentry\Severity::error();
+                    break;
+                case 'fatal':
+                    $severityLevel = \Sentry\Severity::fatal();
+                    break;
+                default:
+                    $severityLevel = \Sentry\Severity::info();
+            }
+            
+            // 捕获消息并将EventId对象转换为字符串
+            $eventIdObj = \Sentry\captureMessage($message, $severityLevel);
+            $eventId = $eventIdObj ? (string)$eventIdObj : null;
 
             Log::info('Message reported to Sentry', ['event_id' => $eventId]);
             return $eventId;
@@ -180,10 +204,30 @@ class SentryReporter
         }
 
         try {
+            // 转换level字符串为常量值
+            $levelConstant = \Sentry\Breadcrumb::LEVEL_INFO;
+            switch (strtolower($level)) {
+                case 'debug':
+                    $levelConstant = \Sentry\Breadcrumb::LEVEL_DEBUG;
+                    break;
+                case 'info':
+                    $levelConstant = \Sentry\Breadcrumb::LEVEL_INFO;
+                    break;
+                case 'warning':
+                    $levelConstant = \Sentry\Breadcrumb::LEVEL_WARNING;
+                    break;
+                case 'error':
+                    $levelConstant = \Sentry\Breadcrumb::LEVEL_ERROR;
+                    break;
+                case 'fatal':
+                    $levelConstant = \Sentry\Breadcrumb::LEVEL_FATAL;
+                    break;
+            }
+            
             \Sentry\addBreadcrumb(
                 new \Sentry\Breadcrumb(
-                    constant('\\Sentry\\Breadcrumb::LEVEL_' . strtoupper($level)),
-                    constant('\\Sentry\\Breadcrumb::TYPE_DEFAULT'),
+                    $levelConstant,
+                    \Sentry\Breadcrumb::TYPE_DEFAULT,
                     $category,
                     $message,
                     $data
