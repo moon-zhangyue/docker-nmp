@@ -9,6 +9,8 @@ return [
             'consumer_group_id' => 'thinkphp_consumer_group',
             'brokers' => 'kafka:9092',
             'topics' => ['default'],
+            'auto.create.topics.enable' => 'true',
+            'allow.auto.create.topics' => 'true',
             'consumer' => [
                 'enable.auto.commit' => 'true',
                 'auto.commit.interval.ms' => '1000',
@@ -18,7 +20,9 @@ return [
             'producer' => [
                 'compression.codec' => 'snappy',
                 'message.send.max.retries' => 3,
+                'batch.size' => 1000,
             ],
+            'debug' => true,
         ],
     ],
 ];

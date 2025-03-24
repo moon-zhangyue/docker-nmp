@@ -33,7 +33,10 @@
         "topthink/think-view": "^2.0",
         "guzzlehttp/guzzle": "^7.9",
         "sparkinfluence/zookeeper": "^1.1",
-        "friendsofphp/consul-php-sdk": "^5.2"
+        "friendsofphp/consul-php-sdk": "^5.2",
+        "firebase/php-jwt": "^6.11",
+        "easyswoole/pool": "^2.1",
+        "jenssegers/agent": "^2.6"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",

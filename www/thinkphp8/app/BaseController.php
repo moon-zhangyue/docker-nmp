@@ -5,6 +5,7 @@ namespace app;
 
 use think\App;
 use think\exception\ValidateException;
+use think\Response;
 use think\Validate;
 
 /**
@@ -91,4 +92,62 @@ abstract class BaseController
         return $v->failException(true)->check($data);
     }
 
+    /**
+     * 返回成功响应
+     * 
+     * @param string $message 成功信息
+     * @param array $data 数据
+     * @return Response
+     */
+    protected function success(string $message, array $data = []): Response
+    {
+        return json([
+            'code' => 200,
+            'message' => $message,
+            'data' => $data
+        ]);
+    }
+    
+    /**
+     * 返回错误响应
+     * 
+     * @param string $message 错误信息
+     * @param int $code 错误码
+     * @param array $data 数据
+     * @return Response
+     */
+    protected function error(string $message, int $code = 400, array $data = []): Response
+    {
+        return json([
+            'code' => $code,
+            'message' => $message,
+            'data' => $data
+        ]);
+    }
+    
+    /**
+     * 检查用户是否具有指定角色
+     * 
+     * @param string|array $roles 角色或角色数组
+     * @return bool
+     */
+    protected function hasRole($roles): bool
+    {
+        // 如果未设置用户或角色，则没有权限
+        if (!isset($this->request->user) || !isset($this->request->user['role'])) {
+            return false;
+        }
+        
+        $userRole = $this->request->user['role'];
+        
+        // 如果用户是管理员，拥有所有权限
+        if ($userRole === 'admin') {
+            return true;
+        }
+        
+        // 检查用户是否拥有指定角色之一
+        $requiredRoles = is_array($roles) ? $roles : [$roles];
+        
+        return in_array($userRole, $requiredRoles);
+    }
 }

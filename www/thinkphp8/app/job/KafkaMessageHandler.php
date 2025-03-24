@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\job;
 
+use think\facade\Db;
 use think\facade\Log;
 use think\queue\Job;
 use think\queue\tenant\TenantManager;
@@ -18,20 +19,25 @@ class KafkaMessageHandler
     public function fire(Job $job, $data): void
     {
         try {
-            // 记录任务开始处理
-            Log::info('KafkaMessageHandler开始处理消息', ['job_id' => $job->getId(), 'data' => $data]);
-            
             // 获取租户ID
             $tenantId = $data['tenant_id'] ?? 'default';
+            
+            // 记录任务开始处理 - 使用占位符格式
+            Log::info('[KafkaMessage] 开始处理任务 {job_id}，租户: {tenant_id}，类型: {message_type}，创建时间: {created_at}', [
+                'job_id' => $job->getJobId(),
+                'tenant_id' => $tenantId,
+                'message_type' => is_array($data['message'] ?? null) ? 'array' : gettype($data['message'] ?? null),
+                'created_at' => $data['created_at'] ?? '-'
+            ]);
             
             // 获取租户管理器实例
             $manager = TenantManager::getInstance();
             
             // 检查租户是否存在
             if (!$manager->tenantExists($tenantId)) {
-                Log::error('租户不存在，无法处理消息', [
+                Log::error('[KafkaMessage] 租户 {tenant_id} 不存在，任务 {job_id} 将被删除', [
                     'tenant_id' => $tenantId,
-                    'job_id' => $job->getId()
+                    'job_id' => $job->getJobId()
                 ]);
                 
                 // 删除任务
@@ -56,18 +62,18 @@ class KafkaMessageHandler
             $job->delete();
             
             // 记录任务完成
-            Log::info('KafkaMessageHandler处理完成', [
+            Log::info('[KafkaMessage] 租户 {tenant_id} 的任务 {job_id} 处理完成，执行时间: {execution_time}', [
                 'tenant_id' => $tenantId,
-                'job_id' => $job->getId(),
+                'job_id' => $job->getJobId(),
                 'execution_time' => date('Y-m-d H:i:s')
             ]);
         } catch (\Exception $e) {
             // 记录异常
-            Log::error('KafkaMessageHandler处理异常', [
+            Log::error('[KafkaMessage] 处理异常: {error}，租户: {tenant_id}，任务: {job_id}，位置: {location}', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'job_id' => $job->getId(),
-                'data' => $data
+                'tenant_id' => $data['tenant_id'] ?? 'default',
+                'job_id' => $job->getJobId(),
+                'location' => $e->getFile() . ':' . $e->getLine()
             ]);
             
             // 如果有尝试次数，延迟重试
@@ -77,8 +83,8 @@ class KafkaMessageHandler
                 $delay = pow(2, $attempts);
                 $job->release($delay);
                 
-                Log::info('Kafka消息将延迟重试', [
-                    'job_id' => $job->getId(),
+                Log::info('[KafkaMessage] 任务 {job_id} 将延迟 {delay} 秒后第 {attempts} 次重试', [
+                    'job_id' => $job->getJobId(),
                     'attempts' => $attempts,
                     'delay' => $delay
                 ]);
@@ -86,8 +92,8 @@ class KafkaMessageHandler
                 // 尝试次数过多，删除任务
                 $job->delete();
                 
-                Log::error('Kafka消息重试次数过多，已删除', [
-                    'job_id' => $job->getId(),
+                Log::error('[KafkaMessage] 任务 {job_id} 重试 {attempts} 次仍失败，已删除', [
+                    'job_id' => $job->getJobId(),
                     'attempts' => $attempts
                 ]);
             }
@@ -104,11 +110,13 @@ class KafkaMessageHandler
      */
     protected function processMessage($message, array $metadata, string $tenantId, array $tenantConfig): void
     {
-        // 记录消息处理
-        Log::info('处理Kafka消息', [
+        // 记录消息处理 - 格式化简洁明了
+        $metadataKeys = !empty($metadata) ? implode(', ', array_keys($metadata)) : '无';
+        
+        Log::info('[KafkaMessage] 处理租户 {tenant_id} 的 {type} 类型消息，元数据: {metadata}', [
             'tenant_id' => $tenantId,
-            'message_type' => gettype($message),
-            'metadata' => $metadata
+            'type' => gettype($message),
+            'metadata' => $metadataKeys
         ]);
         
         // 根据消息类型处理
@@ -123,9 +131,9 @@ class KafkaMessageHandler
             $this->processObjectMessage($message, $metadata, $tenantId);
         } else {
             // 其他类型
-            Log::warning('未知消息类型', [
+            Log::warning('[KafkaMessage] 租户 {tenant_id} 发送了未知类型 {type} 的消息', [
                 'tenant_id' => $tenantId,
-                'message_type' => gettype($message)
+                'type' => gettype($message)
             ]);
         }
         
@@ -138,10 +146,14 @@ class KafkaMessageHandler
      */
     protected function processTextMessage(string $message, array $metadata, string $tenantId): void
     {
-        Log::info('处理文本消息', [
+        $messagePreview = strlen($message) > 50 ? 
+            substr($message, 0, 47) . '...' : 
+            $message;
+            
+        Log::info('[KafkaMessage] 处理租户 {tenant_id} 的文本消息，长度: {length}，内容预览: {preview}', [
             'tenant_id' => $tenantId,
-            'message_length' => strlen($message),
-            'first_chars' => substr($message, 0, 50)
+            'length' => strlen($message),
+            'preview' => $messagePreview
         ]);
     }
     
@@ -150,10 +162,13 @@ class KafkaMessageHandler
      */
     protected function processArrayMessage(array $message, array $metadata, string $tenantId): void
     {
-        Log::info('处理数组消息', [
+        $keys = array_slice(array_keys($message), 0, 5);
+        $keyStr = !empty($keys) ? implode(', ', $keys) : '无';
+        
+        Log::info('[KafkaMessage] 处理租户 {tenant_id} 的数组消息，大小: {size}，键名: {keys}', [
             'tenant_id' => $tenantId,
-            'array_size' => count($message),
-            'keys' => array_keys($message)
+            'size' => count($message),
+            'keys' => $keyStr
         ]);
     }
     
@@ -162,9 +177,9 @@ class KafkaMessageHandler
      */
     protected function processObjectMessage(object $message, array $metadata, string $tenantId): void
     {
-        Log::info('处理对象消息', [
+        Log::info('[KafkaMessage] 处理租户 {tenant_id} 的对象消息，类名: {class}', [
             'tenant_id' => $tenantId,
-            'object_class' => get_class($message)
+            'class' => get_class($message)
         ]);
     }
     
@@ -178,10 +193,11 @@ class KafkaMessageHandler
         // 记录任务失败
         $tenantId = $data['tenant_id'] ?? 'default';
         
-        Log::error('KafkaMessageHandler任务最终失败', [
+        Log::error('[KafkaMessage] 租户 {tenant_id} 的任务最终失败，消息类型: {message_type}，创建时间: {created_at}，失败时间: {time}', [
             'tenant_id' => $tenantId,
-            'data' => $data,
-            'failure_time' => date('Y-m-d H:i:s')
+            'message_type' => is_array($data['message'] ?? null) ? 'array' : gettype($data['message'] ?? null),
+            'created_at' => $data['created_at'] ?? '-',
+            'time' => date('Y-m-d H:i:s')
         ]);
     }
 } 

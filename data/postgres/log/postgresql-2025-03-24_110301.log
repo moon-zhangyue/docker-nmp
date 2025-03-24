@@ -4,3 +4,5 @@
 2025-03-24 11:03:02 CST [1]: [6-1] user=,db=,app=,client= LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
 2025-03-24 11:03:03 CST [30]: [1-1] user=,db=,app=,client= LOG:  database system was shut down at 2025-03-23 16:09:07 CST
 2025-03-24 11:03:06 CST [1]: [7-1] user=,db=,app=,client= LOG:  database system is ready to accept connections
+2025-03-24 11:08:03 CST [28]: [1-1] user=,db=,app=,client= LOG:  checkpoint starting: time
+2025-03-24 11:08:03 CST [28]: [2-1] user=,db=,app=,client= LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.057 s, sync=0.020 s, total=0.241 s; sync files=2, longest=0.013 s, average=0.010 s; distance=0 kB, estimate=0 kB

@@ -2,7 +2,7 @@
 
 // 返回一个配置数组，包含队列连接和错误追踪等配置信息
 return [
-    'default'     => 'redis',  // 修改默认队列连接为redis而不是kafka
+    'default'     => 'kafka',  // 默认队列连接为kafka
     'connections' => [  // 定义多个队列连接的配置
         'sync'     => [  // 同步队列配置
             'type' => 'sync',  // 队列类型为同步
@@ -26,9 +26,11 @@ return [
         ],
         'kafka' => [  // Kafka 队列配置
             'type'  => 'kafka',  // 队列类型为 Kafka
-            'queue' => 'default',  // 修改队列名称为更简单的名称
-            'brokers'    => '376e79a3a3f9:9092',  // 使用Kafka容器ID作为主机名
-            'topic'      => 'default',  // 修改为更简单的主题名称
+            'queue' => 'default',  // 队列名称
+            'brokers'    => 'kafka:9092',  // 使用字符串而不是数组
+            'topic'      => 'default',  // 主题名称
+            'auto.create.topics.enable' => 'true',  // 启用自动创建主题
+            'allow.auto.create.topics' => 'true',   // 允许自动创建主题
             'options' => [  // Kafka 消费者配置选项
                 'group.id' => 'thinkphp_consumer_group',  // 消费者组 ID
                 'auto.offset.reset' => 'earliest',  // 自动重置偏移量为最早
@@ -56,7 +58,7 @@ return [
             ],
             // 事务支持配置
             'transaction' => [
-                'enabled' => true,  // 启用事务支持
+                'enabled' => false,  // 禁用事务支持以简化操作
                 'timeout' => 10000,  // 事务超时时间（毫秒）
             ],
 
@@ -84,6 +86,7 @@ return [
                 'expire_time' => 604800,  // 死信队列的过期时间（秒）
                 'alert_threshold' => 10,  // 死信队列的警报阈值
             ],
+            'debug' => true,  // 启用调试模式
         ],
     ],
     // Sentry错误追踪配置

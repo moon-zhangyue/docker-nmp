@@ -27,7 +27,7 @@ Route::post('queue/clear', 'Queue/clear');
 //think-queue队列
 Route::post('user/redis_queue', 'user/redis_queue'); //redis队列
 Route::post('user/kafka_queue', 'user/kafka_queue'); //kafka队列（User控制器）
-Route::post('kafkaqueue/push', 'kafkaqueue/push'); //kafka队列
+Route::post('KafkaQueue/push', 'KafkaQueue/push'); //kafka队列
 
 //监控指标
 Route::get('metrics/prometheus', 'metrics/prometheus'); //Prometheus指标

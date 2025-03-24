@@ -34,11 +34,23 @@ class KafkaQueue extends BaseController
                 ]);
             }
             
+            // 记录请求参数
+            Log::info('[Kafka] 接收到推送请求，参数: {params}', [
+                'params' => json_encode([
+                    'tenant_id' => $tenantId,
+                    'message' => (is_string($message) && strlen($message) > 100) ? substr($message, 0, 100) . '...' : $message,
+                    'topic' => $topic,
+                    'delay' => $delay
+                ], JSON_UNESCAPED_UNICODE)
+            ]);
+            
             // 获取租户管理器实例
             $manager = TenantManager::getInstance();
             
             // 检查租户是否存在，不存在则创建
             if (!$manager->tenantExists($tenantId)) {
+                Log::info('[Kafka] 租户 {tenant_id} 不存在，准备创建', ['tenant_id' => $tenantId]);
+                
                 // 创建新租户配置
                 $config = [
                     'redis' => [
@@ -48,9 +60,10 @@ class KafkaQueue extends BaseController
                         'select' => 0,
                     ],
                     'kafka' => [
-                        'brokers' => ['376e79a3a3f9:9092'], // 使用实际Kafka容器ID
+                        'brokers' => ['kafka:9092'], // 使用Kafka容器名称而不是ID
                         'group_id' => 'think-queue-' . $tenantId,
                         'topics' => [$topic],
+                        'auto.create.topics.enable' => 'true', // 允许自动创建主题
                     ]
                 ];
                 
@@ -58,13 +71,14 @@ class KafkaQueue extends BaseController
                 $result = $manager->createTenant($tenantId, $config);
                 
                 if (!$result) {
+                    Log::error('[Kafka] 创建租户 {tenant_id} 失败', ['tenant_id' => $tenantId]);
                     return json([
                         'code' => 1,
                         'msg' => '创建租户失败'
                     ]);
                 }
                 
-                Log::info('租户创建成功', ['tenant_id' => $tenantId]);
+                Log::info('[Kafka] 租户 {tenant_id} 创建成功', ['tenant_id' => $tenantId]);
             }
             
             // 设置当前租户
@@ -72,6 +86,7 @@ class KafkaQueue extends BaseController
             
             // 获取租户特定的队列名称
             $queueName = $manager->getTenantSpecificTopic($tenantId, $topic);
+            Log::info('[Kafka] 获取到租户特定队列名称: {queue}', ['queue' => $queueName]);
             
             // 构建要发送的消息数据
             $jobData = [
@@ -82,24 +97,39 @@ class KafkaQueue extends BaseController
             ];
             
             // 记录发送消息
-            Log::info('开始发送Kafka消息', [
+            $delayInfo = $delay > 0 ? "{$delay}秒" : '立即';
+            $messageType = is_array($message) ? 'array' : gettype($message);
+            
+            Log::info('[Kafka] 发送 {type} 类型消息到租户 {tenant_id} 的 {topic} 主题，队列: {queue}，延迟: {delay}', [
                 'tenant_id' => $tenantId,
                 'topic' => $topic,
-                'queue_name' => $queueName,
-                'data' => $jobData
+                'queue' => $queueName,
+                'delay' => $delayInfo,
+                'type' => $messageType
             ]);
+            
+            // 检查队列驱动
+            $queueDriver = config('queue.default');
+            Log::info('[Kafka] 当前队列驱动: {driver}', ['driver' => $queueDriver]);
             
             // 推送消息到队列
             $isPushed = false;
             if ($delay > 0) {
                 // 延迟消息
+                Log::info('[Kafka] 尝试推送延迟消息，延迟时间: {delay}秒', ['delay' => $delay]);
                 $isPushed = Queue::later($delay, 'app\job\KafkaMessageHandler', $jobData, $queueName);
             } else {
                 // 立即发送
+                Log::info('[Kafka] 尝试立即推送消息');
                 $isPushed = Queue::push('app\job\KafkaMessageHandler', $jobData, $queueName);
             }
             
             if ($isPushed !== false) {
+                Log::info('[Kafka] 租户 {tenant_id} 的消息发送成功，任务ID: {job_id}', [
+                    'tenant_id' => $tenantId, 
+                    'job_id' => $isPushed
+                ]);
+                
                 return json([
                     'code' => 0,
                     'msg' => '消息已成功发送到队列',
@@ -107,19 +137,26 @@ class KafkaQueue extends BaseController
                         'tenant_id' => $tenantId,
                         'queue_name' => $queueName,
                         'job_id' => $isPushed,
-                        'delay' => $delay,
-                        'message_data' => $jobData
+                        'delay' => $delay
                     ]
                 ]);
             } else {
+                Log::error('[Kafka] 租户 {tenant_id} 的消息发送失败，队列: {queue}', [
+                    'tenant_id' => $tenantId, 
+                    'queue' => $queueName
+                ]);
+                
                 return json([
                     'code' => 1,
                     'msg' => '消息发送失败'
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('发送Kafka消息异常: ' . $e->getMessage(), [
+            Log::error('[Kafka] 发送异常: {error}，租户: {tenant_id}，位置: {location}，错误码: {code}，堆栈: {trace}', [
                 'error' => $e->getMessage(),
+                'tenant_id' => $request->param('tenant_id', 'default'),
+                'location' => $e->getFile() . ':' . $e->getLine(),
+                'code' => $e->getCode(),
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -173,6 +210,13 @@ class KafkaQueue extends BaseController
             $success = 0;
             $failed = 0;
             
+            // 记录批量发送开始
+            Log::info('[Kafka] 开始批量发送消息到租户 {tenant_id} 的 {topic} 主题，总数: {count}', [
+                'tenant_id' => $tenantId,
+                'topic' => $topic,
+                'count' => count($messages)
+            ]);
+            
             // 批量推送消息
             foreach ($messages as $key => $message) {
                 // 构建单条消息数据
@@ -206,7 +250,7 @@ class KafkaQueue extends BaseController
             }
             
             // 记录发送结果
-            Log::info('批量发送Kafka消息完成', [
+            Log::info('[Kafka] 租户 {tenant_id} 的批量发送完成，总数: {total}，成功: {success}，失败: {failed}', [
                 'tenant_id' => $tenantId,
                 'topic' => $topic,
                 'total' => count($messages),
@@ -222,14 +266,15 @@ class KafkaQueue extends BaseController
                     'queue_name' => $queueName,
                     'total' => count($messages),
                     'success' => $success,
-                    'failed' => $failed,
-                    'results' => $results
+                    'failed' => $failed
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('批量发送Kafka消息异常: ' . $e->getMessage(), [
+            Log::error('[Kafka] 批量发送异常: {error}，租户: {tenant_id}，位置: {location}，错误码: {code}', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'tenant_id' => $request->param('tenant_id', 'default'),
+                'location' => $e->getFile() . ':' . $e->getLine(),
+                'code' => $e->getCode()
             ]);
             
             return json([

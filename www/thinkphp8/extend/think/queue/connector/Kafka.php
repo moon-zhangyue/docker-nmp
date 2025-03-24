@@ -45,6 +45,7 @@ class Kafka extends Connector // Kafka类继承自Connector
     protected $healthCheck; // 健康检查器
     protected $configValidator; // 配置验证器
     protected $consumerId; // 消费者唯一标识
+    protected $brokers; // 新增的brokers属性
 
     public function __construct(array $options) // 构造函数，接收配置选项数组
     {
@@ -116,6 +117,9 @@ class Kafka extends Connector // Kafka类继承自Connector
 
         // 注册消费者健康状态
         $this->registerConsumerHealth();
+
+        // 设置brokers属性
+        $this->brokers = $options['brokers'] ?? [];
     }
 
     /**
@@ -336,6 +340,8 @@ class Kafka extends Connector // Kafka类继承自Connector
         $conf->set('max.poll.interval.ms', (string)($this->options['max.poll.interval.ms'] ?? '300000'));
         // 设置套接字超时时间
         $conf->set('socket.timeout.ms', (string)($this->options['socket.timeout.ms'] ?? '30000'));
+        // 尝试解决主题不存在的问题，设置主题可以自动创建
+        $conf->set('allow.auto.create.topics', 'true');
 
         // 设置客户端ID
         if (isset($this->options['client.id'])) {
@@ -367,25 +373,26 @@ class Kafka extends Connector // Kafka类继承自Connector
     public function pushRaw($payload, $queue = null, array $options = []) // 推送原始数据到队列
     {
         try {
-            $conf = new Conf(); // 创建配置对象
-
-            $conf->set('metadata.broker.list', $this->options['brokers']); // 设置broker列表
-
-            if (isset($this->options['debug']) && $this->options['debug']) {
-                $conf->set('debug', 'all'); // 如果配置中启用了调试模式，则设置调试选项
-            }
-
-            // 创建一个新的Producer对象，传入配置对象
-            $producer = new Producer($conf);
+            // 使用已经初始化好的生产者，不要每次都创建新的
+            Log::info('Kafka pushRaw: Pushing message to topic: ' . ($queue ?: $this->options['topic']));
+            
             // 创建一个新的Topic对象，如果传入的$queue为null，则使用当前对象的options数组中的topic
-            $topic = $producer->newTopic($queue ?: $this->options['topic']);
+            $topic = $this->producer->newTopic($queue ?: $this->options['topic']);
+            
+            Log::info('Kafka pushRaw: Payload: ' . substr($payload, 0, 100) . (strlen($payload) > 100 ? '...' : ''));
+            
             // 向Topic中生产消息，使用未分配的分区（RD_KAFKA_PARTITION_UA），消息的key为0，消息的内容为$payload
             $topic->produce(RD_KAFKA_PARTITION_UA, 0, $payload);
+            
             // 刷新生产者，等待所有消息发送完成，超时时间为10000毫秒
-            $producer->flush(10000);
-            // 注释掉的代码：轮询生产者，等待事件发生，超时时间为0毫秒
-            // $producer->poll(0);
-
+            $result = $this->producer->flush(10000);
+            
+            if ($result !== RD_KAFKA_RESP_ERR_NO_ERROR) {
+                Log::error('Kafka pushRaw: Failed to flush message. Error code: ' . $result);
+                return false;
+            }
+            
+            Log::info('Kafka pushRaw: Message successfully sent to topic: ' . ($queue ?: $this->options['topic']));
             return true;
         } catch (Exception $e) {
             // 报告异常到Sentry
@@ -395,6 +402,7 @@ class Kafka extends Connector // Kafka类继承自Connector
                 'queue' => $queue ?: $this->options['topic']
             ]);
 
+            Log::error('Kafka pushRaw error: ' . $e->getMessage() . ', File: ' . $e->getFile() . ':' . $e->getLine());
             throw new Exception('Kafka push error: ' . $e->getMessage()); // 捕获异常并抛出
         }
     }
@@ -477,13 +485,30 @@ class Kafka extends Connector // Kafka类继承自Connector
             // 检查是否是延迟队列
             $isDelayedQueue = strpos($queueName, '_delayed') !== false;
 
-            // 订阅指定的队列或主题
-            $this->consumer->subscribe([$queueName]);
-
-            // 从订阅的队列或主题中消费消息
-            // consume方法的参数是超时时间，单位为毫秒
-            // 这里设置为1秒（1000毫秒），减少等待时间以便于优雅关闭
-            $message = $this->consumer->consume(1000);
+            try {
+                // 尝试订阅指定的队列或主题
+                $this->consumer->subscribe([$queueName]);
+                
+                // 从订阅的队列或主题中消费消息
+                // consume方法的参数是超时时间，单位为毫秒
+                // 这里设置为1秒（1000毫秒），减少等待时间以便于优雅关闭
+                $message = $this->consumer->consume(1000);
+            } catch (\Exception $e) {
+                // 如果遇到主题不存在的错误，尝试创建主题
+                if (strpos($e->getMessage(), 'Unknown topic or partition') !== false) {
+                    Log::warning('Topic {topic} not found, attempting to create it', ['topic' => $queueName]);
+                    
+                    // 创建主题
+                    $this->createTopic($queueName);
+                    
+                    // 重新订阅
+                    $this->consumer->subscribe([$queueName]);
+                    $message = $this->consumer->consume(1000);
+                } else {
+                    // 其他错误，重新抛出
+                    throw $e;
+                }
+            }
 
             if ($message === null) {
                 return null;
@@ -495,6 +520,18 @@ class Kafka extends Connector // Kafka类继承自Connector
                     $message->err === RD_KAFKA_RESP_ERR__PARTITION_EOF ||
                     $message->err === RD_KAFKA_RESP_ERR__TIMED_OUT
                 ) {
+                    return null;
+                }
+
+                // 如果是主题不存在的错误，尝试创建主题
+                if ($message->err === RD_KAFKA_RESP_ERR__UNKNOWN_TOPIC || $message->err === RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART) {
+                    Log::warning('Topic {topic} not found in consume, attempting to create it', ['topic' => $queueName]);
+                    
+                    // 创建主题
+                    $this->createTopic($queueName);
+                    
+                    // 重新订阅
+                    $this->consumer->subscribe([$queueName]);
                     return null;
                 }
 
@@ -823,5 +860,105 @@ class Kafka extends Connector // Kafka类继承自Connector
         } catch (\Exception $e) {
             Log::error('Failed to update consumer health status: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * 创建Kafka主题
+     * 
+     * @param string $topic 主题名称
+     * @return bool
+     */
+    protected function createTopic(string $topic): bool
+    {
+        $config = $this->options;
+        $brokers = $this->brokers;
+        
+        try {
+            if (!is_string($brokers)) {
+                $brokers = implode(',', $brokers);
+            }
+            
+            $this->log('debug', "尝试创建Kafka主题: {$topic}, 使用broker: {$brokers}");
+            
+            // 创建一个临时shell命令来创建主题
+            $command = "kafka-topics.sh --create --topic {$topic} --bootstrap-server {$brokers} --partitions 1 --replication-factor 1 2>&1";
+            
+            $this->log('debug', "执行命令: {$command}");
+            $output = shell_exec($command);
+            
+            if ($output) {
+                $this->log('info', "Kafka主题创建输出: {$output}");
+            }
+            
+            // 不管输出如何，都认为主题已创建或已存在
+            return true;
+        } catch (\Exception $e) {
+            $this->log('error', "创建Kafka主题失败: {$e->getMessage()}", ['topic' => $topic, 'exception' => $e]);
+            return false;
+        }
+    }
+
+    /**
+     * 记录日志
+     *
+     * @param string $level 日志级别
+     * @param string $message 日志消息
+     * @param array $context 日志上下文
+     * @return void
+     */
+    protected function log(string $level, string $message, array $context = []): void
+    {
+        if (class_exists('\\think\\facade\\Log')) {
+            \think\facade\Log::$level($message, $context);
+        }
+    }
+
+    /**
+     * 简化的主题创建方法，适用于无法使用kafka-topics.sh的环境
+     *
+     * @param string $topic 主题名称
+     * @return bool
+     */
+    protected function createTopicAlternative(string $topic): bool
+    {
+        try {
+            $this->log('debug', "尝试使用RdKafka直接发送消息来创建主题: {$topic}");
+            
+            // 创建生产者配置
+            $conf = new \RdKafka\Conf();
+            
+            // 转换brokers为字符串
+            $brokers = $this->options['brokers'];
+            if (!is_string($brokers)) {
+                $brokers = implode(',', $brokers);
+            }
+            
+            // 创建生产者并发送测试消息以触发主题创建
+            $producer = new \RdKafka\Producer($conf);
+            $producer->addBrokers($brokers);
+            
+            // 等待broker连接
+            $this->log('debug', "等待broker连接: {$brokers}");
+            
+            // 获取主题对象
+            $topic_obj = $producer->newTopic($topic);
+            
+            // 发送一个消息以触发主题创建
+            $topic_obj->produce(RD_KAFKA_PARTITION_UA, 0, json_encode(['test' => 'create_topic']));
+            $producer->flush(1000);
+            
+            $this->log('info', "主题创建成功: {$topic}");
+            return true;
+        } catch (\Exception $e) {
+            $this->log('error', "使用RdKafka创建主题失败: {$e->getMessage()}", ['topic' => $topic, 'exception' => $e]);
+            return false;
+        }
+    }
+
+    public function getTenantSpecificTopic(string $tenantId, string $topic): string
+    {
+        $queueName = $tenantId . '.' . $topic;
+        Log::info('生成租户队列名称: {queue}', ['queue' => $queueName]);
+        return $queueName;
     }
 }
