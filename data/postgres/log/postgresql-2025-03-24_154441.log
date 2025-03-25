@@ -19,3 +19,10 @@
 2025-03-24 15:46:19 CST [28]: [1-1] user=,db=,app=,client= LOG:  checkpoint starting: end-of-recovery immediate wait
 2025-03-24 15:46:20 CST [28]: [2-1] user=,db=,app=,client= LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.281 s, sync=0.152 s, total=1.714 s; sync files=2, longest=0.106 s, average=0.076 s; distance=0 kB, estimate=0 kB
 2025-03-24 15:46:21 CST [1]: [7-1] user=,db=,app=,client= LOG:  database system is ready to accept connections
+2025-03-24 17:55:03 CST [1]: [8-1] user=,db=,app=,client= LOG:  received fast shutdown request
+2025-03-24 17:55:03 CST [1]: [9-1] user=,db=,app=,client= LOG:  aborting any active transactions
+2025-03-24 17:55:03 CST [1]: [10-1] user=,db=,app=,client= LOG:  background worker "logical replication launcher" (PID 33) exited with exit code 1
+2025-03-24 17:55:03 CST [28]: [3-1] user=,db=,app=,client= LOG:  shutting down
+2025-03-24 17:55:04 CST [28]: [4-1] user=,db=,app=,client= LOG:  checkpoint starting: shutdown immediate
+2025-03-24 17:55:05 CST [28]: [5-1] user=,db=,app=,client= LOG:  checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.320 s, sync=0.001 s, total=1.662 s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB, estimate=0 kB
+2025-03-24 17:55:05 CST [1]: [11-1] user=,db=,app=,client= LOG:  database system is shut down

@@ -20,11 +20,11 @@ $config = [
         'timeout'     => 5,              // 数据库连接超时时间
     ],
     'total'          => 1000000,    // 总数据量
-    'concurrency'    => 24,         // 增加并发数以提高吞吐量
-    'batch_size'     => 2000,       // 增大批量大小以减少网络往返
+    'concurrency'    => 32,         // 增加并发数以提高吞吐量
+    'batch_size'     => 20000,       // 增大批量大小以减少网络往返
     'name_file'      => 'names.txt',
-    'progress_interval' => 50000,   // 减少进度显示频率以降低开销
-    'memory_limit'   => '1024M',    // 增加内存限制以支持更大批量
+    'progress_interval' => 100000,   // 减少进度显示频率以降低开销
+    'memory_limit'   => '2048M',    // 增加内存限制以支持更大批量
     'disable_indexes' => true,      // 插入前禁用索引
 ];
 
@@ -176,7 +176,7 @@ Coroutine\run(function () use ($config) {
         $workers[$i] = Coroutine::create(function () use ($pool, $taskChannel, &$insertedCount, &$failedCount, $mutexChannel, $config, $i, $start) {
             // 注意这里添加了 $start 到 use 语句中
             while (true) {
-                $batch = $taskChannel->pop();
+                $batch = $taskChannel->pop(); //读取通道数据
 
                 // 结束信号
                 if ($batch === null) {
