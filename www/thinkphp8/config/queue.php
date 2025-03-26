@@ -2,8 +2,9 @@
 
 // 返回一个配置数组，包含队列连接和错误追踪等配置信息
 return [
-    'default'     => 'kafka',  // 默认队列连接为kafka
-    'connections' => [  // 定义多个队列连接的配置
+    'default' => env('QUEUE_CONNECTION', 'kafka'),
+    
+    'connections' => [
         'sync'     => [  // 同步队列配置
             'type' => 'sync',  // 队列类型为同步
         ],
@@ -24,69 +25,37 @@ return [
             'timeout'    => 0,  // 连接超时时间，默认为 0
             'persistent' => false,  // 是否使用持久连接，默认为 false
         ],
-        'kafka' => [  // Kafka 队列配置
-            'type'  => 'kafka',  // 队列类型为 Kafka
-            'queue' => 'default',  // 队列名称
-            'brokers'    => 'kafka:9092',  // 使用字符串而不是数组
-            'topic'      => 'default',  // 主题名称
-            'auto.create.topics.enable' => 'true',  // 启用自动创建主题
-            'allow.auto.create.topics' => 'true',   // 允许自动创建主题
-            'options' => [  // Kafka 消费者配置选项
-                'group.id' => 'thinkphp_consumer_group',  // 消费者组 ID
-                'auto.offset.reset' => 'earliest',  // 自动重置偏移量为最早
-                'enable.auto.commit' => true,  // 启用自动提交偏移量
-                'auto.commit.interval.ms' => 1000,  // 自动提交偏移量的间隔时间（毫秒）
-                'socket.timeout.ms' => 30000,  // 套接字超时时间（毫秒）
-                'session.timeout.ms' => 30000,  // 会话超时时间（毫秒）
-                'max.poll.interval.ms' => 300000,  // 最大轮询间隔时间（毫秒）
-                'client.id'  => 'thinkphp_client',  // 客户端 ID
-            ],
-            'producer' => [  // Kafka 生产者配置
-                'compression.codec' => 'snappy',  // 压缩编码为 Snappy
-                'message.send.max.retries' => 3,  // 消息发送最大重试次数
-                'queue.buffering.max.messages' => 100000,  // 队列缓冲区最大消息数
-                'queue.buffering.max.ms' => 1000,  // 队列缓冲区最大时间（毫秒）
-                'batch.num.messages' => 1000,  // 批次最大消息数
-            ],
-            'consumer' => [  // Kafka 消费者配置
-                'group.id' => 'thinkphp_consumer_group',  // 消费者组 ID
-                'enable.auto.commit' => true,  // 启用自动提交偏移量
-                'auto.commit.interval.ms' => 1000,  // 自动提交偏移量的间隔时间（毫秒）
-                'auto.offset.reset' => 'earliest',  // 自动重置偏移量为最早
-                'session.timeout.ms' => 30000,  // 会话超时时间（毫秒）
-                'max.poll.interval.ms' => 300000,  // 最大轮询间隔时间（毫秒）
-            ],
-            // 事务支持配置
-            'transaction' => [
-                'enabled' => false,  // 禁用事务支持以简化操作
-                'timeout' => 10000,  // 事务超时时间（毫秒）
-            ],
-
-            // 负载均衡配置
-            'balance' => [
-                'message_rate_threshold' => 10.0,  // 消息速率阈值
-                'consumer_partition_ratio' => 2.0,  // 消费者分区比例
-                'min_message_rate' => 1.0,  // 最小消息速率
-                'check_interval' => 300,  // 检查间隔时间（秒）
-            ],
-            // 健康检查配置
-            'health' => [
-                'enabled' => true,  // 启用健康检查
-                'heartbeat_interval' => 30,  // 心跳间隔时间（秒）
-                'heartbeat_timeout' => 60,  // 心跳超时时间（秒）
-            ],
-            // 幂等性检查配置
-            'idempotent' => [
-                'enabled' => true,  // 启用幂等性检查
-                'expire_time' => 86400,  // 幂等性检查的过期时间（秒）
-            ],
-            // 死信队列配置
-            'dead_letter' => [
-                'enabled' => true,  // 启用死信队列
-                'expire_time' => 604800,  // 死信队列的过期时间（秒）
-                'alert_threshold' => 10,  // 死信队列的警报阈值
-            ],
-            'debug' => true,  // 启用调试模式
+        'kafka' => [
+            'type' => 'kafka',
+            'bootstrap_servers' => env('KAFKA_BROKERS', 'localhost:9092'),
+            'client_id' => env('KAFKA_CLIENT_ID', 'thinkphp-queue'),
+            'group_id' => env('KAFKA_GROUP_ID', 'thinkphp-queue-group'),
+            'auto_offset_reset' => env('KAFKA_AUTO_OFFSET_RESET', 'earliest'),
+            'security_protocol' => env('KAFKA_SECURITY_PROTOCOL', ''),
+            'sasl_mechanism' => env('KAFKA_SASL_MECHANISM', 'PLAIN'),
+            'sasl_username' => env('KAFKA_SASL_USERNAME', ''),
+            'sasl_password' => env('KAFKA_SASL_PASSWORD', ''),
+            'metadata_timeout' => env('KAFKA_METADATA_TIMEOUT', 10000),
+            'topic_metadata_refresh_interval_ms' => env('KAFKA_TOPIC_METADATA_REFRESH_INTERVAL_MS', 300000),
+            'message_max_bytes' => env('KAFKA_MESSAGE_MAX_BYTES', 1000000),
+            'max_poll_interval_ms' => env('KAFKA_MAX_POLL_INTERVAL_MS', 300000),
+            'compression_type' => env('KAFKA_COMPRESSION_TYPE', 'snappy'),
+            'batch_size' => env('KAFKA_BATCH_SIZE', 16384),
+            'batch_num_messages' => env('KAFKA_BATCH_NUM_MESSAGES', 10000),
+            'batch_timeout' => env('KAFKA_BATCH_TIMEOUT', 100),
+            'transactional_id' => env('KAFKA_TRANSACTIONAL_ID', ''),
+            'required_acks' => env('KAFKA_REQUIRED_ACKS', -1),
+            'request_timeout_ms' => env('KAFKA_REQUEST_TIMEOUT_MS', 30000),
+            'retries' => env('KAFKA_RETRIES', 3),
+            'retry_backoff_ms' => env('KAFKA_RETRY_BACKOFF_MS', 100),
+            'connection_timeout' => env('KAFKA_CONNECTION_TIMEOUT', 10000),
+            'debug' => env('KAFKA_DEBUG', false),
+            'pool' => [
+                'min' => env('KAFKA_POOL_MIN', 1),
+                'max' => env('KAFKA_POOL_MAX', 10),
+                'idle_time' => env('KAFKA_POOL_IDLE_TIME', 60),
+                'wait_time' => env('KAFKA_POOL_WAIT_TIME', 3)
+            ]
         ],
     ],
     // Sentry错误追踪配置
@@ -102,5 +71,9 @@ return [
     'config_validation' => [
         'enabled' => true,  // 启用配置验证
         'strict' => false,  // 配置验证是否为严格模式，默认为 false
+    ],
+    'failed' => [
+        'type' => 'none',
+        'table' => 'failed_jobs',
     ],
 ];

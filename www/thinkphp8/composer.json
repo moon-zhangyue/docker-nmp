@@ -36,7 +36,8 @@
         "friendsofphp/consul-php-sdk": "^5.2",
         "firebase/php-jwt": "^6.11",
         "easyswoole/pool": "^2.1",
-        "jenssegers/agent": "^2.6"
+        "jenssegers/agent": "^2.6",
+        "topthink/think-swoole": "^4.1"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",

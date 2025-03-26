@@ -16,8 +16,8 @@ class KafkaService
     public function __construct()
     {
         $this->config = [
-            'brokers' => env('KAFKA_BROKERS', 'localhost:9092'),
-            'group_id' => env('KAFKA_GROUP_ID', 'user-registration-group'),
+            'brokers'   => env('KAFKA_BROKERS', 'localhost:9092'),
+            'group_id'  => env('KAFKA_GROUP_ID', 'user-registration-group'),
             'client_id' => env('KAFKA_CLIENT_ID', 'user-registration-client'),
         ];
     }
@@ -31,7 +31,7 @@ class KafkaService
             $conf = new Conf();
             $conf->set('metadata.broker.list', $this->config['brokers']);
             $conf->set('client.id', $this->config['client_id']);
-            
+
             $this->producer = new Producer($conf);
         }
         return $this->producer;
@@ -53,7 +53,7 @@ class KafkaService
             $conf->set('max.poll.interval.ms', '300000');
             $conf->set('enable.auto.commit', 'true');
             $conf->set('auto.commit.interval.ms', '5000');
-            
+
             $this->consumer = new KafkaConsumer($conf);
         }
         return $this->consumer;
@@ -66,15 +66,15 @@ class KafkaService
     {
         try {
             $producer = $this->getProducer();
-            $topic = $producer->newTopic('user-registration');
-            
+            $topic    = $producer->newTopic('user-registration');
+
             // 将用户数据转换为JSON
             $message = json_encode($userData);
-            
+
             // 发送消息
             $topic->produce(RD_KAFKA_PARTITION_UA, 0, $message);
             $producer->flush(10000);
-            
+
             Log::info('User registration message sent successfully', $userData);
         } catch (\Exception $e) {
             Log::error('Failed to send user registration message: {message}', ['message' => $e->getMessage()]);
@@ -93,7 +93,7 @@ class KafkaService
 
             while (true) {
                 $message = $consumer->consume(30 * 1000);
-                
+
                 switch ($message->err) {
                     case RD_KAFKA_RESP_ERR_NO_ERROR:
                         $userData = json_decode($message->payload, true);

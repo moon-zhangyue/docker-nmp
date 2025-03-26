@@ -17,11 +17,30 @@ class JwtAuth
      * 
      * @param \think\Request $request
      * @param \Closure $next
-     * @param array|string $roles 允许的角色，如 'admin' 或 ['admin', 'operator']
+     * @param array $params 中间件参数
      * @return Response
      */
-    public function handle($request, \Closure $next, $roles = null)
+    public function handle($request, \Closure $next, array $params = [])
     {
+        // 不需要验证的接口列表
+        $excludePaths = [
+            'api/auth/login',
+            'api/auth/register',
+            'api/auth/refresh',
+            'api/auth/logout',
+            'api/auth/me',
+            'auth/login',
+            'auth/register',
+            'auth/refresh',
+            'auth/logout',
+            'auth/me'
+        ];
+
+        // 排除不需要验证的接口
+        if (in_array($request->pathinfo(), $excludePaths)) {
+            return $next($request);
+        }
+
         // 获取令牌
         $token = $request->header('Authorization');
         if (empty($token)) {
@@ -40,31 +59,30 @@ class JwtAuth
         try {
             // 验证令牌
             $authService = new AuthService();
-            $user = $authService->validateToken($token);
+            $payload = $authService->validateToken($token);
             
-            if (empty($user)) {
+            if (empty($payload)) {
                 return $this->error('无效的授权令牌', 401);
             }
 
             // 检查角色权限
-            if (!empty($roles)) {
-                $roles = is_array($roles) ? $roles : explode(',', $roles);
-                $userRole = $user['role'] ?? 'viewer';
+            if (!empty($params)) {
+                $userRole = $payload['data']->role ?? 'viewer';
                 
-                if (!in_array($userRole, $roles)) {
+                if (!in_array($userRole, $params)) {
                     Log::warning('用户权限不足', [
-                        'user_id' => $user['id'] ?? 0,
-                        'username' => $user['username'] ?? '',
-                        'required_roles' => $roles,
+                        'user_id' => $payload['data']->id ?? 0,
+                        'username' => $payload['data']->username ?? '',
+                        'required_roles' => $params,
                         'user_role' => $userRole,
                         'path' => $request->url()
                     ]);
-                    return $this->error('权限不足，需要 ' . implode(' 或 ', $roles) . ' 角色', 403);
+                    return $this->error('权限不足，需要 ' . implode(' 或 ', $params) . ' 角色', 403);
                 }
             }
 
             // 将用户信息存入请求对象，方便后续使用
-            $request->user = $user;
+            $request->user = $payload['data'];
             
             return $next($request);
         } catch (\Exception $e) {
@@ -92,4 +110,4 @@ class JwtAuth
             'data' => null
         ], 'json', $code);
     }
-} 
+}

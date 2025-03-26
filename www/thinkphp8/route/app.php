@@ -35,6 +35,10 @@ Route::get('metrics/index', 'metrics/index');
 Route::get('metrics/health', 'metrics/health'); //健康检查接口
 Route::post('metrics/reset', 'metrics/reset'); //重置监控指标
 
+// 测试路由
+Route::get('test', 'Test/index');
+
 // 队列测试路由
 Route::post('queue/test', 'QueueTest/push');
 Route::post('queue/test/delay', 'QueueTest/pushDelay');
+
