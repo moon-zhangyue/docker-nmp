@@ -266,25 +266,42 @@ Redis::set("red_packet:status:{$packetNo}", 1, ['EX' => 86400]);
 2. **定时任务检查**：系统定时扫描过期红包，处理未领取金额
 
 ```php
-// 定时任务伪代码
-public function handleExpiredRedPackets()
+/**
+ * 处理过期红包
+ * 
+ * 查找已过期但未处理的红包，将剩余金额退回给发红包用户，并更新红包状态
+ * 
+ * @return array 处理结果，包含处理数量和退回金额
+ */
+public function handleExpiredRedPackets(): array
 {
     // 查找已过期但未处理的红包
-    $expiredPackets = RedPacket::where('expired_at', '<', now())
+    $expiredPackets = RedPacket::query()
+        ->where('expired_at', '<', date('Y-m-d H:i:s'))
         ->where('status', 1)
         ->where('remaining_num', '>', 0)
         ->get();
     
+    $count = 0;
+    $totalAmount = 0;
+    
     foreach ($expiredPackets as $packet) {
-        DB::transaction(function () use ($packet) {
+        // 使用事务确保数据一致性
+        Db::transaction(function () use ($packet, &$totalAmount) {
             // 将剩余金额退回给发红包用户
-            $user = User::find($packet->user_id);
-            $user->balance = bcadd($user->balance, $packet->remaining_amount, 2);
-            $user->save();
+            $user = $this->userRepository->findById($packet->user_id);
+            $this->userRepository->increaseBalance($user, (float) $packet->remaining_amount);
+            
+            // 记录退回金额
+            $totalAmount = bcadd($totalAmount, (string) $packet->remaining_amount, 2);
             
             // 更新红包状态为已过期
             $packet->status = 0;
             $packet->save();
+            
+            // 清理Redis中的相关数据
+            $this->redis->del('red_packet:' . $packet->packet_no);
+            $this->redis->del('red_packet:grabbed_users:' . $packet->packet_no);
             
             // 记录退回日志
             Log::info("红包过期退回", [
@@ -293,8 +310,60 @@ public function handleExpiredRedPackets()
                 'amount' => $packet->remaining_amount
             ]);
         });
+        
+        $count++;
+    }
+    
+    return [
+        'count' => $count,
+        'amount' => $totalAmount
+    ];
+}
+```
+
+3. **Hyperf定时任务**：系统使用Hyperf的注解定时任务功能，自动定期执行过期红包处理
+
+```php
+/**
+ * 处理过期红包的定时任务
+ * 
+ * @Crontab(name="ExpiredRedPacketCrontab", rule="0 * * * *", callback="execute", memo="每小时处理一次过期红包")
+ */
+class ExpiredRedPacketCrontab
+{
+    /**
+     * @Inject
+     * @var RedPacketService
+     */
+    protected $redPacketService;
+
+    /**
+     * 执行定时任务
+     */
+    public function execute()
+    {
+        // 处理过期红包
+        $result = $this->redPacketService->handleExpiredRedPackets();
+
+        // 记录处理结果
+        $message = sprintf(
+            "处理完成！共处理 %d 个过期红包，退回金额 %s 元",
+            $result['count'],
+            $result['amount']
+        );
+
+        // 记录日志
+        Log::info($message);
     }
 }
+```
+
+定时任务通过Hyperf的注解功能配置，无需手动执行或配置外部计划任务：
+- `@Crontab` 注解定义了任务名称、执行规则、回调方法和备注
+- `rule="0 * * * *"` 表示每小时整点执行一次
+- 任务会由Hyperf框架自动调度执行
+
+系统启动后，定时任务会自动注册并按照配置的时间规则执行，无需额外的操作。
 ```
 
 ## 性能优化

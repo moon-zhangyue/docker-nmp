@@ -433,4 +433,73 @@ class RedPacketService
 
         return round($amount, 2);
     }
+
+    /**
+     * 处理过期红包
+     * 
+     * 查找已过期但未处理的红包，将剩余金额退回给发红包用户，并更新红包状态
+     * 
+     * @return array 处理结果，包含处理数量和退回金额
+     */
+    public function handleExpiredRedPackets(): array
+    {
+        Log::info('开始处理过期红包');
+
+        $count       = 0;
+        $totalAmount = 0;
+
+        // 查找已过期但未处理的红包（状态为有效且有剩余数量）
+        $expiredPackets = RedPacket::query()
+            ->where('expired_at', '<', date('Y-m-d H:i:s'))
+            ->where('status', 1)
+            ->where('remaining_num', '>', 0)
+            ->get();
+
+        Log::info('找到过期红包数量：' . $expiredPackets->count());
+
+        foreach ($expiredPackets as $packet) {
+            // 使用事务确保数据一致性
+            Db::transaction(function () use ($packet, &$totalAmount, &$count) {
+                // 查找发红包用户
+                $user = $this->userRepository->findById($packet->user_id);
+                if (!$user) {
+                    Log::error('处理过期红包时未找到用户', ['user_id' => $packet->user_id]);
+                    return;
+                }
+
+                // 将剩余金额退回给发红包用户
+                $this->userRepository->increaseBalance($user, (float) $packet->remaining_amount);
+
+                // 记录退回金额
+                $totalAmount = bcadd((string) $totalAmount, (string) $packet->remaining_amount, 2);
+
+                // 更新红包状态为已过期
+                $packet->status = 0;
+                $packet->save();
+
+                // 清理Redis中的相关数据
+                $this->redis->del('red_packet:' . $packet->packet_no);
+                $this->redis->del('red_packet:status:' . $packet->packet_no);
+                $this->redis->del('red_packet:grabbed_users:' . $packet->packet_no);
+
+                Log::info('红包过期退回', [
+                    'packet_no' => $packet->packet_no,
+                    'user_id'   => $packet->user_id,
+                    'amount'    => $packet->remaining_amount
+                ]);
+
+                $count++;
+            });
+        }
+
+        Log::info('处理过期红包完成', [
+            'count'  => $count,
+            'amount' => $totalAmount
+        ]);
+
+        return [
+            'count'  => $count,
+            'amount' => $totalAmount
+        ];
+    }
 }
