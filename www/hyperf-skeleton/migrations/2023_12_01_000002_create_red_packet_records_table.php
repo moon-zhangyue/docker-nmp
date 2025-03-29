@@ -24,6 +24,11 @@ class CreateRedPacketRecordsTable extends Migration
             $table->index('packet_no');
             $table->index('packet_id');
             $table->index('user_id');
+
+            // 设置表属性
+            $table->engine    = 'InnoDB';
+            $table->charset   = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
         });
     }
 

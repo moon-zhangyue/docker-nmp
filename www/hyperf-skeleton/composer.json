@@ -17,7 +17,7 @@
         "hyperf/command": "~3.1.0",
         "hyperf/config": "~3.1.0",
         "hyperf/database": "~3.1.0",
-        "hyperf/db-connection": "~3.1.0",
+        "hyperf/db-connection": "^3.1",
         "hyperf/engine": "^2.10",
         "hyperf/framework": "~3.1.0",
         "hyperf/guzzle": "~3.1.0",
@@ -32,6 +32,7 @@
         "friendsofphp/php-cs-fixer": "^3.0",
         "hyperf/devtool": "~3.1.0",
         "hyperf/testing": "~3.1.0",
+        "hyperf/watcher": "^3.1",
         "mockery/mockery": "^1.0",
         "phpstan/phpstan": "^1.0",
         "swoole/ide-helper": "^5.0"

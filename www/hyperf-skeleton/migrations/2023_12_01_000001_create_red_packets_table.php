@@ -29,6 +29,11 @@ class CreateRedPacketsTable extends Migration
             $table->index('user_id');
             $table->index('status');
             $table->index('expired_at');
+
+            // 设置表属性
+            $table->engine    = 'InnoDB';
+            $table->charset   = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
         });
     }
 

@@ -54,4 +54,26 @@ class User extends Model
     {
         return $this->hasMany(RedPacketRecord::class, 'user_id', 'id');
     }
+
+    /**
+     * 设置用户余额
+     * 
+     * @param float $amount 余额金额
+     * @return self
+     */
+    public function setBalance(float $amount): self
+    {
+        $this->balance = $amount;
+        return $this;
+    }
+
+    /**
+     * 获取用户余额
+     * 
+     * @return float
+     */
+    public function getBalance(): float
+    {
+        return (float) $this->balance;
+    }
 }

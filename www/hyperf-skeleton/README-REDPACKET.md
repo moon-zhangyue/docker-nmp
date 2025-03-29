@@ -123,12 +123,10 @@ public function lock(string $key, int $ttl = 5, int $timeout = 0): bool
     $lockValue = uniqid();
     
     do {
-        // 尝试获取锁，使用NX选项确保原子性
-        $acquired = Redis::set($lockKey, $lockValue, ['NX', 'EX' => $ttl]);
+        // 尝试获取锁，使用NX选项确保原子性，EX设置过期时间
+        $acquired = $this->redis->set($lockKey, $lockValue, ['NX', 'EX' => 5]);
         
         if ($acquired) {
-            // 成功获取锁，记录锁值用于解锁验证
-            $this->lockValues[$key] = $lockValue;
             return true;
         }
         
@@ -182,34 +180,62 @@ $amount = bcdiv($totalAmount, $totalNum, 2);
 拼手气红包使用二倍均值法进行随机分配，算法步骤如下：
 
 1. 计算当前剩余平均值的2倍作为上限
-2. 在0.01和上限之间随机选择一个金额
-3. 更新剩余金额和数量
-4. 重复以上步骤直到只剩最后一个红包
+2. 确保最大值不超过剩余金额减去(剩余数量-1)*最小金额，保证后面的红包至少有最小金额
+3. 在0.01和上限之间随机选择一个金额
+4. 更新剩余金额和数量
+5. 重复以上步骤直到只剩最后一个红包
+6. 最后一个红包直接分配剩余金额
+7. 随机打乱红包金额顺序
+
+### 随机金额计算
 
 ```php
-// 伪代码
-function divideRedPacket($totalAmount, $totalNum) {
-    $amounts = [];
+/**
+ * 获取随机红包金额
+ *
+ * @param float $remainAmount 剩余金额
+ * @param int $remainNum 剩余数量
+ * @return float 随机金额
+ */
+protected function getRandomAmount(float $remainAmount, int $remainNum): float
+{
+    // 每个红包最少0.01元
+    $minAmount = 0.01;
+    // 每个红包最多为剩余平均值的2倍
+    $maxAmount = bcmul(bcdiv((string) $remainAmount, (string) $remainNum, 2), '2', 2);
+    // 确保最大值不超过剩余金额减去(剩余数量-1)*最小金额，保证后面的红包至少有最小金额
+    $maxAmount = min($maxAmount, bcsub((string) $remainAmount, bcmul((string) ($remainNum - 1), (string) $minAmount, 2), 2));
+
+    // 生成随机金额，精确到分
+    $amount = mt_rand((int) $minAmount * 100, (int) $maxAmount * 100) / 100;
+    return round($amount, 2);
+}
+
+// 拼手气红包金额分配实现
+protected function divideRedPacket(float $totalAmount, int $totalNum): array
+{
+    $amountList = [];
     $remainAmount = $totalAmount;
     $remainNum = $totalNum;
-    
-    for ($i = 0; $i < $totalNum - 1; $i++) {
-        // 计算二倍均值
-        $max = bcmul(bcdiv($remainAmount, $remainNum, 2), 2, 2);
-        // 随机金额，最小0.01元
-        $amount = mt_rand(1, intval($max * 100)) / 100;
-        $amount = max(0.01, $amount);
-        $amount = number_format($amount, 2, '.', '');
-        
-        $amounts[] = $amount;
-        $remainAmount = bcsub($remainAmount, $amount, 2);
+
+    for ($i = 0; $i < $totalNum; $i++) {
+        if ($i == $totalNum - 1) {
+            // 最后一个红包，直接给剩余金额
+            $amount = $remainAmount;
+        } else {
+            // 随机生成红包金额
+            $amount = $this->getRandomAmount($remainAmount, $remainNum);
+        }
+
+        $amountList[] = $amount;
+        $remainAmount = bcsub((string) $remainAmount, (string) $amount, 2);
         $remainNum--;
     }
-    
-    // 最后一个红包，剩余的全部金额
-    $amounts[] = number_format($remainAmount, 2, '.', '');
-    
-    return $amounts;
+
+    // 随机打乱顺序
+    shuffle($amountList);
+
+    return $amountList;
 }
 ```
 

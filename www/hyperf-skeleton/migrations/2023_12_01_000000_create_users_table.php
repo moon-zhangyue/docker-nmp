@@ -20,6 +20,11 @@ class CreateUsersTable extends Migration
             $table->decimal('balance', 10, 2)->default(0)->comment('账户余额');
             $table->tinyInteger('status')->default(1)->comment('状态：1-正常，0-禁用');
             $table->timestamps();
+
+            // 设置表属性
+            $table->engine    = 'InnoDB';
+            $table->charset   = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
         });
     }
 
