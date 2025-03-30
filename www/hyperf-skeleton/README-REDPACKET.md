@@ -121,10 +121,11 @@ public function lock(string $key, int $ttl = 5, int $timeout = 0): bool
     $startTime = microtime(true);
     $lockKey = "lock:{$key}";
     $lockValue = uniqid();
+    $this->lockValues[$key] = $lockValue;
     
     do {
         // 尝试获取锁，使用NX选项确保原子性，EX设置过期时间
-        $acquired = $this->redis->set($lockKey, $lockValue, ['NX', 'EX' => 5]);
+        $acquired = $this->redis->set($lockKey, $lockValue, ['NX', 'EX' => $ttl]);
         
         if ($acquired) {
             return true;
@@ -158,7 +159,7 @@ public function unlock(string $key): bool
     end
     LUA;
     
-    $result = Redis::eval($script, 1, $lockKey, $lockValue);
+    $result = $this->redis->eval($script, 1, $lockKey, $lockValue);
     unset($this->lockValues[$key]);
     
     return $result === 1;
@@ -545,9 +546,13 @@ try {
 
 1. 基于Hyperf框架，充分利用协程特性提高并发处理能力
 2. 使用Redis作为缓存和分布式锁，保证高并发下的数据一致性
-3. 实现了完善的异常处理和容错机制，提高系统稳定性
-4. 采用多种性能优化手段，支持高并发抢红包场景
-5. 实施了全面的安全措施，保障系统和数据安全
-6. 提供了详细的监控和统计功能，便于运营分析和问题排查
+3. 利用Hyperf协程并发处理提升系统性能
+   - 红包金额分配算法使用协程并发处理
+   - 过期红包处理使用协程并发批量处理
+   - 非关键路径使用协程异步处理，如锁释放、统计数据更新等
+4. 实现了完善的异常处理和容错机制，提高系统稳定性
+5. 采用多种性能优化手段，支持高并发抢红包场景
+6. 实施了全面的安全措施，保障系统和数据安全
+7. 提供了详细的监控和统计功能，便于运营分析和问题排查
 
 通过以上设计和实现，系统能够稳定支持大规模用户同时抢红包的场景，为用户提供流畅的红包体验。

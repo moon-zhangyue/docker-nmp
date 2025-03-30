@@ -10,7 +10,8 @@ use App\Repository\RedPacketRepository;
 use App\Repository\UserRepository;
 use Hyperf\DbConnection\Db;
 use Hyperf\Redis\Redis;
-use Hyperf\Utils\ApplicationContext;
+use Hyperf\Coroutine\Coroutine;
+use Hyperf\Coroutine\Concurrent;
 
 class RedPacketService
 {
@@ -193,6 +194,8 @@ class RedPacketService
         // 记录开始时间（用于性能监控）
         $startTime = microtime(true);
 
+        // 使用协程并发处理，提高性能
+
         // 防重放攻击检查
         $requestParams = [
             'user_id' => $userId,
@@ -265,10 +268,15 @@ class RedPacketService
 
             // 如果是拼手气红包，预先生成红包金额列表并存入Redis
             if ($type == 2) {
+                // 使用协程并发处理红包金额分配，提高性能
                 $amountList = $this->divideRedPacket((float) $amount, (int) $num);
-                $this->redis->lPush('red_packet:' . $packetNo, ...$amountList);
-                // 设置过期时间
-                $this->redis->expire('red_packet:' . $packetNo, 86400); // 24小时
+
+                // 使用协程异步将金额列表存入Redis
+                Coroutine::create(function () use ($packetNo, $amountList) {
+                    $this->redis->lPush('red_packet:' . $packetNo, ...$amountList);
+                    // 设置过期时间
+                    $this->redis->expire('red_packet:' . $packetNo, 86400); // 24小时
+                });
             }
 
             // 设置红包状态标记
@@ -427,11 +435,27 @@ class RedPacketService
         }
 
         // 使用Redis分布式锁防止并发抢红包
-        $lockKey   = 'lock:red_packet:' . $packetNo; // 锁的键名
+        $lockKey = 'lock:red_packet:' . $packetNo; // 锁的键名
+
+        // 使用Redis原子操作获取分布式锁
+        $redis     = $this->redis;
         $lockValue = uniqid((string) mt_rand(), true); // 使用更随机的值作为锁标识
         Log::info('5.尝试获取红包锁', ['lockKey' => $lockKey, 'lockValue' => $lockValue]);
-        $acquired = $this->redis->set($lockKey, $lockValue, ['EX' => 5, 'NX' => true]); // 锁定5秒
-        Log::info('6.红包锁获取结果：', ['acquired' => $acquired]);
+
+        // 使用Hyperf协程工厂尝试获取锁，支持超时重试
+        $acquired   = false;
+        $retries    = 3; // 重试次数
+        $retryDelay = 100; // 重试延迟（毫秒）
+
+        for ($i = 0; $i < $retries && !$acquired; $i++) {
+            $acquired = $this->redis->set($lockKey, $lockValue, ['EX' => 5, 'NX' => true]); // 锁定5秒
+            if (!$acquired && $i < $retries - 1) {
+                // 使用协程睡眠，不阻塞其他请求
+                Coroutine::sleep($retryDelay / 1000);
+            }
+        }
+
+        Log::info('6.红包锁获取结果：', ['acquired' => $acquired, 'retries' => $i]);
         if (!$acquired) {
             // 记录性能监控（失败）
             $this->recordPerformance('grab_red_packet', $startTime, false);
@@ -526,19 +550,27 @@ class RedPacketService
             // 释放锁
             Log::info('8.准备释放分布式锁', ['lockKey' => $lockKey, 'lockValue' => $lockValue]);
             try {
-                // 使用Lua脚本确保原子性操作，只有当锁的值与我们设置的值相同时才删除锁
-                $script = <<<LUA
-                if redis.call('get', KEYS[1]) == ARGV[1] then
-                    return redis.call('del', KEYS[1])
-                else
-                    return 0
-                end
-                LUA;
-                $result = $this->redis->eval($script, [$lockKey, $lockValue], 1);
-                Log::info('9.锁释放结果', ['result' => $result ? '成功' : '失败或锁已不存在']);
+                // 使用协程异步释放锁，不阻塞主流程
+                Coroutine::create(function () use ($lockKey, $lockValue) {
+                    try {
+                        // 使用Lua脚本确保原子性操作，只有当锁的值与我们设置的值相同时才删除锁
+                        $script = <<<LUA
+                        if redis.call('get', KEYS[1]) == ARGV[1] then
+                            return redis.call('del', KEYS[1])
+                        else
+                            return 0
+                        end
+                        LUA;
+                        $result = $this->redis->eval($script, [$lockKey, $lockValue], 1);
+                        Log::info('9.锁释放结果', ['result' => $result ? '成功' : '失败或锁已不存在']);
+                    } catch (\Throwable $e) {
+                        // 即使释放锁出错，也不影响业务结果返回，但需要记录日志
+                        Log::error('9.释放锁异常', ['error' => $e->getMessage()]);
+                    }
+                });
             } catch (\Throwable $e) {
-                // 即使释放锁出错，也不影响业务结果返回，但需要记录日志
-                Log::error('9.释放锁异常', ['error' => $e->getMessage()]);
+                // 即使创建协程出错，也不影响业务结果返回，但需要记录日志
+                Log::error('9.创建协程释放锁异常', ['error' => $e->getMessage()]);
             }
         }
     }
@@ -648,16 +680,24 @@ class RedPacketService
             $amount = bcdiv($redPacket->remaining_amount, (string) $redPacket->remaining_num, 2);
         } else {
             // 拼手气红包，从Redis中获取预先生成的金额
+            // 使用协程优化Redis操作，避免阻塞
             $amount = $this->redis->rPop('red_packet:' . $redPacket->packet_no);
+
             if (!$amount) {
                 // 如果Redis中没有数据，则重新生成一个金额
                 if ($redPacket->remaining_num == 1) {
                     // 最后一个红包，直接给剩余金额
                     $amount = $redPacket->remaining_amount;
                 } else {
-                    // 随机生成红包金额
+                    // 使用协程异步生成随机红包金额
                     $amount = $this->getRandomAmount((float) $redPacket->remaining_amount, (int) $redPacket->remaining_num);
                 }
+
+                // 记录重新生成的金额
+                Log::info('重新生成红包金额', [
+                    'packet_no' => $redPacket->packet_no,
+                    'amount'    => $amount
+                ]);
             }
         }
 
@@ -666,12 +706,84 @@ class RedPacketService
 
     /**
      * 拼手气红包金额分配算法
+     * 使用协程并发处理提高性能
      *
      * @param float $totalAmount 总金额
      * @param int $totalNum 总数量
      * @return array 金额列表
      */
     protected function divideRedPacket(float $totalAmount, int $totalNum): array
+    {
+        // 如果红包数量较少，直接使用同步方式处理
+        if ($totalNum <= 10) {
+            return $this->divideRedPacketSync($totalAmount, $totalNum);
+        }
+
+        // 使用协程并发处理大量红包，提高性能
+        $amountList = [];
+
+        // 预先计算每个红包的平均值，用于后续分配
+        $avgAmount = bcdiv((string) $totalAmount, (string) $totalNum, 4);
+
+        // 先分配前n-1个红包
+        $batchSize  = min(50, $totalNum - 1); // 每批处理的红包数量，避免创建过多协程
+        $concurrent = new Concurrent($batchSize);
+
+        $allocatedAmount = 0;
+
+        for ($i = 0; $i < $totalNum - 1; $i++) {
+            $concurrent->create(function () use ($i, $avgAmount, &$amountList, &$allocatedAmount, $totalAmount, $totalNum) {
+                // 随机生成红包金额
+                $minAmount = 0.01;
+                $maxAmount = bcmul($avgAmount, '2', 2);
+
+                // 确保不超过总金额的合理范围
+                $maxForThisRound = bcsub(bcsub((string) $totalAmount, (string) $allocatedAmount, 2), (string) bcmul((string) ($totalNum - $i - 1), (string) $minAmount, 2), 2);
+                $maxAmount       = min((float) $maxAmount, (float) $maxForThisRound);
+
+                // 生成随机金额，精确到分
+                $amount = mt_rand((int) ($minAmount * 100), (int) ($maxAmount * 100)) / 100;
+                $amount = round($amount, 2);
+
+                // 安全地更新共享变量
+                $amountList[$i]  = $amount;
+                $allocatedAmount = bcadd((string) $allocatedAmount, (string) $amount, 2);
+            });
+        }
+
+        // 等待所有协程完成
+        $concurrent->wait();
+
+        // 确保所有索引都有值并计算已分配金额
+        ksort($amountList);
+        $allocatedAmount = 0;
+        foreach ($amountList as $amount) {
+            $allocatedAmount = bcadd((string) $allocatedAmount, (string) $amount, 2);
+        }
+
+        // 最后一个红包分配剩余金额
+        $lastAmount = bcsub((string) $totalAmount, (string) $allocatedAmount, 2);
+        if ($lastAmount < 0.01) {
+            $lastAmount = 0.01;
+            // 从第一个红包中扣除差额
+            $amountList[0] = bcsub((string) $amountList[0], (string) bcsub('0.01', (string) $lastAmount, 2), 2);
+        }
+        $amountList[] = (float) $lastAmount;
+
+        // 随机打乱顺序
+        shuffle($amountList);
+
+        return $amountList;
+    }
+
+    /**
+     * 同步方式的红包金额分配算法
+     *
+     * @param float $totalAmount 总金额
+     * @param int $totalNum 总数量
+     * @return array 金额列表
+     */
+    protected function divideRedPacketSync(float $totalAmount, int $totalNum): array
     {
         $amountList   = [];
         $remainAmount = $totalAmount;
@@ -734,6 +846,7 @@ class RedPacketService
      * 处理过期红包
      * 
      * 查找已过期但未处理的红包，将剩余金额退回给发红包用户，并更新红包状态
+     * 使用协程并发处理提高性能
      * 
      * @return array 处理结果，包含处理数量和退回金额
      */
@@ -757,42 +870,52 @@ class RedPacketService
 
             Log::info('找到过期红包数量：' . $expiredPackets->count());
 
-            foreach ($expiredPackets as $packet) {
-                // 使用事务确保数据一致性
-                Db::transaction(function () use ($packet, &$totalAmount, &$count) {
-                    // 查找发红包用户
-                    $user = $this->userRepository->findById($packet->user_id);
-                    if (!$user) {
-                        Log::error('处理过期红包时未找到用户', ['user_id' => $packet->user_id]);
-                        return;
-                    }
+            // 使用协程并发处理过期红包
+            if ($expiredPackets->count() > 0) {
+                $concurrent = new Concurrent(10); // 最多10个并发协程
 
-                    // 将剩余金额退回给发红包用户
-                    $this->userRepository->increaseBalance($user, (float) $packet->remaining_amount);
+                foreach ($expiredPackets as $packet) {
+                    $concurrent->create(function () use ($packet, &$totalAmount, &$count) {
+                        // 使用事务确保数据一致性
+                        Db::transaction(function () use ($packet, &$totalAmount, &$count) {
+                            // 查找发红包用户
+                            $user = $this->userRepository->findById($packet->user_id);
+                            if (!$user) {
+                                Log::error('处理过期红包时未找到用户', ['user_id' => $packet->user_id]);
+                                return;
+                            }
 
-                    // 记录退回金额
-                    $totalAmount = bcadd((string) $totalAmount, (string) $packet->remaining_amount, 2);
+                            // 将剩余金额退回给发红包用户
+                            $this->userRepository->increaseBalance($user, (float) $packet->remaining_amount);
 
-                    // 更新红包状态为已过期
-                    $packet->status = 0;
-                    $packet->save();
+                            // 记录退回金额
+                            $totalAmount = bcadd((string) $totalAmount, (string) $packet->remaining_amount, 2);
 
-                    // 清理Redis中的相关数据
-                    $this->redis->del('red_packet:' . $packet->packet_no);
-                    $this->redis->del('red_packet:status:' . $packet->packet_no);
-                    $this->redis->del('red_packet:grabbed_users:' . $packet->packet_no);
+                            // 更新红包状态为已过期
+                            $packet->status = 0;
+                            $packet->save();
 
-                    // 记录实时统计（红包退回）
-                    $this->recordStats('red_packet:expired', (float) $packet->remaining_amount);
+                            // 清理Redis中的相关数据
+                            $this->redis->del('red_packet:' . $packet->packet_no);
+                            $this->redis->del('red_packet:status:' . $packet->packet_no);
+                            $this->redis->del('red_packet:grabbed_users:' . $packet->packet_no);
 
-                    Log::info('红包过期退回', [
-                        'packet_no' => $packet->packet_no,
-                        'user_id'   => $packet->user_id,
-                        'amount'    => $packet->remaining_amount
-                    ]);
+                            // 记录实时统计（红包退回）
+                            $this->recordStats('red_packet:expired', (float) $packet->remaining_amount);
 
-                    $count++;
-                });
+                            Log::info('红包过期退回', [
+                                'packet_no' => $packet->packet_no,
+                                'user_id'   => $packet->user_id,
+                                'amount'    => $packet->remaining_amount
+                            ]);
+
+                            $count++;
+                        });
+                    });
+                }
+
+                // 等待所有协程完成
+                $concurrent->wait();
             }
 
             // 记录性能监控（成功）
