@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Model\RedPacket;
-use App\Model\RedPacketRecord;
-use App\Model\User;
 use App\Log;
 use App\Repository\RedPacketRepository;
 use App\Repository\UserRepository;
@@ -138,7 +136,7 @@ class RedPacketService
      */
     public function grabRedPacket(int $userId, string $packetNo): array
     {
-        Log::info('1. 抢红包开始');
+        Log::info('1.抢红包开始');
         Log::info('2.红包抢请求参数：', [
             'user_id'   => $userId,
             'packet_no' => $packetNo,
@@ -204,16 +202,19 @@ class RedPacketService
 
         // 使用Redis分布式锁防止并发抢红包
         $lockKey   = 'lock:red_packet:' . $packetNo; // 锁的键名
-        $lockValue = uniqid();
-        $acquired  = $this->redis->set($lockKey, $lockValue, ['EX' => 5, 'NX' => true]); // 锁定5秒
-        Log::info('5.红包锁：', [$acquired]);
+        $lockValue = uniqid((string) mt_rand(), true); // 使用更随机的值作为锁标识
+        Log::info('5.尝试获取红包锁', ['lockKey' => $lockKey, 'lockValue' => $lockValue]);
+        $acquired = $this->redis->set($lockKey, $lockValue, ['EX' => 5, 'NX' => true]); // 锁定5秒
+        Log::info('6.红包锁获取结果：', ['acquired' => $acquired]);
         if (!$acquired) {
+            Log::info('7.获取锁失败，可能有其他请求正在处理');
             return [
                 'code'    => 429,
                 'message' => '操作太频繁，请稍后再试',
                 'data'    => null,
             ];
         }
+        Log::info('7.成功获取锁，开始处理抢红包逻辑');
 
         try {
             // 开启事务
@@ -276,8 +277,21 @@ class RedPacketService
             ];
         } finally {
             // 释放锁
-            if ($this->redis->get($lockKey) == $lockValue) {
-                $this->redis->del($lockKey);
+            Log::info('8.准备释放分布式锁', ['lockKey' => $lockKey, 'lockValue' => $lockValue]);
+            try {
+                // 使用Lua脚本确保原子性操作，只有当锁的值与我们设置的值相同时才删除锁
+                $script = <<<LUA
+                if redis.call('get', KEYS[1]) == ARGV[1] then
+                    return redis.call('del', KEYS[1])
+                else
+                    return 0
+                end
+                LUA;
+                $result = $this->redis->eval($script, [$lockKey, $lockValue], 1);
+                Log::info('9.锁释放结果', ['result' => $result ? '成功' : '失败或锁已不存在']);
+            } catch (\Throwable $e) {
+                // 即使释放锁出错，也不影响业务结果返回，但需要记录日志
+                Log::error('9.释放锁异常', ['error' => $e->getMessage()]);
             }
         }
     }
