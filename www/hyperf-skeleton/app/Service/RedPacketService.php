@@ -276,7 +276,7 @@ class RedPacketService
 
             Db::commit();
 
-            // 记录实时统计
+            // 记录实时统计 
             $this->recordStats('red_packet:created', $amount);
 
             // 记录性能监控（成功）

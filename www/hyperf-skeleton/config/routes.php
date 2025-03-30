@@ -23,7 +23,7 @@ Router::addGroup('/api/red-packet', function () {
     // 创建红包
     Router::post('/create', 'App\Controller\RedPacketController@create', ['middleware' => [RateLimitMiddleware::class]]);
     // 抢红包
-    Router::post('/grab', 'App\Controller\RedPacketController@grab');
+    Router::post('/grab', 'App\Controller\RedPacketController@grab', ['middleware' => [RateLimitMiddleware::class]]);
     // 红包详情
     Router::get('/detail', 'App\Controller\RedPacketController@detail');
 });

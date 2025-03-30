@@ -60,7 +60,7 @@ class RateLimitMiddleware implements MiddlewareInterface // 定义RateLimitMiddl
      * 处理请求并应用速率限制
      *
      * 该方法拦截 incoming 请求，检查是否需要应用速率限制如果请求的操作需要限流，
-     * 则检查用户是否超过了允许的请求次数如果用户超过了限制，则返回错误响应；
+     * 检查用户是否超过了允许的请求次数如果用户超过了限制，则返回错误响应；
      * 否则，请求将被处理
      *
      * @param ServerRequestInterface $request The incoming server request
@@ -79,9 +79,9 @@ class RateLimitMiddleware implements MiddlewareInterface // 定义RateLimitMiddl
         // 根据路径判断是哪种操作
         $action = '';
         if (strpos($uri, '/api/red-packet/create') !== false) {
-            $action = 'create'; // 如果路径包含'/api/red-packet/create'，则操作为'create'
+            $action = 'create'; // 如果路径包含'/api/red-packet/create'，则操作为'创建空包'
         } elseif (strpos($uri, '/api/red-packet/grab') !== false) {
-            $action = 'grab'; // 如果路径包含'/api/red-packet/grab'，则操作为'grab'
+            $action = 'grab'; // 如果路径包含'/api/red-packet/grab'，则操作为'抢红包'
         }
 
         // 如果是需要限流的操作

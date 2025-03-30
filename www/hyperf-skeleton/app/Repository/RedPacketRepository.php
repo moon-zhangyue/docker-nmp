@@ -6,7 +6,6 @@ namespace App\Repository;
 
 use App\Model\RedPacket;
 use App\Model\RedPacketRecord;
-use Hyperf\Database\Model\Builder;
 
 class RedPacketRepository
 {
