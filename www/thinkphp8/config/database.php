@@ -26,7 +26,7 @@ return [
             // 服务器地址
             'hostname'        => env('DB_HOST', 'mysql5'),
             // 数据库名
-            'database'        => env('DB_NAME', 'test'),
+            'database'        => env('DB_NAME', 'thinkphp8'),
             // 用户名
             'username'        => env('DB_USER', 'root'),
             // 密码

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>抢红包</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>抢红包系统</h1>
+    <div>
+        <h2>创建红包</h2>
+        <input type="number" id="total_amount" placeholder="总金额" step="0.01">
+        <input type="number" id="total_count" placeholder="总个数">
+        <button onclick="createRedPacket()">创建红包</button>
+    </div>
+    <div>
+        <h2>抢红包</h2>
+        <input type="number" id="red_packet_id" placeholder="红包ID">
+        <input type="number" id="user_id" placeholder="用户ID">
+        <button onclick="grabRedPacket()">抢红包</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        function createRedPacket() {
+            const totalAmount = document.getElementById('total_amount').value;
+            const totalCount = document.getElementById('total_count').value;
+
+            axios.post('/redpacket/create', { total_amount: totalAmount, total_count: totalCount })
+                .then(response => {
+                    document.getElementById('result').innerText = JSON.stringify(response.data);
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+
+        function grabRedPacket() {
+            const redPacketId = document.getElementById('red_packet_id').value;
+            const userId = document.getElementById('user_id').value;
+
+            axios.post('/redpacket/grab', { red_packet_id: redPacketId, user_id: userId })
+                .then(response => {
+                    document.getElementById('result').innerText = JSON.stringify(response.data);
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+    </script>
+</body>
+</html>

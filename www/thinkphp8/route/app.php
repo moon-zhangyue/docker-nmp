@@ -42,3 +42,8 @@ Route::get('test', 'Test/index');
 Route::post('queue/test', 'QueueTest/push');
 Route::post('queue/test/delay', 'QueueTest/pushDelay');
 
+
+// 红包
+Route::get('redpacket/index', 'RedPacketController/index');
+Route::post('redpacket/create', 'RedPacketController/create');
+Route::post('redpacket/grab', 'RedPacketController/grab');

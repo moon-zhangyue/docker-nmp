@@ -33,7 +33,8 @@ class JwtAuth
             'auth/register',
             'auth/refresh',
             'auth/logout',
-            'auth/me'
+            'auth/me',
+            'redpacket/index',
         ];
 
         // 排除不需要验证的接口
@@ -59,8 +60,8 @@ class JwtAuth
         try {
             // 验证令牌
             $authService = new AuthService();
-            $payload = $authService->validateToken($token);
-            
+            $payload     = $authService->validateToken($token);
+
             if (empty($payload)) {
                 return $this->error('无效的授权令牌', 401);
             }
@@ -68,14 +69,14 @@ class JwtAuth
             // 检查角色权限
             if (!empty($params)) {
                 $userRole = $payload['data']->role ?? 'viewer';
-                
+
                 if (!in_array($userRole, $params)) {
                     Log::warning('用户权限不足', [
-                        'user_id' => $payload['data']->id ?? 0,
-                        'username' => $payload['data']->username ?? '',
+                        'user_id'        => $payload['data']->id ?? 0,
+                        'username'       => $payload['data']->username ?? '',
                         'required_roles' => $params,
-                        'user_role' => $userRole,
-                        'path' => $request->url()
+                        'user_role'      => $userRole,
+                        'path'           => $request->url()
                     ]);
                     return $this->error('权限不足，需要 ' . implode(' 或 ', $params) . ' 角色', 403);
                 }
@@ -83,13 +84,13 @@ class JwtAuth
 
             // 将用户信息存入请求对象，方便后续使用
             $request->user = $payload['data'];
-            
+
             return $next($request);
         } catch (\Exception $e) {
             Log::error('JWT认证失败', [
                 'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine()
             ]);
             return $this->error('令牌验证失败: ' . $e->getMessage(), 401);
         }
@@ -105,9 +106,9 @@ class JwtAuth
     protected function error(string $message, int $code = 401): Response
     {
         return Response::create([
-            'code' => $code,
+            'code'    => $code,
             'message' => $message,
-            'data' => null
+            'data'    => null
         ], 'json', $code);
     }
 }
