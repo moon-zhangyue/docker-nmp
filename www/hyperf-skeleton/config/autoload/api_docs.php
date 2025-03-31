@@ -14,7 +14,7 @@ return [
     | false 将不会启动 swagger 服务
     |
     */
-    'enable' => env('APP_ENV') !== 'prod',
+    'enable'                       => env('APP_ENV') !== 'prod',
 
     /*
     |--------------------------------------------------------------------------
@@ -24,35 +24,35 @@ return [
     | 支持json和yaml
     |
     */
-    'format' => 'json',
+    'format'                       => 'json',
 
     /*
     |--------------------------------------------------------------------------
     | 生成swagger文件路径
     |--------------------------------------------------------------------------
     */
-    'output_dir' => BASE_PATH . '/runtime/container',
+    'output_dir'                   => BASE_PATH . '/runtime/swagger',
 
     /*
     |--------------------------------------------------------------------------
     | 生成代理类路径
     |--------------------------------------------------------------------------
     */
-    'proxy_dir' => BASE_PATH . '/runtime/container/proxy',
+    'proxy_dir'                    => BASE_PATH . '/runtime/container/proxy',
 
     /*
     |--------------------------------------------------------------------------
     | 设置路由前缀
     |--------------------------------------------------------------------------
     */
-    'prefix_url' => env('API_DOCS_PREFIX_URL', '/swagger'),
+    'prefix_url'                   => env('API_DOCS_PREFIX_URL', '/swagger'),
 
     /*
     |--------------------------------------------------------------------------
     | 设置swagger资源路径,cdn资源
     |--------------------------------------------------------------------------
     */
-    'prefix_swagger_resources' => 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.5.0',
+    'prefix_swagger_resources'     => 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.5.0',
 
     /*
     |--------------------------------------------------------------------------
@@ -87,14 +87,14 @@ return [
     | 设置:2 (慎用)包含等级1且复杂类型(联合类型除外)会设置null
     |
     */
-    'dto_default_value_level' => 0,
+    'dto_default_value_level'      => 0,
 
     /*
     |--------------------------------------------------------------------------
     | 全局responses,映射到ApiResponse注解对象
     |--------------------------------------------------------------------------
     */
-    'responses' => [
+    'responses'                    => [
         ['response' => 401, 'description' => 'Unauthorized'],
         ['response' => 500, 'description' => 'System error'],
     ],
@@ -107,34 +107,34 @@ return [
     | 该属性会映射到OpenAPI对象
     |
     */
-    'swagger' => [
-        'info' => [
-            'title' => 'API DOC',
-            'version' => '0.1',
+    'swagger'                      => [
+        'info'         => [
+            'title'       => 'API DOC',
+            'version'     => '0.1',
             'description' => 'swagger api desc',
         ],
-        'servers' => [
+        'servers'      => [
             [
-                'url' => 'http://127.0.0.1:9501',
+                'url'         => 'http://127.0.0.1:9501',
                 'description' => 'OpenApi host',
             ],
         ],
-        'components' => [
+        'components'   => [
             'securitySchemes' => [
                 [
                     'securityScheme' => 'Authorization',
-                    'type' => 'apiKey',
-                    'in' => 'header',
-                    'name' => 'Authorization',
+                    'type'           => 'apiKey',
+                    'in'             => 'header',
+                    'name'           => 'Authorization',
                 ],
             ],
         ],
-        'security' => [
+        'security'     => [
             ['Authorization' => []],
         ],
         'externalDocs' => [
             'description' => 'Find out more about Swagger',
-            'url' => 'https://github.com/tw2066/api-docs',
+            'url'         => 'https://github.com/tw2066/api-docs',
         ],
     ],
 ];

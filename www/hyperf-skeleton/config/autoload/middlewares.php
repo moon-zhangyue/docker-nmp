@@ -23,4 +23,8 @@ return [
             App\Middleware\RateLimitMiddleware::class,
         ],
     ],
+    //Telescope中间件
+    'grpc'   => [
+        FriendsOfHyperf\Telescope\Middleware\TelescopeMiddleware::class,
+    ],
 ];
