@@ -14,3 +14,17 @@ alive: consul-server.dc1 172.18.0.17:8302
 alive: consul-server.dc1 172.18.0.15:8302
 alive: consul-server.dc1 172.18.0.14:8302
 alive: consul-server.dc1 172.18.0.3:8302
+alive: consul-server.dc1 172.18.0.3:8302
+alive: consul-server.dc1 172.18.0.4:8302
+alive: consul-server.dc1 172.18.0.9:8302
+alive: consul-server.dc1 172.18.0.4:8302
+alive: consul-server.dc1 172.18.0.11:8302
+alive: consul-server.dc1 172.18.0.7:8302
+alive: consul-server.dc1 172.18.0.9:8302
+alive: consul-server.dc1 172.18.0.3:8302
+alive: consul-server.dc1 172.18.0.4:8302
+alive: consul-server.dc1 172.18.0.4:8302
+alive: consul-server.dc1 172.18.0.13:8302
+alive: consul-server.dc1 172.18.0.4:8302
+alive: consul-server.dc1 172.18.0.7:8302
+alive: consul-server.dc1 172.18.0.7:8302
