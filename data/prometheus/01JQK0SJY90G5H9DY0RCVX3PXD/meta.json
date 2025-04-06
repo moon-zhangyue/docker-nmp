@@ -1,0 +1,17 @@
+{
+	"ulid": "01JQK0SJY90G5H9DY0RCVX3PXD",
+	"minTime": 1743310551562,
+	"maxTime": 1743314400000,
+	"stats": {
+		"numSamples": 7378,
+		"numSeries": 439,
+		"numChunks": 439
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01JQK0SJY90G5H9DY0RCVX3PXD"
+		]
+	},
+	"version": 1
+}
