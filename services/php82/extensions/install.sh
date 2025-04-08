@@ -656,7 +656,7 @@ if [[ -z "${EXTENSIONS##*,zookeeper,*}" ]]; then
         printf "\n" | pecl install zookeeper
         docker-php-ext-enable zookeeper
     else
-        echo "---------- PHP Version>= 8.0----------"
+        echo "---------- PHP Version>= 8.0 required for zookeeper extension ----------"
     fi
 fi
 

@@ -37,7 +37,8 @@
         "firebase/php-jwt": "^6.11",
         "easyswoole/pool": "^2.1",
         "jenssegers/agent": "^2.6",
-        "topthink/think-swoole": "^4.1"
+        "topthink/think-swoole": "^4.1",
+        "influxdata/influxdb-client-php": "^3.7"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",
