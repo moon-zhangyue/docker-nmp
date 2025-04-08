@@ -6,6 +6,13 @@ ARG ELASTICSEARCH_PLUGINS
 
 ENV PLUGINS=",${ELASTICSEARCH_PLUGINS},"
 
+# 设置非交互式安装，避免插件安装时的提示
+ENV ELASTIC_CONTAINER=true
+
+# 设置插件安装的批处理模式
+RUN echo "Installing plugins with --batch mode"
+
+
 RUN if [[ -z "${PLUGINS##*,amazon-ec2,*}" ]]; then \
         printf "y\n" | elasticsearch-plugin install amazon-ec2; \
     fi \
@@ -107,10 +114,14 @@ RUN if [[ -z "${PLUGINS##*,amazon-ec2,*}" ]]; then \
     fi \
     && \
     if [[ -z "${PLUGINS##*,analysis-ik,*}" ]]; then \
-        printf "y\n" | elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v${ELASTICSEARCH_VERSION}/elasticsearch-analysis-ik-${ELASTICSEARCH_VERSION}.zip; \
+        printf "y\n" | elasticsearch-plugin install --batch https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v7.17.14/elasticsearch-analysis-ik-7.17.14.zip; \
     fi \
     && \
     if [[ -z "${PLUGINS##*,analysis-pinyin,*}" ]]; then \
-      printf "y\n" | elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-pinyin/releases/download/v${ELASTICSEARCH_VERSION}/elasticsearch-analysis-pinyin-${ELASTICSEARCH_VERSION}.zip; \
+      printf "y\n" | elasticsearch-plugin install --batch https://github.com/medcl/elasticsearch-analysis-pinyin/releases/download/v7.17.14/elasticsearch-analysis-pinyin-7.17.14.zip; \
+    fi \
+    && \
+    if [[ -z "${PLUGINS##*,analysis-smartcn,*}" ]]; then \
+      printf "y\n" | elasticsearch-plugin install analysis-smartcn; \
     fi
 

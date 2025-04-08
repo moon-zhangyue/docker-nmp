@@ -46,15 +46,3 @@ RUN chmod +x /tmp/tideways.sh \
     && /tmp/tideways.sh \
     && rm -rf /tmp/tideways
 
-
-# tdengine extension
-RUN apk add --no-cache git autoconf gcc g++ make cmake \
-    && git clone https://github.com/Yurunsoft/php-tdengine.git /tmp/php-tdengine \
-    && cd /tmp/php-tdengine \
-    && phpize \
-    && ./configure \
-    && make -j$(nproc) \
-    && make install \
-    && echo "extension=tdengine.so" > /usr/local/etc/php/conf.d/tdengine.ini \
-    && cd / \
-    && rm -rf /tmp/php-tdengine
