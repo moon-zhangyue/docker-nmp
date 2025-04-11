@@ -32,7 +32,7 @@ class ParkingLotController extends BaseController
         }
 
         $total       = $query->count();
-        $parkingLots = $query->page($page, $limit)->select();
+        $parkingLots = $query->page((int) $page, (int) $limit)->select();
 
         // 计算占用率
         foreach ($parkingLots as &$lot) {

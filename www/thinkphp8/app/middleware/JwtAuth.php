@@ -35,6 +35,17 @@ class JwtAuth
             'auth/logout',
             'auth/me',
             'redpacket/index',
+            'parking/lot',
+            'parking/record',
+            'parking/metrics/occupancy',
+            'parking/metrics/device-status',
+            'parking/metrics/plate-recognition',
+            'parking/metrics/gate-operation',
+            'parking/metrics/peak-hours',
+            'parking/metrics/duration-stats',
+            'parking/metrics/peak-analysis',
+            'parking/metrics/occupancy-history',
+            'parking/metrics/device-history',
         ];
 
         // 排除不需要验证的接口

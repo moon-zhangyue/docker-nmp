@@ -1,11 +1,4 @@
 <?php
-/**
- * InfluxDB 连接测试脚本
- * 
- * 本脚本演示如何使用PHP连接InfluxDB 2.x并执行基本操作
- * 需要安装 influxdb/client PHP库: composer require influxdata/influxdb-client-php
- */
-
 // InfluxDB连接参数
 $url    = 'http://influxdb:8086';
 $token  = 'my-super-secret-auth-token'; // 与.env中的INFLUXDB_ADMIN_TOKEN一致
@@ -14,61 +7,184 @@ $bucket = 'mybucket';                  // 与.env中的INFLUXDB_BUCKET一致
 
 echo "<h1>InfluxDB 连接测试</h1>";
 
-// 检查是否安装了必要的库
-if (!class_exists('InfluxDB2\\Client')) {
-    echo "<p style='color:red'>错误: 未安装 influxdb/client PHP库</p>";
-    echo "<p>请运行: <code>composer require influxdata/influxdb-client-php</code></p>";
-    exit;
-}
-
 try {
-    // 创建客户端
-    $client = new InfluxDB2\Client([
-        'url'       => $url,
-        'token'     => $token,
-        'org'       => $org,
-        'bucket'    => $bucket,
-        'precision' => InfluxDB2\Model\WritePrecision::S
+    // 写入一些测试数据 - 使用当前时间，不指定时间戳
+    $data = "measurement1,tagname1=tagvalue1 field1=30,field2=25.5";  // 移除时间戳，让InfluxDB自动添加
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, "$url/api/v2/write?org=$org&bucket=$bucket&precision=ns");
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Token ' . $token,
+        'Content-Type: text/plain; charset=utf-8'
     ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-    // 写入一些测试数据
-    $writeApi = $client->createWriteApi();
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-    $point = new InfluxDB2\Point('measurement1')
-        ->addTag('tagname1', 'tagvalue1')
-        ->addField('field1', 30)
-        ->addField('field2', 25.5)
-        ->time(time());
-
-    $writeApi->write($point);
-    $writeApi->close();
-
-    echo "<p style='color:green'>成功写入数据到InfluxDB!</p>";
-
-    // 查询数据
-    $queryApi = $client->createQueryApi();
-    $query    = 'from(bucket:"' . $bucket . '") |> range(start: -1h) |> filter(fn:(r) => r._measurement == "measurement1")';
-
-    $tables = $queryApi->query($query);
-
-    echo "<h2>查询结果:</h2>";
-    echo "<pre>";
-
-    foreach ($tables as $table) {
-        foreach ($table->records as $record) {
-            $time        = $record->getTime();
-            $measurement = $record->getMeasurement();
-            $field       = $record->getField();
-            $value       = $record->getValue();
-
-            echo "$time $measurement $field: $value\n";
-        }
+    if ($httpCode == 204) {
+        echo "<p style='color:green'>成功写入数据到InfluxDB!</p>";
+        echo "<p>写入的数据: <code>$data</code></p>";
+    } else {
+        echo "<p style='color:red'>写入数据失败: $response</p>";
+        curl_close($ch);
+        exit;
     }
 
-    echo "</pre>";
+    curl_close($ch);
 
-    // 关闭客户端
-    $client->close();
+    // 等待一秒，确保数据写入完成
+    sleep(1);
+
+    // 查询数据 - 使用更宽松的查询，扩大时间范围
+    $query = 'from(bucket:"' . $bucket . '") 
+              |> range(start: -1d)  // 扩大到1天
+              |> filter(fn:(r) => r._measurement == "measurement1")';
+
+    $queryData = ['query' => $query];
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, "$url/api/v2/query?org=$org");
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($queryData));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Token ' . $token,
+        'Content-Type: application/json',
+        'Accept: application/csv'
+    ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    if ($httpCode == 200) {
+        // 输出原始响应以便调试
+        echo "<h2>原始响应:</h2>";
+        echo "<pre>" . htmlspecialchars($response) . "</pre>";
+
+        // 检查响应是否为空
+        if (empty(trim($response))) {
+            echo "<p style='color:orange'>查询返回了空响应，可能没有匹配的数据</p>";
+
+            // 尝试一个更宽松的查询，不指定任何过滤条件
+            echo "<h2>尝试最宽松的查询:</h2>";
+            $broadQuery     = 'from(bucket:"' . $bucket . '") |> range(start: -1d)';
+            $broadQueryData = ['query' => $broadQuery];
+
+            $ch2 = curl_init();
+            curl_setopt($ch2, CURLOPT_URL, "$url/api/v2/query?org=$org");
+            curl_setopt($ch2, CURLOPT_POST, 1);
+            curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($broadQueryData));
+            curl_setopt($ch2, CURLOPT_HTTPHEADER, [
+                'Authorization: Token ' . $token,
+                'Content-Type: application/json',
+                'Accept: application/csv'
+            ]);
+            curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+
+            $broadResponse = curl_exec($ch2);
+            $broadHttpCode = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+
+            if ($broadHttpCode == 200) {
+                echo "<pre>" . htmlspecialchars($broadResponse) . "</pre>";
+
+                // 如果最宽松的查询也没有结果，检查bucket是否存在
+                if (empty(trim($broadResponse))) {
+                    echo "<h2>检查存储桶和组织:</h2>";
+
+                    // 获取存储桶列表
+                    $ch3 = curl_init();
+                    curl_setopt($ch3, CURLOPT_URL, "$url/api/v2/buckets");
+                    curl_setopt($ch3, CURLOPT_HTTPHEADER, [
+                        'Authorization: Token ' . $token
+                    ]);
+                    curl_setopt($ch3, CURLOPT_RETURNTRANSFER, true);
+
+                    $bucketsResponse = curl_exec($ch3);
+                    $bucketsHttpCode = curl_getinfo($ch3, CURLINFO_HTTP_CODE);
+
+                    if ($bucketsHttpCode == 200) {
+                        echo "<p>存储桶列表:</p>";
+                        echo "<pre>" . htmlspecialchars($bucketsResponse) . "</pre>";
+                    } else {
+                        echo "<p style='color:red'>获取存储桶列表失败: $bucketsResponse</p>";
+                    }
+
+                    curl_close($ch3);
+                }
+            } else {
+                echo "<p style='color:red'>宽松查询失败: $broadResponse</p>";
+            }
+
+            curl_close($ch2);
+        } else {
+            // 解析CSV响应
+            $lines = explode("\n", $response);
+
+            echo "<h2>CSV行数: " . count($lines) . "</h2>";
+
+            $headers = null;
+            $data    = [];
+
+            foreach ($lines as $i => $line) {
+                if (empty(trim($line)))
+                    continue;
+
+                $values = str_getcsv($line);
+
+                if ($headers === null) {
+                    $headers = $values;
+                    echo "<p>找到CSV头: " . implode(", ", $headers) . "</p>";
+                    continue;
+                }
+
+                // 跳过结果表的元数据行
+                if (isset($values[0]) && $values[0] === '#')
+                    continue;
+
+                $row = [];
+                foreach ($values as $j => $value) {
+                    if (isset($headers[$j])) {
+                        $row[$headers[$j]] = $value;
+                    }
+                }
+
+                if (!empty($row)) {
+                    $data[] = $row;
+                }
+            }
+
+            // 显示解析后的数据
+            if (!empty($data)) {
+                echo "<h2>查询结果:</h2>";
+                echo "<pre>";
+                foreach ($data as $record) {
+                    // 输出完整记录以便调试
+                    echo "完整记录: " . json_encode($record) . "\n";
+
+                    // 检查记录中是否包含我们需要的字段
+                    if (isset($record['_time']) && isset($record['_value']) && isset($record['_field'])) {
+                        $time  = $record['_time'];
+                        $field = $record['_field'];
+                        $value = $record['_value'];
+
+                        echo "$time $field: $value\n";
+                    } else {
+                        echo "记录缺少必要字段\n";
+                    }
+                }
+                echo "</pre>";
+            } else {
+                echo "<p style='color:orange'>查询结果为空或格式不符合预期</p>";
+            }
+        }
+    } else {
+        echo "<p style='color:red'>查询数据失败: $response</p>";
+    }
+
+    curl_close($ch);
 
 } catch (Exception $e) {
     echo "<p style='color:red'>错误: " . $e->getMessage() . "</p>";
