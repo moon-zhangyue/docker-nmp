@@ -1,0 +1,56 @@
+2025-04-14 17:06:29 pid:939 Workerman[start.php] start in DEBUG mode
+2025-04-14 17:06:29 pid:943 Redis连接成功 - redis:6379
+2025-04-14 17:06:29 pid:941 Redis连接成功 - redis:6379
+2025-04-14 17:06:29 pid:942 Redis连接成功 - redis:6379
+2025-04-14 17:06:29 pid:940 Redis连接成功 - redis:6379
+2025-04-14 17:06:30 pid:943 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:06:30 pid:941 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:06:30 pid:942 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:06:30 pid:940 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:07:10 pid:941 请求处理失败: Route not found
+2025-04-14 17:07:10 pid:940 请求处理失败: Route not found
+2025-04-14 17:07:16 pid:940 Redis GET请求处理失败: Call to a member function then() on null
+2025-04-14 17:07:16 pid:942 请求处理失败: Route not found
+2025-04-14 17:16:39 pid:939 Workerman[start.php] received signal SIGINT
+2025-04-14 17:16:39 pid:939 Workerman[start.php] stopping
+2025-04-14 17:16:39 pid:939 Workerman[start.php] has been stopped
+2025-04-14 17:16:41 pid:944 Workerman[start.php] start in DEBUG mode
+2025-04-14 17:16:41 pid:947 Redis连接成功 - redis:6379
+2025-04-14 17:16:41 pid:946 Redis连接成功 - redis:6379
+2025-04-14 17:16:41 pid:948 Redis连接成功 - redis:6379
+2025-04-14 17:16:41 pid:945 Redis连接成功 - redis:6379
+2025-04-14 17:16:41 pid:948 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:16:41 pid:945 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:16:41 pid:947 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:16:41 pid:946 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:16:45 pid:945 Redis GET请求处理失败: Call to a member function then() on null
+2025-04-14 17:16:45 pid:945 请求处理失败: Route not found
+2025-04-14 17:22:07 pid:944 Workerman[start.php] received signal SIGINT
+2025-04-14 17:22:07 pid:944 Workerman[start.php] stopping
+2025-04-14 17:22:07 pid:944 Workerman[start.php] has been stopped
+2025-04-14 17:22:08 pid:949 Workerman[start.php] start in DEBUG mode
+2025-04-14 17:22:08 pid:952 Redis连接成功 - redis:6379
+2025-04-14 17:22:08 pid:950 Redis连接成功 - redis:6379
+2025-04-14 17:22:08 pid:953 Redis连接成功 - redis:6379
+2025-04-14 17:22:08 pid:951 Redis连接成功 - redis:6379
+2025-04-14 17:22:08 pid:953 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:22:08 pid:952 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:22:08 pid:951 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:22:08 pid:950 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:22:10 pid:951 Redis GET操作 - key:test, value:null
+2025-04-14 17:22:10 pid:951 请求处理失败: Route not found
+2025-04-14 17:22:16 pid:951 Redis GET操作 - key:test, value:null
+2025-04-14 17:22:16 pid:951 请求处理失败: Route not found
+2025-04-14 17:24:46 pid:949 Workerman[start.php] received signal SIGINT
+2025-04-14 17:24:46 pid:949 Workerman[start.php] stopping
+2025-04-14 17:24:46 pid:949 Workerman[start.php] has been stopped
+2025-04-14 17:24:50 pid:954 Workerman[start.php] start in DEBUG mode
+2025-04-14 17:24:50 pid:957 Redis连接成功 - redis:6379
+2025-04-14 17:24:50 pid:958 Redis连接成功 - redis:6379
+2025-04-14 17:24:50 pid:956 Redis连接成功 - redis:6379
+2025-04-14 17:24:50 pid:955 Redis连接成功 - redis:6379
+2025-04-14 17:24:50 pid:958 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:24:50 pid:955 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:24:50 pid:956 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:24:50 pid:957 Worker进程启动，Redis服务初始化完成
+2025-04-14 17:24:54 pid:958 Redis GET操作 - key:test, value:null
