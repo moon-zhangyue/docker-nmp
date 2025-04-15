@@ -54,3 +54,460 @@
 2025-04-14 17:24:50 pid:956 Worker进程启动，Redis服务初始化完成
 2025-04-14 17:24:50 pid:957 Worker进程启动，Redis服务初始化完成
 2025-04-14 17:24:54 pid:958 Redis GET操作 - key:test, value:null
+2025-04-14 20:42:51 pid:16 Workerman[start.php] start in DEBUG mode
+2025-04-14 20:42:51 pid:16 Master pid:954 is not alive
+2025-04-14 20:42:51 pid:18 Redis连接成功 - redis:6379
+2025-04-14 20:42:51 pid:19 Redis连接成功 - redis:6379
+2025-04-14 20:42:51 pid:17 Redis连接成功 - redis:6379
+2025-04-14 20:42:51 pid:20 Redis连接成功 - redis:6379
+2025-04-14 20:42:51 pid:17 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:42:51 pid:18 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:42:51 pid:19 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:42:51 pid:20 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:42:55 pid:20 Redis GET操作 - key:test_key, value:null
+2025-04-14 20:43:03 pid:20 Redis GET操作 - key:test_key, value:null
+2025-04-14 20:43:21 pid:19 Redis GET操作 - key:test_key, value:null
+2025-04-14 20:43:38 pid:18 Redis GET操作 - key:test_key, value:null
+2025-04-14 20:46:09 pid:16 Workerman[start.php] received signal SIGINT
+2025-04-14 20:46:09 pid:16 Workerman[start.php] stopping
+2025-04-14 20:46:09 pid:16 Workerman[start.php] has been stopped
+2025-04-14 20:46:10 pid:21 Workerman[start.php] start in DEBUG mode
+2025-04-14 20:46:10 pid:23 Redis连接成功 - redis:6379
+2025-04-14 20:46:10 pid:22 Redis连接成功 - redis:6379
+2025-04-14 20:46:10 pid:24 Redis连接成功 - redis:6379
+2025-04-14 20:46:10 pid:25 Redis连接成功 - redis:6379
+2025-04-14 20:46:10 pid:25 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:46:10 pid:24 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:46:10 pid:22 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:46:10 pid:23 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:46:51 pid:21 Workerman[start.php] received signal SIGINT
+2025-04-14 20:46:51 pid:21 Workerman[start.php] stopping
+2025-04-14 20:46:51 pid:21 Workerman[start.php] has been stopped
+2025-04-14 20:46:52 pid:26 Workerman[start.php] start in DEBUG mode
+2025-04-14 20:46:52 pid:30 Redis连接成功 - redis:6379
+2025-04-14 20:46:52 pid:28 Redis连接成功 - redis:6379
+2025-04-14 20:46:52 pid:29 Redis连接成功 - redis:6379
+2025-04-14 20:46:52 pid:27 Redis连接成功 - redis:6379
+2025-04-14 20:46:52 pid:28 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:46:52 pid:30 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:46:52 pid:29 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:46:52 pid:27 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:46:57 pid:30 Redis GET操作 - key:test_key, value:null
+2025-04-14 20:50:41 pid:26 Workerman[start.php] received signal SIGINT
+2025-04-14 20:50:41 pid:26 Workerman[start.php] stopping
+2025-04-14 20:50:41 pid:26 Workerman[start.php] has been stopped
+2025-04-14 20:50:42 pid:31 Workerman[start.php] start in DEBUG mode
+2025-04-14 20:50:42 pid:32 Redis连接成功 - redis:6379
+2025-04-14 20:50:42 pid:34 Redis连接成功 - redis:6379
+2025-04-14 20:50:42 pid:35 Redis连接成功 - redis:6379
+2025-04-14 20:50:42 pid:33 Redis连接成功 - redis:6379
+2025-04-14 20:50:42 pid:32 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:50:42 pid:33 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:50:42 pid:34 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:50:42 pid:35 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:51:52 pid:31 Workerman[start.php] received signal SIGINT
+2025-04-14 20:51:52 pid:31 Workerman[start.php] stopping
+2025-04-14 20:51:52 pid:31 Workerman[start.php] has been stopped
+2025-04-14 20:51:53 pid:36 Workerman[start.php] start in DEBUG mode
+2025-04-14 20:51:53 pid:37 Redis连接成功 - redis:6379
+2025-04-14 20:51:53 pid:38 Redis连接成功 - redis:6379
+2025-04-14 20:51:53 pid:40 Redis连接成功 - redis:6379
+2025-04-14 20:51:53 pid:39 Redis连接成功 - redis:6379
+2025-04-14 20:51:53 pid:37 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:51:53 pid:39 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:51:53 pid:40 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:51:53 pid:38 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:51:55 pid:40 Redis SET请求处理失败: App\Api\Redis\Services\RedisService::set(): Argument #3 ($ttl) must be of type ?int, string given, called in /www/workerman/src/Api/Redis/Controllers/RedisController.php on line 38
+2025-04-14 20:52:25 pid:36 Workerman[start.php] received signal SIGINT
+2025-04-14 20:52:25 pid:36 Workerman[start.php] stopping
+2025-04-14 20:52:25 pid:36 Workerman[start.php] has been stopped
+2025-04-14 20:52:26 pid:41 Workerman[start.php] start in DEBUG mode
+2025-04-14 20:52:26 pid:43 Redis连接成功 - redis:6379
+2025-04-14 20:52:26 pid:42 Redis连接成功 - redis:6379
+2025-04-14 20:52:26 pid:44 Redis连接成功 - redis:6379
+2025-04-14 20:52:26 pid:45 Redis连接成功 - redis:6379
+2025-04-14 20:52:26 pid:45 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:52:26 pid:44 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:52:26 pid:43 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:52:26 pid:42 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:52:32 pid:44 Redis SET操作 - key:name, value:张三, ttl:0
+2025-04-14 20:53:53 pid:41 Workerman[start.php] received signal SIGINT
+2025-04-14 20:53:53 pid:41 Workerman[start.php] stopping
+2025-04-14 20:53:53 pid:41 Workerman[start.php] has been stopped
+2025-04-14 20:53:54 pid:46 Workerman[start.php] start in DEBUG mode
+2025-04-14 20:53:54 pid:48 Redis连接成功 - redis:6379
+2025-04-14 20:53:54 pid:47 Redis连接成功 - redis:6379
+2025-04-14 20:53:54 pid:50 Redis连接成功 - redis:6379
+2025-04-14 20:53:54 pid:49 Redis连接成功 - redis:6379
+2025-04-14 20:53:54 pid:47 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:53:54 pid:48 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:53:54 pid:49 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:53:54 pid:50 Worker进程启动，Redis服务初始化完成
+2025-04-14 20:53:58 pid:49 Redis SET操作 - key:name, value:张三, ttl:0
+2025-04-14 20:54:32 pid:50 Redis GET操作 - key:name, value:null
+2025-04-14 20:58:05 pid:47 Redis SET操作 - key:name, value:张三1, ttl:0
+2025-04-14 21:01:55 pid:46 Workerman[start.php] received signal SIGINT
+2025-04-14 21:01:55 pid:46 Workerman[start.php] stopping
+2025-04-14 21:01:55 pid:46 Workerman[start.php] has been stopped
+2025-04-14 21:01:56 pid:51 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:01:56 pid:53 Redis连接成功 - redis:6379
+2025-04-14 21:01:56 pid:54 Redis连接成功 - redis:6379
+2025-04-14 21:01:56 pid:52 Redis连接成功 - redis:6379
+2025-04-14 21:01:56 pid:55 Redis连接成功 - redis:6379
+2025-04-14 21:01:56 pid:55 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:01:56 pid:53 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:01:56 pid:54 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:01:56 pid:52 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:01:58 pid:52 Redis SET请求处理失败: Call to a member function set() on null
+2025-04-14 21:12:19 pid:51 Workerman[start.php] received signal SIGINT
+2025-04-14 21:12:19 pid:51 Workerman[start.php] stopping
+2025-04-14 21:12:19 pid:51 Workerman[start.php] has been stopped
+2025-04-14 21:12:20 pid:56 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:12:20 pid:57 Redis连接成功 - redis:6379
+2025-04-14 21:12:20 pid:60 Redis连接成功 - redis:6379
+2025-04-14 21:12:20 pid:58 Redis连接成功 - redis:6379
+2025-04-14 21:12:20 pid:59 Redis连接成功 - redis:6379
+2025-04-14 21:12:20 pid:58 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:12:20 pid:60 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:12:20 pid:57 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:12:20 pid:59 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:12:24 pid:59 Redis SET请求处理失败: Call to a member function then() on null
+2025-04-14 21:13:56 pid:56 Workerman[start.php] received signal SIGINT
+2025-04-14 21:13:57 pid:56 Workerman[start.php] stopping
+2025-04-14 21:13:57 pid:56 Workerman[start.php] has been stopped
+2025-04-14 21:13:57 pid:61 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:13:57 pid:63 Redis连接成功 - redis:6379
+2025-04-14 21:13:57 pid:65 Redis连接成功 - redis:6379
+2025-04-14 21:13:57 pid:64 Redis连接成功 - redis:6379
+2025-04-14 21:13:57 pid:62 Redis连接成功 - redis:6379
+2025-04-14 21:13:57 pid:62 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:13:57 pid:64 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:13:57 pid:63 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:13:57 pid:65 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:14:02 pid:64 Redis SET请求处理失败: Call to a member function then() on null
+2025-04-14 21:14:24 pid:61 Workerman[start.php] received signal SIGINT
+2025-04-14 21:14:24 pid:61 Workerman[start.php] stopping
+2025-04-14 21:14:24 pid:61 Workerman[start.php] has been stopped
+2025-04-14 21:14:25 pid:66 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:14:25 pid:68 Redis连接成功 - redis:6379
+2025-04-14 21:14:25 pid:70 Redis连接成功 - redis:6379
+2025-04-14 21:14:25 pid:67 Redis连接成功 - redis:6379
+2025-04-14 21:14:25 pid:69 Redis连接成功 - redis:6379
+2025-04-14 21:14:25 pid:68 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:14:25 pid:70 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:14:25 pid:67 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:14:25 pid:69 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:14:34 pid:69 Redis SET请求处理失败: Call to a member function then() on null
+2025-04-14 21:15:43 pid:66 Workerman[start.php] received signal SIGINT
+2025-04-14 21:15:43 pid:66 Workerman[start.php] stopping
+2025-04-14 21:15:43 pid:66 Workerman[start.php] has been stopped
+2025-04-14 21:15:44 pid:71 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:15:44 pid:72 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:44 pid:73 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:44 pid:74 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:44 pid:75 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:44 pid:72 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:44 pid:73 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:44 pid:74 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:44 pid:75 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:44 pid:75 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:44 pid:73 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:44 pid:72 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:44 pid:74 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:44 pid:75 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:44 pid:72 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:44 pid:73 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:44 pid:74 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:45 pid:75 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(593): Workerman\Worker::forkWorkers()
+#8 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#9 {main}
+2025-04-14 21:15:45 pid:72 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(593): Workerman\Worker::forkWorkers()
+#8 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#9 {main}
+2025-04-14 21:15:45 pid:73 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(593): Workerman\Worker::forkWorkers()
+#8 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#9 {main}
+2025-04-14 21:15:45 pid:74 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(593): Workerman\Worker::forkWorkers()
+#8 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#9 {main}
+2025-04-14 21:15:45 pid:71 worker[none:75] exit with status 64000
+2025-04-14 21:15:45 pid:71 worker[none:72] exit with status 64000
+2025-04-14 21:15:45 pid:71 worker[none:73] exit with status 64000
+2025-04-14 21:15:45 pid:71 worker[none:74] exit with status 64000
+2025-04-14 21:15:45 pid:79 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:45 pid:76 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:45 pid:77 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:45 pid:78 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:45 pid:76 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:45 pid:77 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:45 pid:79 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:45 pid:78 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:45 pid:78 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:45 pid:76 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:45 pid:77 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:45 pid:79 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:45 pid:78 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:45 pid:77 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:45 pid:76 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:45 pid:79 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:46 pid:78 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(1883): Workerman\Worker::forkWorkers()
+#8 /www/workerman/vendor/workerman/workerman/src/Worker.php(1820): Workerman\Worker::monitorWorkersForLinux()
+#9 /www/workerman/vendor/workerman/workerman/src/Worker.php(595): Workerman\Worker::monitorWorkers()
+#10 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#11 {main}
+2025-04-14 21:15:46 pid:77 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(1883): Workerman\Worker::forkWorkers()
+#8 /www/workerman/vendor/workerman/workerman/src/Worker.php(1820): Workerman\Worker::monitorWorkersForLinux()
+#9 /www/workerman/vendor/workerman/workerman/src/Worker.php(595): Workerman\Worker::monitorWorkers()
+#10 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#11 {main}
+2025-04-14 21:15:46 pid:76 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(1883): Workerman\Worker::forkWorkers()
+#8 /www/workerman/vendor/workerman/workerman/src/Worker.php(1820): Workerman\Worker::monitorWorkersForLinux()
+#9 /www/workerman/vendor/workerman/workerman/src/Worker.php(595): Workerman\Worker::monitorWorkers()
+#10 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#11 {main}
+2025-04-14 21:15:46 pid:79 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(1883): Workerman\Worker::forkWorkers()
+#8 /www/workerman/vendor/workerman/workerman/src/Worker.php(1820): Workerman\Worker::monitorWorkersForLinux()
+#9 /www/workerman/vendor/workerman/workerman/src/Worker.php(595): Workerman\Worker::monitorWorkers()
+#10 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#11 {main}
+2025-04-14 21:15:46 pid:71 worker[none:77] exit with status 64000
+2025-04-14 21:15:46 pid:71 worker[none:76] exit with status 64000
+2025-04-14 21:15:46 pid:71 worker[none:78] exit with status 64000
+2025-04-14 21:15:46 pid:71 worker[none:79] exit with status 64000
+2025-04-14 21:15:46 pid:81 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:46 pid:82 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:46 pid:80 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:46 pid:80 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:46 pid:83 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:46 pid:81 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:46 pid:82 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:46 pid:82 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:46 pid:81 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:46 pid:80 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:46 pid:82 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:46 pid:81 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:46 pid:80 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:46 pid:83 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:46 pid:83 正在连接Redis: redis://redis:6379/1
+2025-04-14 21:15:46 pid:83 Redis连接失败 - redis:6379 - Call to a member function then() on null
+2025-04-14 21:15:47 pid:81 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(1883): Workerman\Worker::forkWorkers()
+#8 /www/workerman/vendor/workerman/workerman/src/Worker.php(1820): Workerman\Worker::monitorWorkersForLinux()
+#9 /www/workerman/vendor/workerman/workerman/src/Worker.php(595): Workerman\Worker::monitorWorkers()
+#10 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#11 {main}
+2025-04-14 21:15:47 pid:80 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(1883): Workerman\Worker::forkWorkers()
+#8 /www/workerman/vendor/workerman/workerman/src/Worker.php(1820): Workerman\Worker::monitorWorkersForLinux()
+#9 /www/workerman/vendor/workerman/workerman/src/Worker.php(595): Workerman\Worker::monitorWorkers()
+#10 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#11 {main}
+2025-04-14 21:15:47 pid:83 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(1883): Workerman\Worker::forkWorkers()
+#8 /www/workerman/vendor/workerman/workerman/src/Worker.php(1820): Workerman\Worker::monitorWorkersForLinux()
+#9 /www/workerman/vendor/workerman/workerman/src/Worker.php(595): Workerman\Worker::monitorWorkers()
+#10 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#11 {main}
+2025-04-14 21:15:47 pid:71 Workerman[start.php] received signal SIGINT
+2025-04-14 21:15:47 pid:82 RuntimeException: Redis client initialization failed in /www/workerman/src/Api/Redis/Controllers/RedisController.php:24
+Stack trace:
+#0 /www/workerman/start.php(23): App\Api\Redis\Controllers\RedisController->__construct(Object(App\Api\Redis\Services\RedisService))
+#1 /www/workerman/vendor/workerman/workerman/src/Worker.php(2566): {closure}(Object(Workerman\Worker))
+#2 [internal function]: Workerman\Worker->Workerman\{closure}()
+#3 /www/workerman/vendor/workerman/workerman/src/Worker.php(2581): Fiber->start()
+#4 /www/workerman/vendor/workerman/workerman/src/Worker.php(1738): Workerman\Worker->run()
+#5 /www/workerman/vendor/workerman/workerman/src/Worker.php(1545): Workerman\Worker::forkOneWorkerForLinux(Object(Workerman\Worker))
+#6 /www/workerman/vendor/workerman/workerman/src/Worker.php(1525): Workerman\Worker::forkWorkersForLinux()
+#7 /www/workerman/vendor/workerman/workerman/src/Worker.php(1883): Workerman\Worker::forkWorkers()
+#8 /www/workerman/vendor/workerman/workerman/src/Worker.php(1820): Workerman\Worker::monitorWorkersForLinux()
+#9 /www/workerman/vendor/workerman/workerman/src/Worker.php(595): Workerman\Worker::monitorWorkers()
+#10 /www/workerman/start.php(71): Workerman\Worker::runAll()
+#11 {main}
+2025-04-14 21:15:47 pid:71 Workerman[start.php] stopping
+2025-04-14 21:15:47 pid:71 worker[none:81] exit with status 64000
+2025-04-14 21:15:47 pid:71 worker[none:80] exit with status 64000
+2025-04-14 21:15:47 pid:71 worker[none:82] exit with status 64000
+2025-04-14 21:15:47 pid:71 worker[none:83] exit with status 64000
+2025-04-14 21:15:47 pid:71 Workerman[start.php] has been stopped
+2025-04-14 21:18:19 pid:84 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:18:19 pid:88 正在连接Redis: redis://redis:6379
+2025-04-14 21:18:19 pid:86 正在连接Redis: redis://redis:6379
+2025-04-14 21:18:19 pid:85 正在连接Redis: redis://redis:6379
+2025-04-14 21:18:19 pid:87 正在连接Redis: redis://redis:6379
+2025-04-14 21:18:19 pid:86 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:18:19 pid:85 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:18:19 pid:88 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:18:19 pid:87 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:18:24 pid:87 Redis SETEX 失败 - key:name, value:张三1, ttl: - Call to a member function then() on null
+2025-04-14 21:22:17 pid:84 Workerman[start.php] received signal SIGINT
+2025-04-14 21:22:17 pid:84 Workerman[start.php] stopping
+2025-04-14 21:22:17 pid:84 Workerman[start.php] has been stopped
+2025-04-14 21:22:18 pid:89 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:22:18 pid:92 正在连接Redis: redis://redis:6379
+2025-04-14 21:22:18 pid:93 正在连接Redis: redis://redis:6379
+2025-04-14 21:22:18 pid:91 正在连接Redis: redis://redis:6379
+2025-04-14 21:22:18 pid:90 正在连接Redis: redis://redis:6379
+2025-04-14 21:22:19 pid:93 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:22:19 pid:92 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:22:19 pid:91 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:22:19 pid:90 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:22:24 pid:90 Redis SETEX 失败 - key:name, value:张三1, ttl: - 操作返回值为null
+2025-04-14 21:24:38 pid:89 Workerman[start.php] received signal SIGINT
+2025-04-14 21:24:38 pid:89 Workerman[start.php] stopping
+2025-04-14 21:24:38 pid:89 Workerman[start.php] has been stopped
+2025-04-14 21:24:39 pid:94 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:24:39 pid:98 正在连接Redis: redis://redis:6379
+2025-04-14 21:24:39 pid:97 正在连接Redis: redis://redis:6379
+2025-04-14 21:24:39 pid:96 正在连接Redis: redis://redis:6379
+2025-04-14 21:24:39 pid:95 正在连接Redis: redis://redis:6379
+2025-04-14 21:24:39 pid:97 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:24:39 pid:96 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:24:39 pid:95 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:24:39 pid:98 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:24:44 pid:96 Redis SETEX 失败 - key:name, value:张三1, ttl: - 操作返回值为null
+2025-04-14 21:28:59 pid:94 Workerman[start.php] received signal SIGINT
+2025-04-14 21:28:59 pid:94 Workerman[start.php] stopping
+2025-04-14 21:28:59 pid:94 Workerman[start.php] has been stopped
+2025-04-14 21:28:59 pid:99 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:28:59 pid:101 正在连接Redis: redis://redis:6379
+2025-04-14 21:28:59 pid:102 正在连接Redis: redis://redis:6379
+2025-04-14 21:28:59 pid:100 正在连接Redis: redis://redis:6379
+2025-04-14 21:28:59 pid:103 正在连接Redis: redis://redis:6379
+2025-04-14 21:29:00 pid:100 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:29:00 pid:103 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:29:00 pid:102 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:29:00 pid:101 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:29:04 pid:101 Redis SETEX 失败 - key:name, value:张三1, ttl: - Call to a member function then() on null
+2025-04-14 21:29:31 pid:99 Workerman[start.php] received signal SIGINT
+2025-04-14 21:29:31 pid:99 Workerman[start.php] stopping
+2025-04-14 21:29:31 pid:99 Workerman[start.php] has been stopped
+2025-04-14 21:29:42 pid:104 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:29:42 pid:108 正在连接Redis: redis://redis:6379
+2025-04-14 21:29:42 pid:105 正在连接Redis: redis://redis:6379
+2025-04-14 21:29:42 pid:106 正在连接Redis: redis://redis:6379
+2025-04-14 21:29:42 pid:107 正在连接Redis: redis://redis:6379
+2025-04-14 21:29:42 pid:106 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:29:42 pid:105 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:29:42 pid:107 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:29:42 pid:108 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:29:53 pid:105 Redis SETEX 成功 - key:name, value:张三1, ttl:
+2025-04-14 21:31:38 pid:104 Workerman[start.php] received signal SIGINT
+2025-04-14 21:31:38 pid:104 Workerman[start.php] stopping
+2025-04-14 21:31:38 pid:104 Workerman[start.php] has been stopped
+2025-04-14 21:31:38 pid:109 Workerman[start.php] start in DEBUG mode
+2025-04-14 21:31:39 pid:111 正在连接Redis: redis://redis:6379
+2025-04-14 21:31:39 pid:113 正在连接Redis: redis://redis:6379
+2025-04-14 21:31:39 pid:112 正在连接Redis: redis://redis:6379
+2025-04-14 21:31:39 pid:110 正在连接Redis: redis://redis:6379
+2025-04-14 21:31:39 pid:112 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:31:39 pid:111 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:31:39 pid:110 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:31:39 pid:113 Worker进程启动，Redis服务初始化完成
+2025-04-14 21:31:48 pid:110 Redis SETEX 成功 - key:name, value:张三1, ttl:
+2025-04-15 09:14:43 pid:20 Workerman[start.php] start in DEBUG mode
+2025-04-15 09:14:43 pid:20 Master pid:109 is not alive
+2025-04-15 09:14:43 pid:24 正在连接Redis: redis://redis:6379
+2025-04-15 09:14:43 pid:22 正在连接Redis: redis://redis:6379
+2025-04-15 09:14:43 pid:21 正在连接Redis: redis://redis:6379
+2025-04-15 09:14:43 pid:23 正在连接Redis: redis://redis:6379
+2025-04-15 09:14:43 pid:24 Worker进程启动，Redis服务初始化完成
+2025-04-15 09:14:43 pid:21 Worker进程启动，Redis服务初始化完成
+2025-04-15 09:14:43 pid:23 Worker进程启动，Redis服务初始化完成
+2025-04-15 09:14:43 pid:22 Worker进程启动，Redis服务初始化完成
+2025-04-15 09:38:42 pid:24 Redis SETEX 成功 - key:name, value:张三, ttl:1000

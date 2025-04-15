@@ -1,0 +1,16 @@
+2025-04-15 09:13:17 pid:15 Workerman[redis_example.php] start in DEBUG mode
+2025-04-15 09:13:17 pid:18 Redis连接成功 - redis:6379
+2025-04-15 09:13:17 pid:16 Redis连接成功 - redis:6379
+2025-04-15 09:13:17 pid:17 Redis连接成功 - redis:6379
+2025-04-15 09:13:17 pid:18 Worker进程启动，Redis服务初始化完成
+2025-04-15 09:13:17 pid:19 Redis连接成功 - redis:6379
+2025-04-15 09:13:17 pid:16 Worker进程启动，Redis服务初始化完成
+2025-04-15 09:13:17 pid:17 Worker进程启动，Redis服务初始化完成
+2025-04-15 09:13:17 pid:19 Worker进程启动，Redis服务初始化完成
+2025-04-15 09:14:23 pid:19 Redis SET操作失败 - key:user:1:name - Call to a member function then() on null
+2025-04-15 09:14:23 pid:19 请求处理失败: Call to a member function then() on null
+2025-04-15 09:14:24 pid:19 Redis SET操作失败 - key:user:1:name - Call to a member function then() on null
+2025-04-15 09:14:24 pid:19 请求处理失败: Call to a member function then() on null
+2025-04-15 09:14:35 pid:15 Workerman[redis_example.php] received signal SIGINT
+2025-04-15 09:14:35 pid:15 Workerman[redis_example.php] stopping
+2025-04-15 09:14:36 pid:15 Workerman[redis_example.php] has been stopped
