@@ -37,7 +37,10 @@
     "webman/redis": "^2.1",
     "webman/log": "~2.1",
     "workerman/rabbitmq": "^2.1",
-    "webman/database": "*"
+    "webman/database": "*",
+    "webman/cache": "^2.1",
+    "workerman/crontab": "^1.0",
+    "webman/console": "^2.1"
   },
   "suggest": {
     "ext-event": "For better performance. "

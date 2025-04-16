@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of webman.
  *
@@ -13,11 +14,18 @@
  */
 
 return [
-    // 全局中间件
-    ''    => [
-        app\middleware\AuthCheck::class,
-    ],
-    // api应用中间件(应用中间件仅在多应用模式下有效)
-    'api' => [
+    'default' => 'file',
+    'stores' => [
+        'file' => [
+            'driver' => 'file',
+            'path' => runtime_path('cache')
+        ],
+        'redis' => [
+            'driver' => 'redis',
+            'connection' => 'default'
+        ],
+        'array' => [
+            'driver' => 'array'
+        ]
     ]
 ];

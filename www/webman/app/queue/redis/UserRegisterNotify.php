@@ -3,6 +3,7 @@
 namespace app\queue\redis;
 
 use support\Log;
+use support\Db;
 use Webman\RedisQueue\Consumer;
 
 class UserRegisterNotify implements Consumer

@@ -207,13 +207,16 @@ class UserService
     private function sendRegisterNotification(User $user): void
     {
         try {
-            // 发送到Redis队列
+            // 异步发送到Redis队列 没有返回值，它属于异步推送，它不保证消息%100送达redis
             Client::send('user-register-notify', [
                 'user_id'  => $user->id,
                 'username' => $user->username,
                 'email'    => $user->email,
                 'time'     => date('Y-m-d H:i:s')
             ]);
+
+            // 记录日志
+            Log::info('发送注册通知到队列', ['user_id' => $user->id, 'username' => $user->username, 'time' => date('Y-m-d H:i:s')]);
         } catch (\Exception $e) {
             // 记录错误日志
             Log::error('发送注册通知失败', ['error' => $e->getMessage(), 'user_id' => $user->id]);
