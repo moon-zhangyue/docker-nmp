@@ -2,18 +2,18 @@
 // 中间件配置
 return [
     // 全局中间件定义
-    'alias' => [
-        'cors' => \app\middleware\Cors::class,
-        'jwt_auth' => \app\middleware\JwtAuth::class
+    'alias'    => [
+        // 'cors' => \app\middleware\Cors::class,
+        // 'jwt_auth' => \app\middleware\JwtAuth::class
     ],
-    
+
     // 全局中间件
-    'global' => [
+    'global'   => [
         'cors'
     ],
-    
+
     // 分组中间件定义
-    'groups' => [
+    'groups'   => [
         // 后台中间件
         'admin' => [
             'auth'

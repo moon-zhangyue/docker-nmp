@@ -46,6 +46,13 @@ class JwtAuth
             'parking/metrics/peak-analysis',
             'parking/metrics/occupancy-history',
             'parking/metrics/device-history',
+            'user/search',
+            'user/searchbyage',
+            'user/aggregate/country',
+            'user/bulk-index',
+            'user/searchwithhighlight',
+            'user/searchfuzzy',
+            'user/index',
         ];
 
         // 排除不需要验证的接口

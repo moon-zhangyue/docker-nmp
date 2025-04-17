@@ -19,6 +19,15 @@ Route::get('hello/:name', 'index/hello');
 //用户注册
 Route::post('register', 'user/register');
 
+// 用户Elasticsearch相关路由
+Route::post('user/search', 'user/search'); // 用户搜索接口
+Route::post('user/searchbyage', 'user/searchByAge'); // 按年龄范围搜索用户
+Route::post('user/aggregate/country', 'user/aggregateByCountry'); // 按国家聚合用户数量
+Route::post('user/bulk-index', 'user/bulkIndexUsers'); // 批量索引用户数据
+Route::post('user/searchwithhighlight', 'user/searchWithHighlight'); // 带高亮的搜索功能
+Route::post('user/searchfuzzy', 'user/fuzzySearch'); // 模糊搜索功能
+Route::post('user/index', 'user/indexUser'); // 创建或更新用户索引
+
 // 队列相关路由
 Route::post('queue/push', 'Queue/push');
 Route::get('queue/status', 'Queue/status');

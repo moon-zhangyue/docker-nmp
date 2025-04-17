@@ -8,6 +8,7 @@ use think\facade\Log;
 use think\Request;
 use think\facade\Queue;
 use think\response\Json;  // 添加这行引入
+use app\service\ElasticsearchService;
 
 class User extends BaseController
 {
@@ -32,7 +33,7 @@ class User extends BaseController
 
             return json([
                 'code' => 0,
-                'msg' => 'Registration request received successfully',
+                'msg'  => 'Registration request received successfully',
                 'data' => null
             ]);
         } catch (\Exception $e) {
@@ -40,7 +41,7 @@ class User extends BaseController
 
             return json([
                 'code' => 1,
-                'msg' => $e->getMessage(),
+                'msg'  => $e->getMessage(),
                 'data' => null
             ]);
         }
@@ -59,7 +60,7 @@ class User extends BaseController
 
             return json([
                 'code' => 200,
-                'msg' => 'redis_queue push success!',
+                'msg'  => 'redis_queue push success!',
                 'data' => $res
             ]);
         } catch (\Exception $e) {
@@ -67,7 +68,7 @@ class User extends BaseController
 
             return json([
                 'code' => 1,
-                'msg' => $e->getMessage(),
+                'msg'  => $e->getMessage(),
                 'data' => null
             ]);
         }
@@ -79,8 +80,8 @@ class User extends BaseController
     {
         try {
             $data = [
-                'user_id' => random_int(10000, 99999),
-                'message' => 'Test Kafka message',
+                'user_id'   => random_int(10000, 99999),
+                'message'   => 'Test Kafka message',
                 'timestamp' => time()
             ];
 
@@ -90,10 +91,10 @@ class User extends BaseController
             if ($isSuccess) {
                 return json([
                     'code' => 0,
-                    'msg' => 'Message pushed to Kafka queue successfully',
+                    'msg'  => 'Message pushed to Kafka queue successfully',
                     'data' => [
                         'success' => $isSuccess,
-                        'data' => $data
+                        'data'    => $data
                     ]
                 ]);
             } else {
@@ -101,7 +102,7 @@ class User extends BaseController
 
                 return json([
                     'code' => 1,
-                    'msg' => 'Kafka queue push error',
+                    'msg'  => 'Kafka queue push error',
                     'data' => null
                 ]);
             }
@@ -110,9 +111,318 @@ class User extends BaseController
 
             return json([
                 'code' => 1,
-                'msg' => $e->getMessage(),
+                'msg'  => $e->getMessage(),
                 'data' => null
             ]);
+        }
+    }
+
+    /* es-head在windows环境中 */
+    /**
+     * 用户搜索接口
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function search(Request $request)
+    {
+        try {
+            $query = $request->param('query');
+            $page  = $request->param('page', 1);
+            $size  = $request->param('size', 10);
+            $from  = ($page - 1) * $size;
+
+            $esService = new ElasticsearchService();
+            $result    = $esService->search($query, ['username', 'email'], $from, $size);
+
+            return json([
+                'code' => 0,
+                'msg'  => 'Search successful',
+                'data' => [
+                    'total' => $result['total'],
+                    'users' => $result['hits'],
+                    'page'  => $page,
+                    'size'  => $size
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Elasticsearch search error: {message}', ['message' => $e->getMessage()]);
+
+            return json([
+                'code' => 1,
+                'msg'  => '搜索失败: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * 按年龄范围搜索用户
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function searchByAge(Request $request)
+    {
+        try {
+            $minAge = $request->param('min_age', 18);
+            $maxAge = $request->param('max_age', 30);
+            $page   = $request->param('page', 1);
+            $size   = $request->param('size', 10);
+            $from   = ($page - 1) * $size;
+
+            $esService = new ElasticsearchService();
+            $result    = $esService->rangeSearch('age', $minAge, $maxAge, $from, $size);
+
+            return json([
+                'code' => 0,
+                'msg'  => 'Search by age successful',
+                'data' => [
+                    'total' => $result['total'],
+                    'users' => $result['hits'],
+                    'page'  => $page,
+                    'size'  => $size
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Elasticsearch range query error: {message}', ['message' => $e->getMessage()]);
+
+            return json([
+                'code' => 1,
+                'msg'  => '按年龄查询失败: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * 按国家聚合用户数量
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function aggregateByCountry(Request $request)
+    {
+        try {
+            $esService    = new ElasticsearchService();
+            $aggregations = [
+                'countries' => [
+                    'terms' => [
+                        'field' => 'country',
+                        'size'  => $request->param('size', 10)
+                    ]
+                ]
+            ];
+
+            $result = $esService->aggregate($aggregations);
+
+            return json([
+                'code' => 0,
+                'msg'  => 'Aggregation successful',
+                'data' => $result['countries']['buckets']
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Elasticsearch aggregation error: {message}', ['message' => $e->getMessage()]);
+
+            return json([
+                'code' => 1,
+                'msg'  => '聚合查询失败: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * 批量索引用户数据
+     * 
+     * @param array $users 用户数据数组
+     * @return Json
+     */
+    public function bulkIndexUsers($users = null)
+    {
+        try {
+            // 如果没有传入用户数据，尝试从请求中获取
+            if ($users === null) {
+                $users = request()->post('users');
+                if (empty($users)) {
+                    return json([
+                        'code' => 1,
+                        'msg'  => '没有提供用户数据',
+                        'data' => null
+                    ]);
+                }
+            }
+
+            $esService = new ElasticsearchService();
+            $result    = $esService->bulkIndex($users);
+
+            // 检查是否有错误
+            if (isset($result['errors']) && $result['errors']) {
+                $errorItems = [];
+                foreach ($result['items'] as $item) {
+                    if (isset($item['index']['error'])) {
+                        $errorItems[] = $item['index']['error'];
+                    }
+                }
+
+                Log::warning('Elasticsearch bulk index has errors', ['errors' => $errorItems]);
+
+                return json([
+                    'code' => 1,
+                    'msg'  => '部分数据索引失败',
+                    'data' => ['errors' => $errorItems]
+                ]);
+            }
+
+            return json([
+                'code' => 0,
+                'msg'  => '批量索引成功',
+                'data' => [
+                    'took'        => $result['took'],
+                    'items_count' => count($result['items'])
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Elasticsearch bulk index error: {message}', ['message' => $e->getMessage()]);
+
+            return json([
+                'code' => 1,
+                'msg'  => '批量索引失败: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * 带高亮的搜索功能
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function searchWithHighlight(Request $request)
+    {
+        try {
+            $query = $request->param('query');
+            $page  = $request->param('page', 1);
+            $size  = $request->param('size', 10);
+            $from  = ($page - 1) * $size;
+
+            $esService = new ElasticsearchService();
+            $result    = $esService->searchWithHighlight(
+                $query,
+                ['username', 'email', 'country'],
+                ['username', 'email'],
+                $from,
+                $size
+            );
+
+            return json([
+                'code' => 0,
+                'msg'  => 'Search with highlight successful',
+                'data' => [
+                    'total' => $result['total'],
+                    'users' => $result['hits'],
+                    'page'  => $page,
+                    'size'  => $size
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Elasticsearch highlight search error: {message}', ['message' => $e->getMessage()]);
+
+            return json([
+                'code' => 1,
+                'msg'  => '高亮搜索失败: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * 模糊搜索功能
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function fuzzySearch(Request $request)
+    {
+        try {
+            $field = $request->param('field', 'username');
+            $value = $request->param('value');
+            $page  = (int) $request->param('page', 1);
+            $size  = (int) $request->param('size', 10);
+            $from  = ($page - 1) * $size;
+
+            if (empty($value)) {
+                return json([
+                    'code' => 1,
+                    'msg'  => '搜索值不能为空',
+                    'data' => null
+                ]);
+            }
+
+            $esService = new ElasticsearchService();
+            $result    = $esService->fuzzySearch($field, $value, $from, $size);
+
+            return json([
+                'code' => 0,
+                'msg'  => 'Fuzzy search successful',
+                'data' => [
+                    'total' => $result['total'],
+                    'users' => $result['hits'],
+                    'page'  => $page,
+                    'size'  => $size
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Elasticsearch fuzzy search error: {message}', ['message' => $e->getMessage()]);
+
+            return json([
+                'code' => 1,
+                'msg'  => '模糊搜索失败: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * 创建或更新用户索引
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function indexUser(Request $request)
+    {
+        try {
+            $userData = $request->post();
+            $userId   = $request->param('id');
+
+            if (empty($userData)) {
+                return json([
+                    'code' => 1,
+                    'msg'  => '用户数据不能为空',
+                    'data' => null
+                ]);
+            }
+
+            $esService = new ElasticsearchService();
+            $result    = $esService->indexDocument($userData, $userId);
+
+            return json([
+                'code' => 0,
+                'msg'  => '用户索引成功',
+                'data' => [
+                    'id'     => $result['_id'],
+                    'result' => $result['result']
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Elasticsearch index user error: {message}', ['message' => $e->getMessage()]);
+
+            return json([
+                'code' => 1,
+                'msg'  => '用户索引失败: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
         }
     }
 }
