@@ -9,6 +9,7 @@ use think\Request;
 use think\facade\Queue;
 use think\response\Json;  // 添加这行引入
 use app\service\ElasticsearchService;
+use app\model\User as UserModel;
 
 class User extends BaseController
 {
@@ -133,7 +134,7 @@ class User extends BaseController
             $from  = ($page - 1) * $size;
 
             $esService = new ElasticsearchService();
-            $result    = $esService->search($query, ['username', 'email'], $from, $size);
+            $result    = $esService->search($query, ['username', 'email', 'phone', 'country'], $from, $size);
 
             return json([
                 'code' => 0,
@@ -404,8 +405,35 @@ class User extends BaseController
                 ]);
             }
 
+            // 验证必要字段
+            if (empty($userData['username'])) {
+                return json([
+                    'code' => 1,
+                    'msg'  => '用户名不能为空',
+                    'data' => null
+                ]);
+            }
+
+            // 规范化文档结构，确保与importUsersToEs接口使用相同的字段格式
+            $document = [
+                'username' => $userData['username'],
+                'email'    => $userData['email'] ?? '',
+                'phone'    => $userData['phone'] ?? '',
+                'country'  => $userData['country'] ?? ''
+            ];
+
+            // 添加其他可能的字段
+            if (!empty($userData['age'])) {
+                $document['age'] = (int) $userData['age'];
+            }
+
+            // 确保不包含id字段，避免与文档ID冲突
+            if (isset($document['id'])) {
+                unset($document['id']);
+            }
+
             $esService = new ElasticsearchService();
-            $result    = $esService->indexDocument($userData, $userId);
+            $result    = $esService->indexDocument($document, $userId);
 
             return json([
                 'code' => 0,
@@ -421,6 +449,90 @@ class User extends BaseController
             return json([
                 'code' => 1,
                 'msg'  => '用户索引失败: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * 导入数据库用户数据到Elasticsearch
+     * 
+     * 将数据库中前2000条用户数据导入到Elasticsearch中
+     * 只导入username、email、phone和country字段
+     * 
+     * @return Json
+     */
+    public function importUsersToEs()
+    {
+        try {
+            // 从数据库获取前2000条用户数据
+            $users = UserModel::limit(2000)
+                ->field('id, username, email, phone, country')
+                ->select()
+                ->toArray();
+
+            if (empty($users)) {
+                return json([
+                    'code' => 1,
+                    'msg'  => '没有找到用户数据',
+                    'data' => null
+                ]);
+            }
+
+            // 准备要导入的数据
+            $documents = [];
+            foreach ($users as $user) {
+                $document    = [
+                    'id'       => $user['id'],
+                    'username' => $user['username'],
+                    'email'    => $user['email'],
+                    'phone'    => $user['phone'] ?? '',
+                    'country'  => $user['country'] ?? ''
+                ];
+                $documents[] = $document;
+            }
+
+            // 批量导入到Elasticsearch
+            $esService = new ElasticsearchService();
+            $result    = $esService->bulkIndex($documents);
+
+            // 检查是否有错误
+            if (isset($result['errors']) && $result['errors']) {
+                $errorCount = 0;
+                foreach ($result['items'] as $item) {
+                    if (isset($item['index']['error'])) {
+                        $errorCount++;
+                    }
+                }
+
+                Log::warning('Elasticsearch bulk import has errors', ['error_count' => $errorCount]);
+
+                return json([
+                    'code' => 1,
+                    'msg'  => '部分数据导入失败',
+                    'data' => [
+                        'total'         => count($users),
+                        'error_count'   => $errorCount,
+                        'success_count' => count($users) - $errorCount
+                    ]
+                ]);
+            }
+
+            return json([
+                'code' => 0,
+                'msg'  => '用户数据导入成功',
+                'data' => [
+                    'total'  => count($users),
+                    'took'   => $result['took'],
+                    'status' => 'success'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Import users to Elasticsearch error: {message}', ['message' => $e->getMessage()]);
+
+            return json([
+                'code' => 1,
+                'msg'  => '导入用户数据失败: ' . $e->getMessage(),
                 'data' => null
             ], 500);
         }

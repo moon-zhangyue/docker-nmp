@@ -27,6 +27,7 @@ Route::post('user/bulk-index', 'user/bulkIndexUsers'); // 批量索引用户数�
 Route::post('user/searchwithhighlight', 'user/searchWithHighlight'); // 带高亮的搜索功能
 Route::post('user/searchfuzzy', 'user/fuzzySearch'); // 模糊搜索功能
 Route::post('user/index', 'user/indexUser'); // 创建或更新用户索引
+Route::post('user/import-to-es', 'user/importUsersToEs'); // 导入数据库用户数据到Elasticsearch
 
 // 队列相关路由
 Route::post('queue/push', 'Queue/push');
