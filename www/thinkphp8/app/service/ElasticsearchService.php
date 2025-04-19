@@ -33,10 +33,10 @@ class ElasticsearchService
     /**
      * 构造函数，初始化Elasticsearch客户端
      * 
-     * @param string $index 索引名称，默认为'users'
+     * @param string $index 索引名称，默认为'default'
      * @throws \Exception 连接Elasticsearch失败时抛出异常
      */
-    public function __construct($index = 'users')
+    public function __construct($index = 'default')
     {
         $config      = Config::get('elasticsearch');
         $this->index = $index;
@@ -45,6 +45,7 @@ class ElasticsearchService
                 ->setHosts($config['hosts'])
                 ->setApiKey($config['apiKey'] ?? '') // 如果使用 API Key
                 ->build();
+
         } catch (\Exception $e) {
             Log::error('Elasticsearch connection error: ' . $e->getMessage());
             throw $e;
@@ -458,5 +459,23 @@ class ElasticsearchService
             'total' => $total,
             'hits'  => $results
         ];
+    }
+
+    // 重试机制
+    public function executeWithRetry(callable $operation, int $maxRetries = 3, int $delay = 1000)
+    {
+        $attempt = 0;
+        while ($attempt < $maxRetries) {
+            try {
+                return $operation();
+            } catch (\Exception $e) {
+                $attempt++;
+                if ($attempt >= $maxRetries) {
+                    Log::error('Elasticsearch operation failed: ' . $e->getMessage());
+                    throw $e;
+                }
+                usleep($delay * 1000);
+            }
+        }
     }
 }

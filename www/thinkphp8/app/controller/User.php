@@ -172,7 +172,7 @@ class User extends BaseController
             $size   = $request->param('size', 10);
             $from   = ($page - 1) * $size;
 
-            $esService = new ElasticsearchService();
+            $esService = new ElasticsearchService('users');
             $result    = $esService->rangeSearch('age', $minAge, $maxAge, $from, $size);
 
             return json([
@@ -205,7 +205,7 @@ class User extends BaseController
     public function aggregateByCountry(Request $request)
     {
         try {
-            $esService    = new ElasticsearchService();
+            $esService    = new ElasticsearchService('users');
             $aggregations = [
                 'countries' => [
                     'terms' => [
@@ -254,7 +254,7 @@ class User extends BaseController
                 }
             }
 
-            $esService = new ElasticsearchService();
+            $esService = new ElasticsearchService('users');
             $result    = $esService->bulkIndex($users);
 
             // 检查是否有错误
@@ -308,7 +308,7 @@ class User extends BaseController
             $size  = $request->param('size', 10);
             $from  = ($page - 1) * $size;
 
-            $esService = new ElasticsearchService();
+            $esService = new ElasticsearchService('users');
             $result    = $esService->searchWithHighlight(
                 $query,
                 ['username', 'email', 'country'],
@@ -361,7 +361,7 @@ class User extends BaseController
                 ]);
             }
 
-            $esService = new ElasticsearchService();
+            $esService = new ElasticsearchService('users');
             $result    = $esService->fuzzySearch($field, $value, $from, $size);
 
             return json([
@@ -432,7 +432,7 @@ class User extends BaseController
                 unset($document['id']);
             }
 
-            $esService = new ElasticsearchService();
+            $esService = new ElasticsearchService('users');
             $result    = $esService->indexDocument($document, $userId);
 
             return json([
@@ -493,7 +493,7 @@ class User extends BaseController
             }
 
             // 批量导入到Elasticsearch
-            $esService = new ElasticsearchService();
+            $esService = new ElasticsearchService('users');
             $result    = $esService->bulkIndex($documents);
 
             // 检查是否有错误

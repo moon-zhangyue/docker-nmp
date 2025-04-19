@@ -54,6 +54,9 @@ class JwtAuth
             'user/searchfuzzy',
             'user/index',
             'user/import-to-es',
+            'goods/sync',
+            'goods/filter',
+            'goods/search',
         ];
 
         // 排除不需要验证的接口

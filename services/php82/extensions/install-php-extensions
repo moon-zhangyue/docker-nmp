@@ -3889,34 +3889,6 @@ installRemoteModule() {
 				installRemoteModule_manuallyInstalled=1
 			fi
 			;;
-		# 添加 TDengine 扩展支持
-		tdengine)
-			if test -z "$installRemoteModule_path"; then
-				# 安装 TDengine 客户端依赖
-				case "$DISTRO" in
-					alpine)
-						apk add --no-cache git cmake make g++
-						;;
-					debian)
-						apt-get update && apt-get install -y git cmake make g++
-						;;
-				esac
-				
-				# 克隆 PHP-TDengine 扩展
-				installRemoteModule_tmp="$(mktemp -p /tmp/src -d)"
-				git clone --depth=1 https://github.com/Yurunsoft/php-tdengine.git "$installRemoteModule_tmp"
-				cd "$installRemoteModule_tmp"
-				
-				# 编译安装
-				phpize
-				./configure
-				make -j$(getProcessorCount)
-				make install
-				
-				cd - >/dev/null
-				installRemoteModule_manuallyInstalled=1
-			fi
-			;;
 		tensor)
 			if test -z "$installRemoteModule_version"; then
 				if test $PHP_MAJMIN_VERSION -le 703; then

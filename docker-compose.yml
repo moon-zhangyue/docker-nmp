@@ -83,6 +83,7 @@ services:
       - "${PHP_HYPERF3_PORT}:9503"
       - "${PHP_HYPERF4_PORT}:8787"
       - "2345:2345"
+      - "8787:8787"
       - "443"
     extra_hosts:
       - "www.site1.com:172.17.0.1"
@@ -700,6 +701,25 @@ services:
     networks:
       - default
 
+  # Yearning - MySQL审核平台
+  yearning:
+    image: chaiyd/yearning:latest
+    container_name: yearning
+    restart: always
+    ports:
+      - "${YEARNING_HOST_PORT}:8000"
+    volumes:
+      - ${YEARNING_DATA_DIR}:/opt/yearning/data
+    environment:
+      MYSQL_ADDR: mysql5
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      MYSQL_DB: tp8
+    depends_on:
+      - mysql5
+    networks:
+      - default
 
 networks:
   default:

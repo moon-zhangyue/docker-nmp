@@ -29,6 +29,14 @@ Route::post('user/searchfuzzy', 'user/fuzzySearch'); // 模糊搜索功能
 Route::post('user/index', 'user/indexUser'); // 创建或更新用户索引
 Route::post('user/import-to-es', 'user/importUsersToEs'); // 导入数据库用户数据到Elasticsearch
 
+// 商品Elasticsearch相关路由
+Route::get('goods/sync', 'goods/sync'); // 批量同步（用于初始化或数据修复）
+Route::post('goods/search', 'goods/search'); // 全文商品搜索接口
+Route::post('goods/filter', 'goods/filter'); // 按价格范围和分类过滤
+Route::post('goods/aggregations', 'goods/aggregations'); // 商品聚合接口
+Route::post('goods/import-to-es', 'goods/importGoodsToEs'); // 导入数据库商品数据到Elasticsearch
+
+
 // 队列相关路由
 Route::post('queue/push', 'Queue/push');
 Route::get('queue/status', 'Queue/status');
