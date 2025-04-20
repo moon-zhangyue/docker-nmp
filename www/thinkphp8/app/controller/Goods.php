@@ -191,6 +191,9 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
         Log::info('Cache preheated for category 1');
 
         try {
+            // 调用客户端对象的bulk方法，执行批量操作
+            // $client 是一个客户端对象，通常用于与某种服务（如Elasticsearch）进行通信
+            // $params 是一个数组，包含了批量操作所需的参数和指令
             $client->bulk($params);
 
             $lastSyncTime = cache('last_sync_time') ?: '1970-01-01';
@@ -318,32 +321,45 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             ],
         ];
 
+        // 检查 $sortField 是否为空或未设置
         if (!$sortField) {
+            // 如果 $sortField 为空，则默认按搜索相关性（_score）降序排序
             $params['body']['sort'] = [['_score' => ['order' => 'desc']]];
         } else {
-            $sortFields             = explode(',', $sortField);
-            $sortOrders             = explode(',', $sortOrder);
+            // 如果 $sortField 不为空，则进行自定义排序
+            // 将 $sortField 字符串按逗号分割成数组，每个元素是一个排序字段
+            $sortFields = explode(',', $sortField);
+            // 将 $sortOrder 字符串按逗号分割成数组，每个元素是一个排序顺序
+            $sortOrders = explode(',', $sortOrder);
+            // 初始化排序参数数组
             $params['body']['sort'] = [];
+            // 遍历每个排序字段
             foreach ($sortFields as $index => $field) {
+                // 获取当前字段的排序顺序，如果未指定则默认为升序（asc）
                 $order = $sortOrders[$index] ?? 'asc';
 
+                // 将当前字段及其排序顺序添加到排序参数数组中
                 $params['body']['sort'][] = [$field => ['order' => $order]];
             }
         }
 
         // 6. 添加全文搜索
         if ($query) {
+            // 将一个新的查询条件添加到查询参数的'must'数组中
             $params['body']['query']['bool']['must'][] = [
+                // 使用'multi_match'查询类型，可以在多个字段中进行匹配
                 'multi_match' => [
-                    'query'     => $query,
-                    'fields'    => ['name^2', 'description'],
-                    'fuzziness' => 'AUTO',
+                    'query'     => $query,// 查询的关键词
+                    'fields'    => ['name^2', 'description'],// 要匹配的字段列表，'name^2'表示'name'字段的权重是2倍
+                    'fuzziness' => 'AUTO',// 设置模糊匹配的级别，'AUTO'表示自动选择合适的模糊匹配级别
                 ],
             ];
         }
 
         // 7. 添加分类过滤
         if ($categoryId) {
+            // 将一个过滤条件添加到查询参数的body部分
+            // 具体来说，这是一个布尔查询中的过滤条件
             $params['body']['query']['bool']['filter'][] = [
                 'term' => ['category_id' => $categoryId],
             ];
@@ -351,10 +367,14 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
 
         // 8. 添加 SKU 属性过滤（nested 查询）
         if (!empty($skuAttributes)) {
+            // 遍历 $skuAttributes 数组，其中 $key 是属性名，$value 是属性值
             foreach ($skuAttributes as $key => $value) {
+                // 判断 $value 是否为数组，如果不是则将其按逗号分隔成数组
                 $values = is_array($value) ? $value : explode(',', $value);
 
+                // 将构建的查询条件添加到 $params['body']['query']['bool']['filter'] 数组中
                 $params['body']['query']['bool']['filter'][] = [
+                    // 使用 nested 查询类型，因为 attributes 是嵌套字段
                     'nested' => [
                         'path'  => 'attributes',
                         'query' => [
@@ -371,13 +391,18 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
 
         // 9. 添加公共属性过滤（nested 查询）
         if (!empty($commonAttributes)) {
+            // 遍历 $commonAttributes 数组中的每一个元素
             foreach ($commonAttributes as $attr) {
+                // 检查当前元素是否包含 'name' 和 'value' 键
                 if (isset($attr['name']) && isset($attr['value'])) {
+                    // 如果存在 'name' 和 'value' 键，将一个新的查询条件添加到 $params['body']['query']['bool']['filter'] 数组中
                     $params['body']['query']['bool']['filter'][] = [
+                        // 使用嵌套查询（nested query）来处理嵌套的字段
                         'nested' => [
                             'path'  => 'common_attributes',
                             'query' => [
                                 'bool' => [
+                                    // 使用过滤器（filter）来精确匹配条件
                                     'filter' => [
                                         ['term' => ['common_attributes.name' => $attr['name']]],
                                         ['term' => ['common_attributes.value' => $attr['value']]],
@@ -425,6 +450,7 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
                 'sku_attributes'    => [],
                 'common_attributes' => [],
             ];
+            // 遍历 $aggregateFields 数组中的每个字段
             foreach ($aggregateFields as $field) {
                 if (isset($response['aggregations']['sku_attributes']['by_' . $field]['buckets'])) {
                     $aggregations['sku_attributes'][$field] = $response['aggregations']['sku_attributes']['by_' . $field]['buckets'];
