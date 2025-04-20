@@ -17,11 +17,13 @@ class GoodsSearchValidate extends Validate
         'order'             => 'in:asc,desc',
         'from'              => 'integer|min:0',
         'size'              => 'integer|between:1,100',
+        'aggregate_fields'  => 'array',
     ];
 
     protected $message = [
-        'sort.in'      => '排序字段必须是 price, stock 或 created_at',
-        'order.in'     => '排序顺序必须是 asc 或 desc',
-        'size.between' => '每页数量必须在 1 到 100 之间',
+        'sort.in'                => '排序字段必须是 price, stock 或 created_at',
+        'order.in'               => '排序顺序必须是 asc 或 desc',
+        'size.between'           => '每页数量必须在 1 到 100 之间',
+        'aggregate_fields.array' => '聚合字段必须是数组',
     ];
 }

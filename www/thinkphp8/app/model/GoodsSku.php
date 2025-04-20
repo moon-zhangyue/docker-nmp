@@ -5,6 +5,7 @@ namespace app\model;
 
 use think\Model;
 use think\facade\Queue;
+use think\facade\Cache;
 
 class GoodsSku extends Model
 {
@@ -20,6 +21,7 @@ class GoodsSku extends Model
         parent::boot();
 
         static::updated(function ($sku) {
+            Cache::deletePattern('goods_search_*'); // 删除搜索缓存
             $spu        = $sku->spu;
             $attributes = $spu->attributes()->select();
             Queue::push('app\job\IndexGoodsJob', [

@@ -7,6 +7,7 @@ use think\Model;
 use think\facade\Queue;
 use app\model\GoodsSku;
 use app\model\GoodsAttribute;
+use think\facade\Cache;
 
 class GoodsSpu extends Model
 {
@@ -48,6 +49,7 @@ class GoodsSpu extends Model
         });
 
         static::updated(function ($spu) {
+            Cache::deletePattern('goods_search_*'); // 清除所有搜索缓存
             $skus       = $spu->skus()->select();
             $attributes = $spu->attributes()->select();
             foreach ($skus as $sku) {
@@ -69,6 +71,7 @@ class GoodsSpu extends Model
         });
 
         static::deleted(function ($spu) {
+            Cache::deletePattern('goods_search_*');
             $skus = $spu->skus()->select();
             foreach ($skus as $sku) {
                 Queue::push('app\job\DeleteGoodsJob', [

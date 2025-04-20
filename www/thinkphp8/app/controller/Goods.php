@@ -9,7 +9,8 @@ use app\validate\GoodsSearchValidate;
 use think\Request;
 use app\service\ElasticsearchService; // 引入Elasticsearch服务类
 use think\facade\Log;
-
+use think\facade\Cache; // 引入日志和缓存类
+use think\facade\Request as RequestFacade;
 
 class Goods extends BaseController // 定义Goods控制器类，继承自BaseController
 {
@@ -185,6 +186,10 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             }
         }
 
+        // 预热热门查询
+        $this->advancedSearch(['category_id' => 1, 'size' => 10]);
+        Log::info('Cache preheated for category 1');
+
         try {
             $client->bulk($params);
 
@@ -204,28 +209,69 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
     }
 
     // 高级搜索：支持全文搜索、属性过滤和排序
-    public function advancedSearch(Request $request)
+    public function advancedSearch()
     {
-        $client = $this->esService->getClient();
-
-        // 1. 解析查询参数
-        $query            = $request->get('query', ''); // 全文搜索关键词
-        $categoryId       = $request->get('category_id', 0); // 分类ID
-        $minPrice         = $request->get('min_price', 0); // 最低价格
-        $maxPrice         = $request->get('max_price', 10000); // 最高价格
-        $skuAttributes    = $request->get('sku_attributes', []); // SKU 属性（如 color=红色&size=M）
-        $commonAttributes = $request->get('common_attributes', []); // 公共属性（如 material=棉质）
-        $sortField        = $request->get('sort', 'price'); // 排序字段
-        $sortOrder        = $request->get('order', 'asc'); // 排序顺序（asc/desc）
-        $from             = $request->get('from', 0); // 分页起始
-        $size             = $request->get('size', 10); // 每页数量
-
+        // 1. 验证输入
         $validate = new GoodsSearchValidate();
-        if (!$validate->check($request->get())) {
+        if (!$validate->check(RequestFacade::param())) {
             return json(['status' => 'error', 'message' => $validate->getError()], 400);
         }
 
-        // 2. 构建 Elasticsearch 查询
+        // 2. 解析查询参数
+        $query            = RequestFacade::param('query', ''); // 全文搜索关键词
+        $categoryId       = RequestFacade::param('category_id', 0); // 分类ID
+        $minPrice         = RequestFacade::param('min_price', 0); // 最低价格
+        $maxPrice         = RequestFacade::param('max_price', 10000); // 最高价格
+        $skuAttributes    = RequestFacade::param('sku_attributes', []); // SKU 属性（如 color=红色&size=M）
+        $commonAttributes = RequestFacade::param('common_attributes', []); // 公共属性（如 material=棉质）
+        $sortField        = RequestFacade::param('sort', 'price'); // 排序字段
+        $sortOrder        = RequestFacade::param('order', 'asc'); // 排序顺序（asc/desc）
+        $from             = RequestFacade::param('from', 0); // 分页起始
+        $size             = RequestFacade::param('size', 10); // 每页数量
+        $aggregateFields  = RequestFacade::param('aggregate_fields', ['color', 'size']); // 动态聚合字段
+
+        // 3. 生成缓存键
+        $cacheKey = $this->generateCacheKey([
+            'query'             => $query,
+            'category_id'       => $categoryId,
+            'min_price'         => $minPrice,
+            'max_price'         => $maxPrice,
+            'sku_attributes'    => $skuAttributes,
+            'common_attributes' => $commonAttributes,
+            'sort'              => $sortField,
+            'order'             => $sortOrder,
+            'from'              => $from,
+            'size'              => $size,
+            'aggregate_fields'  => $aggregateFields,
+        ]);
+
+        // 4. 检查缓存
+        if ($cached = Cache::get($cacheKey)) {
+            return json($cached);
+        }
+
+        // 缓存不存在，获取锁防止缓存击穿
+        $lockKey = 'lock_' . $cacheKey;
+        if (Cache::lock($lockKey, 10)->acquire()) {
+            // 双重检查，防止其他进程已设置缓存
+            if ($cached = Cache::get($cacheKey)) {
+                Cache::lock($lockKey)->release();
+                return json($cached);
+            }
+
+            // 继续执行查询和缓存逻辑，锁会在查询完成后释放
+            // 注意：不在此处释放锁，而是在设置缓存后释放
+        } else {
+            // 无法获取锁，说明其他进程正在设置缓存，等待一段时间后重试
+            usleep(100000); // 等待100毫秒
+            if ($cached = Cache::get($cacheKey)) {
+                return json($cached);
+            }
+        }
+
+        // 5. 构建 Elasticsearch 查询
+        $client = $this->esService->getClient();
+
         $params = [
             'index' => 'goods',
             'body'  => [
@@ -244,10 +290,29 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
                     [$sortField => ['order' => $sortOrder]],
                     ['stock' => ['order' => 'desc']], // 次要排序：库存降序
                 ],
-                'highlight' => [
-                    'fields' => [
-                        'name'        => new \stdClass(),
-                        'description' => new \stdClass(),
+                'highlight' => [ // 定义高亮字段配置
+                    'fields' => [ // 指定需要高亮的字段
+                        'name'        => new \stdClass(), // 高亮'name'字段
+                        'description' => new \stdClass(), // 高亮'description'字段
+                    ],
+                ],
+                'aggs'      => [ // 定义聚合查询配置
+                    'sku_attributes'    => [ // 定义一个名为'sku_attributes'的嵌套聚合
+                        'nested' => ['path' => 'attributes'], // 指定嵌套路径为'attributes'
+                        'aggs'   => [], // 嵌套聚合内部的子聚合，当前为空
+                    ],
+                    'common_attributes' => [ // 定义一个名为'common_attributes'的嵌套聚合
+                        'nested' => ['path' => 'common_attributes'], // 指定嵌套路径为'common_attributes'
+                        'aggs'   => [ // 定义嵌套聚合内部的子聚合
+                            'by_name' => [ // 定义一个名为'by_name'的聚合
+                                'terms' => ['field' => 'common_attributes.name'], // 按'common_attributes.name'字段进行分词聚合
+                                'aggs'  => [ // 定义'by_name'聚合内部的子聚合
+                                    'by_value' => [ // 定义一个名为'by_value'的聚合
+                                        'terms' => ['field' => 'common_attributes.value'], // 按'common_attributes.value'字段进行分词聚合
+                                    ],
+                                ],
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -266,7 +331,7 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             }
         }
 
-        // 3. 添加全文搜索
+        // 6. 添加全文搜索
         if ($query) {
             $params['body']['query']['bool']['must'][] = [
                 'multi_match' => [
@@ -277,14 +342,14 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             ];
         }
 
-        // 4. 添加分类过滤
+        // 7. 添加分类过滤
         if ($categoryId) {
             $params['body']['query']['bool']['filter'][] = [
                 'term' => ['category_id' => $categoryId],
             ];
         }
 
-        // 5. 添加 SKU 属性过滤（nested 查询）
+        // 8. 添加 SKU 属性过滤（nested 查询）
         if (!empty($skuAttributes)) {
             foreach ($skuAttributes as $key => $value) {
                 $values = is_array($value) ? $value : explode(',', $value);
@@ -304,7 +369,7 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             }
         }
 
-        // 6. 添加公共属性过滤（nested 查询）
+        // 9. 添加公共属性过滤（nested 查询）
         if (!empty($commonAttributes)) {
             foreach ($commonAttributes as $attr) {
                 if (isset($attr['name']) && isset($attr['value'])) {
@@ -325,12 +390,24 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             }
         }
 
-        // 7. 执行查询
+        // 10. 添加动态属性聚合
+        foreach ($aggregateFields as $field) {
+            $params['body']['aggs']['sku_attributes']['aggs']['by_' . $field] = [
+                'terms' => [
+                    'field' => "attributes.{$field}",
+                    'size'  => 10,
+                ],
+            ];
+        }
+
+        // 11. 执行查询
         try {
             $start    = microtime(true);
             $response = $client->search($params);
-            $hits     = $response['hits']['hits'];
-            $results  = [];
+
+            // 12. 格式化搜索结果
+            $hits    = $response['hits']['hits'];
+            $results = [];
             foreach ($hits as $hit) {
                 $results[] = [
                     'source'    => $hit['_source'],
@@ -342,14 +419,67 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
                 'duration' => $duration,
                 'params'   => json_encode($params['body']),
             ]);
-            return json([
-                'status' => 'success',
-                'data'   => $results,
-                'total'  => $response['hits']['total']['value'],
+
+            // 13. 格式化聚合结果
+            $aggregations = [
+                'sku_attributes'    => [],
+                'common_attributes' => [],
+            ];
+            foreach ($aggregateFields as $field) {
+                if (isset($response['aggregations']['sku_attributes']['by_' . $field]['buckets'])) {
+                    $aggregations['sku_attributes'][$field] = $response['aggregations']['sku_attributes']['by_' . $field]['buckets'];
+                }
+            }
+            foreach ($response['aggregations']['common_attributes']['by_name']['buckets'] as $nameBucket) {
+                $aggregations['common_attributes'][$nameBucket['key']] = $nameBucket['by_value']['buckets'];
+            }
+
+            // 14. 构造响应
+            $responseData = [
+                'status'       => 'success',
+                'data'         => $results,
+                'total'        => $response['hits']['total']['value'],
+                'aggregations' => $aggregations,
+            ];
+
+            // 15. 缓存结果
+            $cacheTTL = $query ? 300 : 3600; // 有关键词 5 分钟，无关键词 1 小时
+            try {
+                Cache::set($cacheKey, $responseData, $cacheTTL);
+            } catch (\Exception $e) {
+                Log::error('Cache set error: ' . $e->getMessage());
+            }
+
+            // 释放锁，防止缓存击穿
+            if (isset($lockKey) && Cache::has('lock:' . $lockKey)) {
+                Cache::lock($lockKey)->release();
+            }
+
+            Log::info('Advanced search completed:{duration}ms,{params},{cache_key}', [
+                'duration'  => $duration,
+                'params'    => json_encode($params['body'], JSON_UNESCAPED_UNICODE),
+                'cache_key' => $cacheKey,
             ]);
+
+            return json($responseData);
         } catch (\Exception $e) {
             Log::error('Advanced search error: ' . $e->getMessage());
             return json(['status' => 'error', 'message' => '搜索失败'], 500);
         }
+    }
+
+    // 生成缓存键
+    protected function generateCacheKey(array $params): string
+    {
+        // $sortedParams = $params;
+        // ksort($sortedParams); // 确保参数顺序一致
+
+        $relevantParams = [
+            'query'          => $params['query'],
+            'category_id'    => $params['category_id'],
+            'sku_attributes' => $params['sku_attributes'],
+            // 仅包含影响结果的参数
+        ];
+        return 'goods_search_' . md5(json_encode($relevantParams));
     }
 }
