@@ -45,12 +45,69 @@ class ElasticsearchService
                 ->setHosts($config['hosts'])
                 ->setApiKey($config['apiKey'] ?? '') // 如果使用 API Key
                 ->build();
-
+            $this->ensureIndex($this->index);
         } catch (\Exception $e) {
             Log::error('Elasticsearch connection error: ' . $e->getMessage());
             throw $e;
         }
     }
+
+    // 确保索引存在并定义映射
+    protected function ensureIndex($index = '')
+    {
+        $index = $index ?: $this->index;
+        switch ($index) {
+            case 'users':
+                $mappings = [
+                    'properties' => [
+                        'username'   => ['type' => 'text', 'analyzer' => 'standard'],
+                        'email'      => ['type' => 'keyword'],
+                        'age'        => ['type' => 'integer'],
+                        'country'    => ['type' => 'keyword'],
+                        'created_at' => ['type' => 'date'],
+                    ]
+                ];
+                break;
+            case 'goods':
+                $mappings = [
+                    'properties' => [
+                        'spu_id'            => ['type' => 'integer'],
+                        'name'              => ['type' => 'text', 'analyzer' => 'ik_max_word'], // 需安装 analysis-ik 插件,支持中文分词
+                        'description'       => ['type' => 'text'],
+                        'category_id'       => ['type' => 'integer'],
+                        'brand_id'          => ['type' => 'integer'],
+                        'price'             => ['type' => 'float'],
+                        'stock'             => ['type' => 'integer'],
+                        'attributes'        => [
+                            'type'       => 'nested',
+                            'properties' => [
+                                'color' => ['type' => 'keyword'],
+                                'size'  => ['type' => 'keyword']
+                            ]
+                        ], // SKU 属性
+                        'common_attributes' => ['type' => 'nested'], // SPU 公共属性
+                        'status'            => ['type' => 'integer'],
+                        'created_at'        => ['type' => 'date'],
+                    ]
+                ];
+                break;
+            // 其他索引定义
+        }
+        try {
+            if (!$this->client->indices()->exists(['index' => $index])) {
+                $this->client->indices()->create([
+                    'index' => $index,
+                    'body'  => [
+                        'mappings' => $mappings,
+                    ],
+                ]);
+                Log::info("Index {$index} created with mappings.");
+            }
+        } catch (\Exception $e) {
+            Log::error("Failed to create index {$index}: " . $e->getMessage());
+        }
+    }
+
 
     /**
      * 获取Elasticsearch客户端实例
