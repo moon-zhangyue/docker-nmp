@@ -511,3 +511,6 @@ Stack trace:
 2025-04-15 09:14:43 pid:23 Worker进程启动，Redis服务初始化完成
 2025-04-15 09:14:43 pid:22 Worker进程启动，Redis服务初始化完成
 2025-04-15 09:38:42 pid:24 Redis SETEX 成功 - key:name, value:张三, ttl:1000
+2025-04-15 09:44:42 pid:20 Workerman[start.php] received signal SIGINT
+2025-04-15 09:44:42 pid:20 Workerman[start.php] stopping
+2025-04-15 09:44:42 pid:20 Workerman[start.php] has been stopped
