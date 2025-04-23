@@ -329,6 +329,7 @@ services:
       - ${ELASTICSEARCH_CONF_FILE}:/usr/share/elasticsearch/config/elasticsearch.yml
       - ${ELASTICSEARCH_JVM_CONF_FILE}:/usr/share/elasticsearch/config/jvm.options
       - ${ELASTICSEARCH_LOG4J2_CONF_FILE}:/usr/share/elasticsearch/config/log4j2.properties
+      - ./services/elasticsearch/plugins:/usr/share/elasticsearch/plugins
     hostname: elasticsearch
     restart: always
     ports:
