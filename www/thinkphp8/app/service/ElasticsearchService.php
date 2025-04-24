@@ -38,7 +38,8 @@ class ElasticsearchService
      */
     public function __construct($index = 'default')
     {
-        $config      = Config::get('elasticsearch');
+        $config = Config::get('elasticsearch');
+
         $this->index = $index;
         try {
             $this->client = ClientBuilder::create()
@@ -73,6 +74,7 @@ class ElasticsearchService
                     'properties' => [
                         'spu_id'            => ['type' => 'integer'],
                         'name'              => ['type' => 'text', 'analyzer' => 'ik_max_word'], // 需安装 analysis-ik 插件,支持中文分词
+                        'name_suggest'      => ['type' => 'completion', 'analyzer' => 'simple', 'preserve_separators' => true, 'preserve_position_increments' => true, 'max_input_length' => 50],
                         'description'       => ['type' => 'text'],
                         'category_id'       => ['type' => 'integer'],
                         'brand_id'          => ['type' => 'integer'],
@@ -93,11 +95,19 @@ class ElasticsearchService
                 break;
             // 其他索引定义
         }
+
+        Log::info("ensureIndex mappings created by index: " . $index . " -mappings: " . json_encode($mappings, JSON_UNESCAPED_UNICODE));
+
         try {
+            // 检查指定的索引是否存在
             if (!$this->client->indices()->exists(['index' => $index])) {
+                // 如果索引不存在，则创建该索引
                 $this->client->indices()->create([
+                    // 指定要创建的索引名称
                     'index' => $index,
+                    // 指定索引的映射配置
                     'body'  => [
+                        // 映射配置，定义索引的结构和字段类型
                         'mappings' => $mappings,
                     ],
                 ]);

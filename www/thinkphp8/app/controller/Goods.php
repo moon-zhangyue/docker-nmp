@@ -1,4 +1,8 @@
 <?php
+// +----------------------------------------------------------------------
+// | Goods商品控制器
+// +----------------------------------------------------------------------
+
 declare(strict_types=1); // 严格类型声明，确保代码类型安全
 
 namespace app\controller; // 定义当前类所在的命名空间
@@ -11,6 +15,7 @@ use app\service\ElasticsearchService; // 引入Elasticsearch服务类
 use think\facade\Log;
 use think\facade\Cache; // 引入日志和缓存类
 use think\facade\Request as RequestFacade;
+use think\facade\Config;
 
 class Goods extends BaseController // 定义Goods控制器类，继承自BaseController
 {
@@ -53,7 +58,7 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
         ];
         try {
             $response = $client->search($params);
-            $hits     = $response['hits']['hits'];// 提取搜索结果中的所有命中项
+            $hits     = $response['hits']['hits']; // 提取搜索结果中的所有命中项
             $results  = [];
             foreach ($hits as $hit) {
                 $results[] = [
@@ -159,20 +164,136 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
     }
 
     // 批量同步（用于初始化或数据修复）
+    // 更新索引映射
+    public function updateMapping()
+    {
+        try {
+            $client = $this->esService->getClient();
+
+            // 检查索引是否存在
+            $indexExists = $client->indices()->exists(['index' => 'goods']);
+
+            // 如果索引存在，先删除它
+            if ($indexExists) {
+                $client->indices()->delete(['index' => 'goods']);
+                Log::info('已删除现有goods索引，准备重新创建');
+            }
+
+            // 定义映射
+            $mappings = [
+                'properties' => [
+                    'spu_id'            => ['type' => 'integer'],
+                    'name'              => ['type' => 'text', 'analyzer' => 'ik_max_word'], // 需安装 analysis-ik 插件,支持中文分词
+                    'name_suggest'      => ['type' => 'completion', 'analyzer' => 'simple', 'preserve_separators' => true, 'preserve_position_increments' => true, 'max_input_length' => 50],
+                    'description'       => ['type' => 'text'],
+                    'category_id'       => ['type' => 'integer'],
+                    'brand_id'          => ['type' => 'integer'],
+                    'price'             => ['type' => 'float'],
+                    'stock'             => ['type' => 'integer'],
+                    'attributes'        => [
+                        'type'       => 'nested',
+                        'properties' => [
+                            'color' => ['type' => 'keyword'],
+                            'size'  => ['type' => 'keyword']
+                        ]
+                    ],
+                    'common_attributes' => ['type' => 'nested'],
+                    'status'            => ['type' => 'integer'],
+                    'created_at'        => [
+                        'type'   => 'date',
+                        "format" => "yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_millis"// 自定义时间格式的配置项
+                    ],
+                ]
+            ];
+
+            // 创建索引并设置映射
+            $client->indices()->create([
+                'index' => 'goods',
+                'body'  => [
+                    'mappings' => $mappings
+                ]
+            ]);
+
+            Log::info('goods索引创建成功，映射已更新');
+            return json(['status' => 'success', 'message' => 'goods索引创建成功，映射已更新']);
+
+        } catch (\Exception $e) {
+            Log::error('更新索引映射失败: ' . $e->getMessage());
+            return json(['status' => 'error', 'message' => '更新索引映射失败: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // 批量同步（用于初始化或数据修复）
     public function sync()
     {
-        $spus   = GoodsSpu::with(['skus', 'attributes'])->select();
+        // 首先检查索引映射是否正确
+        try {
+            $client        = $this->esService->getClient();
+            $mappingExists = false;
+
+            if ($client->indices()->exists(['index' => 'goods'])) {
+                // 检查name_suggest字段是否为completion类型
+                $mapping = $client->indices()->getMapping(['index' => 'goods']);
+                if (
+                    isset($mapping['goods']['mappings']['properties']['name_suggest']) &&
+                    $mapping['goods']['mappings']['properties']['name_suggest']['type'] === 'completion'
+                ) {
+                    $mappingExists = true;
+                    Log::info('name_suggest字段映射正确，继续同步数据');
+                } else {
+                    Log::warning('name_suggest字段映射不正确，请先执行updateMapping方法更新映射');
+                    return json(['status' => 'error', 'message' => 'name_suggest字段映射不正确，请先执行updateMapping方法更新映射'], 400);
+                }
+            } else {
+                Log::warning('goods索引不存在，请先执行updateMapping方法创建索引');
+                return json(['status' => 'error', 'message' => 'goods索引不存在，请先执行updateMapping方法创建索引'], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('检查索引映射失败: ' . $e->getMessage());
+            return json(['status' => 'error', 'message' => '检查索引映射失败: ' . $e->getMessage()], 500);
+        }
+
+        // 获取商品数据
+        $spus = GoodsSpu::with(['skus', 'attributes'])->select();
+
+        // 记录查询到的SPU数量
+        Log::info('从数据库获取到 ' . count($spus) . ' 个SPU商品');
+
+        if (count($spus) === 0) {
+            Log::warning('没有找到商品数据，同步操作已跳过');
+            return json(['status' => 'warning', 'message' => '没有找到商品数据，同步操作已跳过']);
+        }
+
+        // 检查每个SPU是否有关联的SKUs
+        $skuCount = 0;
+        foreach ($spus as $spu) {
+            if (empty($spu->skus) || count($spu->skus) === 0) {
+                Log::warning('SPU ID:' . $spu->id . ' 没有关联的SKU数据');
+            } else {
+                $skuCount += count($spu->skus);
+            }
+
+            if (empty($spu->attributes) || count($spu->attributes) === 0) {
+                Log::warning('SPU ID:' . $spu->id . ' 没有关联的属性数据');
+            }
+        }
+
+        Log::info('共计 ' . $skuCount . ' 个SKU将被同步');
+
         $client = $this->esService->getClient();
         $params = ['body' => []];
 
+        // 遍历商品数据并构建批量索引请求
         foreach ($spus as $spu) {
             foreach ($spu->skus as $sku) {
                 $params['body'][] = [
                     'index' => ['_index' => 'goods', '_id' => $sku->id],
                 ];
-                $params['body'][] = [
+
+                $document = [
                     'spu_id'            => $spu->id,
                     'name'              => $spu->name,
+                    'name_suggest'      => $spu->name, // 自动补全字段，确保已正确映射为completion类型
                     'description'       => $spu->description,
                     'category_id'       => $spu->category_id,
                     'brand_id'          => $spu->brand_id,
@@ -183,31 +304,53 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
                     'status'            => $sku->status,
                     'created_at'        => $spu->created_at,
                 ];
+
+                $params['body'][] = $document;
             }
         }
 
-        // 预热热门查询
-        $this->advancedSearch(['category_id' => 1, 'size' => 10]);
-        Log::info('Cache preheated for category 1');
+        if (count($params['body']) === 0) {
+            Log::warning('没有构建任何索引请求，同步操作已跳过');
+            return json(['status' => 'warning', 'message' => '没有构建任何索引请求，同步操作已跳过']);
+        }
+
+        Log::info('批量索引请求已构建，共 ' . (count($params['body']) / 2) . ' 条记录');
 
         try {
-            // 调用客户端对象的bulk方法，执行批量操作
-            // $client 是一个客户端对象，通常用于与某种服务（如Elasticsearch）进行通信
-            // $params 是一个数组，包含了批量操作所需的参数和指令
-            $client->bulk($params);
+            // 记录请求详情（仅记录前两条，避免日志过大）
+            $logSample = array_slice($params['body'], 0, 4);
+            Log::info('批量索引请求示例: ' . json_encode($logSample, JSON_UNESCAPED_UNICODE));
 
-            $lastSyncTime = cache('last_sync_time') ?: '1970-01-01';
+            // 执行批量索引
+            $response = $client->bulk($params);
 
-            $spus = GoodsSpu::with(['skus', 'attributes'])
-                ->where('updated_at', '>=', $lastSyncTime)
-                ->select();
+            // 检查响应中是否有错误
+            if (isset($response['errors']) && $response['errors']) {
+                $errorItems = [];
+                foreach ($response['items'] as $item) {
+                    if (isset($item['index']['error'])) {
+                        $errorItems[] = $item['index']['error'];
+                    }
+                }
+
+                Log::error('批量索引部分失败: ' . json_encode($errorItems, JSON_UNESCAPED_UNICODE));
+                return json(['status' => 'partial_error', 'message' => '部分商品同步失败', 'errors' => $errorItems], 500);
+            }
+
+            // 记录成功结果
+            Log::info('同步完成，响应状态: ' . json_encode([
+                'took'        => $response['took'],
+                'errors'      => $response['errors'],
+                'items_count' => count($response['items'])
+            ]));
+
             // 批量索引逻辑（同前述）
-            cache('last_sync_time', date('Y-m-d'));
+            cache('last_sync_time', date('Y-m-d H:i:s'));
 
-            return json(['status' => 'success', 'message' => '同步完成']);
+            return json(['status' => 'success', 'message' => '同步完成，共写入 ' . (count($params['body']) / 2) . ' 条记录']);
         } catch (\Exception $e) {
-            Log::error('Sync error: ' . $e->getMessage());
-            return json(['status' => 'error', 'message' => '同步失败'], 500);
+            Log::error('同步失败: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            return json(['status' => 'error', 'message' => '同步失败: ' . $e->getMessage()], 500);
         }
     }
 
@@ -255,10 +398,12 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
 
         // 缓存不存在，获取锁防止缓存击穿
         $lockKey = 'lock_' . $cacheKey;
-        if (Cache::lock($lockKey, 10)->acquire()) {
+        $lock    = Cache::tag('lock')->set($lockKey, 1, 10); // 使用缓存标签创建锁，有效期10秒
+
+        if ($lock) {
             // 双重检查，防止其他进程已设置缓存
             if ($cached = Cache::get($cacheKey)) {
-                Cache::lock($lockKey)->release();
+                Cache::tag('lock')->clear(); // 释放锁
                 return json($cached);
             }
 
@@ -349,9 +494,9 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             $params['body']['query']['bool']['must'][] = [
                 // 使用'multi_match'查询类型，可以在多个字段中进行匹配
                 'multi_match' => [
-                    'query'     => $query,// 查询的关键词
-                    'fields'    => ['name^2', 'description'],// 要匹配的字段列表，'name^2'表示'name'字段的权重是2倍
-                    'fuzziness' => 'AUTO',// 设置模糊匹配的级别，'AUTO'表示自动选择合适的模糊匹配级别
+                    'query'     => $query, // 查询的关键词
+                    'fields'    => ['name^2', 'description'], // 要匹配的字段列表，'name^2'表示'name'字段的权重是2倍
+                    'fuzziness' => 'AUTO', // 设置模糊匹配的级别，'AUTO'表示自动选择合适的模糊匹配级别
                 ],
             ];
         }
@@ -477,8 +622,8 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             }
 
             // 释放锁，防止缓存击穿
-            if (isset($lockKey) && Cache::has('lock:' . $lockKey)) {
-                Cache::lock($lockKey)->release();
+            if (isset($lockKey)) {
+                Cache::tag('lock')->clear();
             }
 
             Log::info('Advanced search completed:{duration}ms,{params},{cache_key}', [
@@ -507,5 +652,122 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             // 仅包含影响结果的参数
         ];
         return 'goods_search_' . md5(json_encode($relevantParams));
+    }
+
+
+    /**
+     * ES商品名称自动补全接口
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function autocomplete(Request $request)
+    {
+        $keyword = $request->get('keyword', '');
+        $client  = $this->esService->getClient();
+        $params  = [
+            'index' => 'goods',
+            'body'  => [
+                'suggest' => [
+                    'goods-suggest' => [
+                        'prefix'     => $keyword,
+                        'completion' => [
+                            'field' => 'name_suggest',
+                            'size'  => 10,
+                            'fuzzy' => [ // 模糊匹配（允许容错）
+                                'fuzziness' => 1 // 允许1个字符的差异
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+        try {
+            $response = $client->search($params);
+            $suggests = $response['suggest']['goods-suggest'][0]['options'] ?? [];
+            $results  = array_map(function ($item) {
+                return $item['text'];
+            }, $suggests);
+            return json(['status' => 'success', 'data' => $results]);
+        } catch (\Exception $e) {
+            Log::error('Autocomplete error: ' . $e->getMessage());
+            return json(['status' => 'error', 'message' => '自动补全失败'], 500);
+        }
+    }
+
+    /**
+     * 测试ES连接和基本操作
+     */
+    public function testEs()
+    {
+        try {
+            $client = $this->esService->getClient();
+
+            // 1. 检查服务器状态
+            $ping = $client->ping();
+
+            // 2. 检查索引是否存在
+            $indexExists = $client->indices()->exists(['index' => 'goods']);
+
+            // 3. 检查索引映射
+            $mapping = null;
+            if ($indexExists) {
+                $mapping = $client->indices()->getMapping(['index' => 'goods']);
+            }
+
+            // 4. 尝试插入一条测试数据
+            $testDoc = [
+                'index' => 'goods',
+                'id'    => 'test_' . time(),
+                'body'  => [
+                    'spu_id'       => 999999,
+                    'name'         => '测试商品' . date('Y-m-d H:i:s'),
+                    'name_suggest' => '测试商品',
+                    'description'  => '这是一个测试商品',
+                    'category_id'  => 1,
+                    'brand_id'     => 1,
+                    'price'        => 99.99,
+                    'stock'        => 100,
+                    'attributes'   => [
+                        ['color' => '红色'],
+                        ['size' => 'M']
+                    ],
+                    'status'       => 1,
+                    'created_at'   => date('Y-m-d H:i:s')
+                ]
+            ];
+
+            $indexResult = $client->index($testDoc);
+
+            // 5. 尝试搜索该文档
+            $searchResult = $client->search([
+                'index' => 'goods',
+                'body'  => [
+                    'query' => [
+                        'term' => [
+                            'spu_id' => 999999
+                        ]
+                    ]
+                ]
+            ]);
+
+            // 返回测试结果
+            return json([
+                'status'        => 'success',
+                'ping'          => $ping->asBool(),
+                'index_exists'  => $indexExists->asBool(),
+                'mapping'       => $mapping,
+                'index_result'  => $indexResult,
+                'search_result' => $searchResult,
+                'es_hosts'      => Config::get('elasticsearch.hosts')
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('ES测试失败: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            return json([
+                'status'  => 'error',
+                'message' => 'ES测试失败: ' . $e->getMessage(),
+                'trace'   => $e->getTraceAsString()
+            ], 500);
+        }
     }
 }

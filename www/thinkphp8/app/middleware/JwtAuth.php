@@ -23,41 +23,7 @@ class JwtAuth
     public function handle($request, \Closure $next, array $params = [])
     {
         // 不需要验证的接口列表
-        $excludePaths = [
-            'api/auth/login',
-            'api/auth/register',
-            'api/auth/refresh',
-            'api/auth/logout',
-            'api/auth/me',
-            'auth/login',
-            'auth/register',
-            'auth/refresh',
-            'auth/logout',
-            'auth/me',
-            'redpacket/index',
-            'parking/lot',
-            'parking/record',
-            'parking/metrics/occupancy',
-            'parking/metrics/device-status',
-            'parking/metrics/plate-recognition',
-            'parking/metrics/gate-operation',
-            'parking/metrics/peak-hours',
-            'parking/metrics/duration-stats',
-            'parking/metrics/peak-analysis',
-            'parking/metrics/occupancy-history',
-            'parking/metrics/device-history',
-            'user/search',
-            'user/searchbyage',
-            'user/aggregate/country',
-            'user/bulk-index',
-            'user/searchwithhighlight',
-            'user/searchfuzzy',
-            'user/index',
-            'user/import-to-es',
-            'goods/sync',
-            'goods/filter',
-            'goods/search',
-        ];
+        $excludePaths = config('excludepaths', []);
 
         // 排除不需要验证的接口
         if (in_array($request->pathinfo(), $excludePaths)) {
