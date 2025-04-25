@@ -39,7 +39,8 @@
         "jenssegers/agent": "^2.6",
         "topthink/think-swoole": "^4.1",
         "influxdata/influxdb-client-php": "^3.7",
-        "elasticsearch/elasticsearch": "^8.17"
+        "elasticsearch/elasticsearch": "^8.17",
+        "monolog/monolog": "^3.9"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",

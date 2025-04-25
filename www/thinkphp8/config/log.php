@@ -5,7 +5,7 @@
 // +----------------------------------------------------------------------
 return [
     // 默认日志记录通道
-    'default'      => env('log.channel', 'file'),
+    'default'      => env('log.channel', 'elasticsearch'),
     // 日志记录级别
     'level'        => [],
     // 日志类型记录的通道 ['error'=>'email',...]
@@ -17,7 +17,7 @@ return [
 
     // 日志通道列表
     'channels'     => [
-        'file' => [
+        'file'          => [
             // 日志记录方式
             'type'           => 'File',
             // 日志保存目录
@@ -40,7 +40,39 @@ return [
             // 是否实时写入
             'realtime_write' => true,
         ],
-        'audit' => [
+        'elasticsearch' => [
+            // 日志记录方式
+            'type'            => \think\log\driver\MonologElasticsearch::class,
+            // ES服务器地址
+            'hosts'           => ['localhost:9200'],
+            // 索引前缀
+            'index_prefix'    => 'logs',
+            // 文档类型
+            'type'            => '_doc',
+            // 日志级别
+            'level'           => 'debug',
+            // 是否冒泡
+            'bubble'          => true,
+            // 连接超时时间
+            'timeout'         => 5,
+            // 是否验证SSL证书
+            'ssl_verify'      => false,
+            // API密钥
+            'apiKey'          => '',
+            // 用户名
+            'username'        => '',
+            // 密码
+            'password'        => '',
+            // 时间格式
+            'time_format'     => 'Y-m-d H:i:s',
+            // 是否记录上下文信息
+            'context_logging' => true,
+            // 独立日志级别
+            'apart_level'     => ['error', 'critical', 'alert', 'emergency'],
+            // 最大重试次数
+            'max_retry'       => 3,
+        ],
+        'audit'         => [
             // 日志记录方式
             'type'           => 'File',
             // 日志保存目录
