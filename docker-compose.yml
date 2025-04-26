@@ -521,21 +521,21 @@ services:
     environment:
       TZ: "$TZ"
 
-  xhgui-app:
-    build:
-      context: ./services/xhgui
-    container_name: xhgui-app
-    ports:
-      - "8142:9000"  # 添加端口映射
-    volumes:
-      - ${SOURCE_DIR}/xhgui:/www/xhgui:rw
-    expose:
-      - "9000"
-    depends_on:
-      - xhgui
-    networks:
-      - default
-    restart: always
+  # xhgui-app:
+  #   build:
+  #     context: ./services/xhgui
+  #   container_name: xhgui-app
+  #   ports:
+  #     - "8142:9000"  # 添加端口映射
+  #   volumes:
+  #     - ${SOURCE_DIR}/xhgui:/www/xhgui:rw
+  #   expose:
+  #     - "9000"
+  #   depends_on:
+  #     - xhgui
+  #   networks:
+  #     - default
+  #   restart: always
 
   # 添加监控服务
 
@@ -562,74 +562,74 @@ services:
   #     - default
   
   # MySQL Exporter - MySQL 监控
-  mysql-exporter:
-    image: prom/mysqld-exporter:latest
-    container_name: mysql-exporter
-    restart: always
-    ports:
-      - "${MYSQL_EXPORTER_PORT}:9104"
-    environment:
-      - DATA_SOURCE_NAME=root:${MYSQL5_ROOT_PASSWORD}@(mysql5:3306)/
-    depends_on:
-      - mysql5
-    networks:
-      - default
+  # mysql-exporter:
+  #   image: prom/mysqld-exporter:latest
+  #   container_name: mysql-exporter
+  #   restart: always
+  #   ports:
+  #     - "${MYSQL_EXPORTER_PORT}:9104"
+  #   environment:
+  #     - DATA_SOURCE_NAME=root:${MYSQL5_ROOT_PASSWORD}@(mysql5:3306)/
+  #   depends_on:
+  #     - mysql5
+  #   networks:
+  #     - default
   
   # Redis Exporter - Redis 监控
-  redis-exporter:
-    image: oliver006/redis_exporter:latest
-    container_name: redis-exporter
-    restart: always
-    ports:
-      - "${REDIS_EXPORTER_PORT}:9121"
-    environment:
-      - REDIS_ADDR=redis:6379
-    depends_on:
-      - redis
-    networks:
-      - default
+  # redis-exporter:
+  #   image: oliver006/redis_exporter:latest
+  #   container_name: redis-exporter
+  #   restart: always
+  #   ports:
+  #     - "${REDIS_EXPORTER_PORT}:9121"
+  #   environment:
+  #     - REDIS_ADDR=redis:6379
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - default
   
   # Nginx Exporter - Nginx 监控
-  nginx-exporter:
-    image: nginx/nginx-prometheus-exporter:latest
-    container_name: nginx-exporter
-    restart: always
-    ports:
-      - "${NGINX_EXPORTER_PORT}:9113"
-    command:
-      - '-nginx.scrape-uri=http://nginx20:80/nginx_status'
-    depends_on:
-      - nginx
-    networks:
-      - default
+  # nginx-exporter:
+  #   image: nginx/nginx-prometheus-exporter:latest
+  #   container_name: nginx-exporter
+  #   restart: always
+  #   ports:
+  #     - "${NGINX_EXPORTER_PORT}:9113"
+  #   command:
+  #     - '-nginx.scrape-uri=http://nginx20:80/nginx_status'
+  #   depends_on:
+  #     - nginx
+  #   networks:
+  #     - default
   
   # PHP-FPM Exporter - PHP-FPM 监控
-  php-fpm-exporter:
-    image: hipages/php-fpm_exporter:latest
-    container_name: php-fpm-exporter
-    restart: always
-    ports:
-      - "${PHP_FPM_EXPORTER_PORT}:9253"
-    environment:
-      - PHP_FPM_SCRAPE_URI=tcp://php82:9000/status
-    depends_on:
-      - php
-    networks:
-      - default
+  # php-fpm-exporter:
+  #   image: hipages/php-fpm_exporter:latest
+  #   container_name: php-fpm-exporter
+  #   restart: always
+  #   ports:
+  #     - "${PHP_FPM_EXPORTER_PORT}:9253"
+  #   environment:
+  #     - PHP_FPM_SCRAPE_URI=tcp://php82:9000/status
+  #   depends_on:
+  #     - php
+  #   networks:
+  #     - default
   
   # Kafka Exporter - Kafka 监控
-  kafka-exporter:
-    image: danielqsj/kafka-exporter:latest
-    container_name: kafka-exporter
-    restart: always
-    ports:
-      - "${KAFKA_EXPORTER_PORT}:9308"
-    command:
-      - '--kafka.server=kafka:9092'
-    depends_on:
-      - kafka
-    networks:
-      - default
+  # kafka-exporter:
+  #   image: danielqsj/kafka-exporter:latest
+  #   container_name: kafka-exporter
+  #   restart: always
+  #   ports:
+  #     - "${KAFKA_EXPORTER_PORT}:9308"
+  #   command:
+  #     - '--kafka.server=kafka:9092'
+  #   depends_on:
+  #     - kafka
+  #   networks:
+  #     - default
       
   # TDengine - 时序数据库
   tdengine:
