@@ -100,6 +100,7 @@ services:
       - default
 
 
+
   #  php80:
   #    build:
   #      context: ./services/php80
@@ -401,6 +402,17 @@ services:
     restart: always
     cap_add:
       - SYS_PTRACE
+    networks:
+      - default
+
+  golang:
+    image: golang:1.22-alpine
+    container_name: golang
+    volumes:
+      - ./go_projects:/go/src/app/:rw
+    working_dir: /go/src/app
+    tty: true # Keep container running
+    restart: always
     networks:
       - default
 
