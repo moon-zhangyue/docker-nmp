@@ -26,7 +26,7 @@ class MonologElasticsearch implements LogHandlerInterface
      */
     protected $config = [
         'hosts'           => [], // ES服务器地址
-        'index_prefix'    => 'es_log_', // 索引前缀
+        'index_prefix'    => 'logs', // 索引前缀
         'type'            => '_doc', // 文档类型
         'level'           => 'debug', // 日志级别
         'bubble'          => true, // 是否冒泡
@@ -89,7 +89,7 @@ class MonologElasticsearch implements LogHandlerInterface
 
         // 如果没有配置ES主机，则从应用配置中获取
         if (empty($this->config['hosts'])) {
-            $this->config['hosts'] = $app->config->get('elasticsearch.hosts', ['localhost:9200']);
+            $this->config['hosts'] = $app->config->get('elasticsearch.hosts', ['elasticsearch:9200']);
         }
 
         // 如果没有配置API密钥，则从应用配置中获取
@@ -350,7 +350,10 @@ class MonologElasticsearch implements LogHandlerInterface
             $this->client->indices()->putTemplate([
                 'name' => $this->config['index_prefix'] . '_template',
                 'body' => [
-                    'index_patterns' => [$this->config['index_prefix'] . '*'],
+                    'index_patterns' => [
+                        $this->config['index_prefix'] . '-*',             // 匹配标准日志格式 logs-yyyy.mm.dd
+                        $this->config['index_prefix'] . '_*-*'            // 匹配独立日志级别格式 logs_error-yyyy.mm.dd
+                    ],
                     'settings'       => [
                         'number_of_shards'   => 1,
                         'number_of_replicas' => 1,

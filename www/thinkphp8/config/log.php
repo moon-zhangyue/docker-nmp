@@ -44,9 +44,9 @@ return [
             // 日志记录方式
             'type'            => \think\log\driver\MonologElasticsearch::class,
             // ES服务器地址
-            'hosts'           => ['localhost:9200'],
+            'hosts'           => ['elasticsearch:9200'],
             // 索引前缀
-            'index_prefix'    => 'es_log_',
+            'index_prefix'    => 'logs',
             // 日志级别 (注释掉以避免与框架内部合并冲突)
             // 'level'           => 'debug',
             // 是否冒泡
