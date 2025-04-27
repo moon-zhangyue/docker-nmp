@@ -201,7 +201,7 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
                     'status'            => ['type' => 'integer'],
                     'created_at'        => [
                         'type'   => 'date',
-                        "format" => "yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_millis"// 自定义时间格式的配置项
+                        'format' => 'yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_millis' // 自定义时间格式的配置项
                     ],
                 ]
             ];
@@ -216,7 +216,6 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
 
             Log::info('goods索引创建成功，映射已更新');
             return json(['status' => 'success', 'message' => 'goods索引创建成功，映射已更新']);
-
         } catch (\Exception $e) {
             Log::error('更新索引映射失败: ' . $e->getMessage());
             return json(['status' => 'error', 'message' => '更新索引映射失败: ' . $e->getMessage()], 500);
@@ -753,14 +752,13 @@ class Goods extends BaseController // 定义Goods控制器类，继承自BaseCon
             // 返回测试结果
             return json([
                 'status'        => 'success',
-                'ping'          => $ping->asBool(),
-                'index_exists'  => $indexExists->asBool(),
+                'ping'          => $ping,
+                'index_exists'  => $indexExists,
                 'mapping'       => $mapping,
                 'index_result'  => $indexResult,
                 'search_result' => $searchResult,
                 'es_hosts'      => Config::get('elasticsearch.hosts')
             ]);
-
         } catch (\Exception $e) {
             Log::error('ES测试失败: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return json([

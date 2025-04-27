@@ -50,6 +50,9 @@ Route::post('user/redis_queue', 'user/redis_queue'); //redis队列
 Route::post('user/kafka_queue', 'user/kafka_queue'); //kafka队列（User控制器）
 Route::post('KafkaQueue/push', 'KafkaQueue/push'); //kafka队列
 
+// Elasticsearch 日志测试路由
+Route::get('test/eslog', 'TestController/testEsLog');
+
 //监控指标
 Route::get('metrics/prometheus', 'metrics/prometheus'); //Prometheus指标
 Route::get('metrics/index', 'metrics/index');

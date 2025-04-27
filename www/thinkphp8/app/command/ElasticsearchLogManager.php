@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace app\command;
@@ -42,7 +43,7 @@ class ElasticsearchLogManager extends Command
         $this->setName('es:log')
             ->addArgument('action', Argument::REQUIRED, '操作类型: init-template, clean-indices')
             ->addOption('days', 'd', Option::VALUE_OPTIONAL, '保留最近几天的日志索引', 30)
-            ->addOption('prefix', 'p', Option::VALUE_OPTIONAL, '索引前缀', null)
+            ->addOption('prefix', 'p', Option::VALUE_OPTIONAL, '索引前缀', 'es_log_')
             ->setDescription('Elasticsearch日志管理工具');
     }
 
@@ -134,7 +135,8 @@ class ElasticsearchLogManager extends Command
         // 获取所有索引
         $indicesResponse = $client->indices()->get(['index' => $logger->getIndexPattern() . '*']);
         // 从响应中提取索引数组
-        $indices      = $indicesResponse->asArray(); // Use asArray() to get the array representation
+        $indices = (array) $indicesResponse;
+
         $deletedCount = 0;
 
         // 检查 $indices 是否确实是数组

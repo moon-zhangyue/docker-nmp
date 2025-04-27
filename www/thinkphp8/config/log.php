@@ -46,11 +46,9 @@ return [
             // ES服务器地址
             'hosts'           => ['localhost:9200'],
             // 索引前缀
-            'index_prefix'    => 'logs',
-            // 文档类型
-            'type'            => '_doc',
-            // 日志级别
-            'level'           => 'debug',
+            'index_prefix'    => 'es_log_',
+            // 日志级别 (注释掉以避免与框架内部合并冲突)
+            // 'level'           => 'debug',
             // 是否冒泡
             'bubble'          => true,
             // 连接超时时间
@@ -71,6 +69,7 @@ return [
             'apart_level'     => ['error', 'critical', 'alert', 'emergency'],
             // 最大重试次数
             'max_retry'       => 3,
+            // 文档类型 'type' => '_doc' 已移除，驱动将使用默认值
         ],
         'audit'         => [
             // 日志记录方式

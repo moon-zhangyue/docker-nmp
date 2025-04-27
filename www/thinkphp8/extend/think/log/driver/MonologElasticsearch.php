@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace think\log\driver;
@@ -9,7 +10,7 @@ use Monolog\Formatter\ElasticsearchFormatter;
 use Monolog\Processor\IntrospectionProcessor;
 use Monolog\Processor\WebProcessor;
 use Monolog\Processor\MemoryUsageProcessor;
-use Elastic\Elasticsearch\ClientBuilder;
+use Elasticsearch\ClientBuilder;
 use think\App;
 use think\contract\LogHandlerInterface;
 
@@ -25,7 +26,7 @@ class MonologElasticsearch implements LogHandlerInterface
      */
     protected $config = [
         'hosts'           => [], // ES服务器地址
-        'index_prefix'    => 'logs', // 索引前缀
+        'index_prefix'    => 'es_log_', // 索引前缀
         'type'            => '_doc', // 文档类型
         'level'           => 'debug', // 日志级别
         'bubble'          => true, // 是否冒泡
@@ -48,7 +49,7 @@ class MonologElasticsearch implements LogHandlerInterface
 
     /**
      * Elasticsearch客户端实例
-     * @var \Elastic\Elasticsearch\Client
+     * @var \Elasticsearch\Client
      */
     protected $client;
 
@@ -63,14 +64,14 @@ class MonologElasticsearch implements LogHandlerInterface
      * @var array
      */
     protected $levels = [
-        'emergency' => Logger::EMERGENCY,
-        'alert'     => Logger::ALERT,
-        'critical'  => Logger::CRITICAL,
-        'error'     => Logger::ERROR,
-        'warning'   => Logger::WARNING,
-        'notice'    => Logger::NOTICE,
-        'info'      => Logger::INFO,
-        'debug'     => Logger::DEBUG,
+        'emergency' => \Monolog\Level::Emergency,
+        'alert'     => \Monolog\Level::Alert,
+        'critical'  => \Monolog\Level::Critical,
+        'error'     => \Monolog\Level::Error,
+        'warning'   => \Monolog\Level::Warning,
+        'notice'    => \Monolog\Level::Notice,
+        'info'      => \Monolog\Level::Info,
+        'debug'     => \Monolog\Level::Debug,
     ];
 
     /**
@@ -110,13 +111,15 @@ class MonologElasticsearch implements LogHandlerInterface
             ->setHosts($this->config['hosts'])
             ->setRetries($this->config['max_retry'])
             ->setSSLVerification($this->config['ssl_verify'])
-            ->setConnectTimeout($this->config['timeout'])
-            ->setTimeout($this->config['timeout']);
+            ->setConnectionParams([
+                'client' => [
+                    'timeout'         => $this->config['timeout'],
+                    'connect_timeout' => $this->config['timeout']
+                ]
+            ]);
 
         // 设置认证方式
-        if (!empty($this->config['apiKey'])) {
-            $builder->setApiKey($this->config['apiKey']);
-        } elseif (!empty($this->config['username']) && !empty($this->config['password'])) {
+        if (!empty($this->config['username']) && !empty($this->config['password'])) {
             $builder->setBasicAuthentication($this->config['username'], $this->config['password']);
         }
 
@@ -185,7 +188,9 @@ class MonologElasticsearch implements LogHandlerInterface
      */
     protected function getLevelByName(string $name): int
     {
-        return $this->levels[strtolower($name)] ?? Logger::DEBUG;
+        $level = $this->levels[strtolower($name)] ?? Logger::DEBUG;
+        // 将Monolog\Level枚举对象转换为整数值
+        return $level instanceof \Monolog\Level ? $level->value : $level;
     }
 
     /**
@@ -236,12 +241,16 @@ class MonologElasticsearch implements LogHandlerInterface
         $builder = ClientBuilder::create()
             ->setHosts($this->config['hosts'])
             ->setRetries($this->config['max_retry'])
-            ->setSSLVerification($this->config['ssl_verify']);
+            ->setSSLVerification($this->config['ssl_verify'])
+            ->setConnectionParams([
+                'client' => [
+                    'timeout'         => $this->config['timeout'],
+                    'connect_timeout' => $this->config['timeout']
+                ]
+            ]);
 
         // 设置认证方式
-        if (!empty($this->config['apiKey'])) {
-            $builder->setApiKey($this->config['apiKey']);
-        } elseif (!empty($this->config['username']) && !empty($this->config['password'])) {
+        if (!empty($this->config['username']) && !empty($this->config['password'])) {
             $builder->setBasicAuthentication($this->config['username'], $this->config['password']);
         }
 
@@ -295,9 +304,9 @@ class MonologElasticsearch implements LogHandlerInterface
 
     /**
      * 获取Elasticsearch客户端实例
-     * @return \Elastic\Elasticsearch\Client
+     * @return \Elasticsearch\Client
      */
-    public function getClient(): \Elastic\Elasticsearch\Client
+    public function getClient(): \Elasticsearch\Client
     {
         return $this->client;
     }
@@ -323,12 +332,16 @@ class MonologElasticsearch implements LogHandlerInterface
             $builder = ClientBuilder::create()
                 ->setHosts($this->config['hosts'])
                 ->setRetries($this->config['max_retry'])
-                ->setSSLVerification($this->config['ssl_verify']);
+                ->setSSLVerification($this->config['ssl_verify'])
+                ->setConnectionParams([
+                    'client' => [
+                        'timeout'         => $this->config['timeout'],
+                        'connect_timeout' => $this->config['timeout']
+                    ]
+                ]);
 
             // 设置认证方式
-            if (!empty($this->config['apiKey'])) {
-                $builder->setApiKey($this->config['apiKey']);
-            } elseif (!empty($this->config['username']) && !empty($this->config['password'])) {
+            if (!empty($this->config['username']) && !empty($this->config['password'])) {
                 $builder->setBasicAuthentication($this->config['username'], $this->config['password']);
             }
 

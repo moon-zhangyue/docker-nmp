@@ -1,8 +1,8 @@
 <?php
 namespace app\service;
 
-use Elastic\Elasticsearch\Client;
-use Elastic\Elasticsearch\ClientBuilder;
+use Elasticsearch\Client;
+use Elasticsearch\ClientBuilder;
 use think\facade\Config;
 use think\facade\Log;
 
@@ -44,7 +44,6 @@ class ElasticsearchService
         try {
             $this->client = ClientBuilder::create()
                 ->setHosts($config['hosts'])
-                ->setApiKey($config['apiKey'] ?? '') // 如果使用 API Key
                 ->build();
             $this->ensureIndex($this->index);
         } catch (\Exception $e) {
@@ -65,7 +64,7 @@ class ElasticsearchService
                         'email'      => ['type' => 'keyword'],
                         'age'        => ['type' => 'integer'],
                         'country'    => ['type' => 'keyword'],
-                        'created_at' => ['type' => 'date'],
+                        'created_at' => ['type' => 'date', 'format' => 'yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_millis'],
                     ]
                 ];
                 break;
@@ -89,7 +88,7 @@ class ElasticsearchService
                         ], // SKU 属性
                         'common_attributes' => ['type' => 'nested'], // SPU 公共属性
                         'status'            => ['type' => 'integer'],
-                        'created_at'        => ['type' => 'date'],
+                        'created_at'        => ['type' => 'date', 'format' => 'yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_millis'],
                     ]
                 ];
                 break;
@@ -163,7 +162,7 @@ class ElasticsearchService
     {
         try {
             $params = ['index' => $this->index];
-            return $this->client->indices()->exists($params)->asBool();
+            return $this->client->indices()->exists($params);
         } catch (\Exception $e) {
             Log::error('Check index exists error: ' . $e->getMessage());
             return false;

@@ -12,5 +12,6 @@ return [
         'queue:failed' => 'app\command\QueueFailed',
         'queue:metrics' => 'app\command\QueueMetrics',
         'queue:test' => 'app\command\TestQueueMetrics',
+        'es-log-view' => 'app\command\ElasticsearchLogViewer',
     ],
 ];
