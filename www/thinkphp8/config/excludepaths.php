@@ -39,5 +39,5 @@ return [
     'goods/search',
     'goods/autocomplete',
     'goods/updateMapping',
-    'test/eslog',
+    'monoLog/index',
 ];

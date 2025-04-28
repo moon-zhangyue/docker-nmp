@@ -7,5 +7,4 @@ use app\provider\ElasticsearchLogServiceProvider;
 return [
     'think\Request'          => Request::class,
     'think\exception\Handle' => ExceptionHandle::class,
-    'elasticsearch.log'      => ElasticsearchLogServiceProvider::class,
 ];

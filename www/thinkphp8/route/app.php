@@ -51,7 +51,7 @@ Route::post('user/kafka_queue', 'user/kafka_queue'); //kafka队列（User控制�
 Route::post('KafkaQueue/push', 'KafkaQueue/push'); //kafka队列
 
 // Elasticsearch 日志测试路由
-Route::get('test/eslog', 'TestController/testEsLog');
+Route::get('monoLog/index', 'MonoLog/index'); // 日志测试接口
 
 //监控指标
 Route::get('metrics/prometheus', 'metrics/prometheus'); //Prometheus指标
