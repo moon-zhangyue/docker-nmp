@@ -63,7 +63,7 @@ return [
             // 是否实时写入
             'realtime_write' => true,
         ],
-        // 直接使用 Monolog Elasticsearch Handler 的通道
+
         // 直接使用 Monolog Elasticsearch Handler 的通道
         'monolog_es'    => [
             // 'type' => 'monolog' // ThinkPHP 可能不需要显式指定 type，如果 handler 是闭包
@@ -96,7 +96,7 @@ return [
                         // 动态索引名称：前缀 + 日期
                         'index'        => ($esConfig['index_prefix'] ?? 'logs') . '-' . date('Y.m.d'),
                         'type'         => '_doc', // 现代 Elasticsearch 版本推荐使用 _doc
-                        'ignore_error' => false // 是否忽略发送到 ES 时的错误？生产环境可考虑设为 true
+                        'ignore_error' => true // 设为 true 以忽略 ES 发送错误，避免应用崩溃
                     ];
 
                     // 3. 创建 Elasticsearch Handler 实例
@@ -112,9 +112,10 @@ return [
                     // 如果创建 Handler 失败 (例如 ES 连接不上)
                     // 记录错误到 PHP 错误日志
                     error_log("创建 Monolog Elasticsearch handler 失败: " . $e->getMessage());
-                    // 返回一个 NullHandler，这样日志调用不会引发异常，但日志会丢失
-                    // 或者可以抛出异常，根据您的错误处理策略决定
-                    return new NullHandler();
+                    
+                    // 不再返回 NullHandler，改为使用文件日志作为后备
+                    // 获取 file 通道的处理器
+                    return app()->make('log')->channel('file')->getMonolog()->getHandlers()[0];
                 }
             },
             // 要发送到此通道的日志级别
@@ -153,5 +154,4 @@ return [
             'realtime_write' => true,
         ],
     ],
-
 ];
