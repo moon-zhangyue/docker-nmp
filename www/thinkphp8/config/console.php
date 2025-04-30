@@ -13,5 +13,6 @@ return [
         'queue:metrics' => 'app\command\QueueMetrics',
         'queue:test' => 'app\command\TestQueueMetrics',
         'es-log-view' => 'app\command\ElasticsearchLogViewer',
+        'es:manager' => 'app\command\ElasticsearchManager',
     ],
 ];
