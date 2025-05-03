@@ -70,6 +70,15 @@ Route::get('test', 'Test/index');
 Route::post('queue/test', 'QueueTest/push');
 Route::post('queue/test/delay', 'QueueTest/pushDelay');
 
+// RabbitMQ测试路由
+Route::group('rabbitmq', function () {
+    Route::get('send', 'RabbitMQTest/send');
+    Route::get('send-delayed', 'RabbitMQTest/sendDelayed');
+    Route::get('send-task-type/:type', 'RabbitMQTest/sendTaskType');
+    Route::get('batch-send/:count', 'RabbitMQTest/batchSend');
+    Route::get('queue-size', 'RabbitMQTest/getQueueSize');
+});
+
 
 // 红包
 Route::get('redpacket/index', 'RedPacketController/index');

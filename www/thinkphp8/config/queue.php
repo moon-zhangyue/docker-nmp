@@ -2,7 +2,7 @@
 
 // 返回一个配置数组，包含队列连接和错误追踪等配置信息
 return [
-    'default'           => env('QUEUE_CONNECTION', 'redis'),
+    'default'           => env('QUEUE_CONNECTION', 'rabbitmq'),
 
     'connections'       => [
         'sync'     => [  // 同步队列配置
@@ -24,6 +24,26 @@ return [
             'select'     => 0,  // Redis 数据库选择，默认为 0
             'timeout'    => 0,  // 连接超时时间，默认为 0
             'persistent' => false,  // 是否使用持久连接，默认为 false
+        ],
+        'rabbitmq' => [  // RabbitMQ 队列配置
+            'type'             => 'RabbitMQ',  // 队列类型为 RabbitMQ
+            'host'             => env('RABBITMQ_HOST', 'localhost'),  // RabbitMQ 服务器地址
+            'port'             => env('RABBITMQ_PORT', 5672),  // RabbitMQ 服务器端口
+            'login'            => env('RABBITMQ_LOGIN', 'guest'),  // RabbitMQ 登录用户名
+            'password'         => env('RABBITMQ_PASSWORD', 'guest'),  // RabbitMQ 登录密码
+            'vhost'            => env('RABBITMQ_VHOST', '/'),  // RabbitMQ 虚拟主机
+            'queue'            => env('RABBITMQ_QUEUE', 'default'),  // 默认队列名称
+            'exchange'         => env('RABBITMQ_EXCHANGE', 'default'),  // 交换机名称
+            'exchange_type'    => env('RABBITMQ_EXCHANGE_TYPE', 'direct'),  // 交换机类型
+            'passive'          => false,  // 是否检查队列/交换机是否存在而不创建
+            'durable'          => true,   // 是否持久化
+            'exclusive'        => false,  // 是否排他
+            'auto_delete'      => false,  // 是否自动删除
+            'prefetch_count'   => env('RABBITMQ_PREFETCH_COUNT', 1),  // 预取数量
+            'prefetch_size'    => 0,  // 预取大小
+            'global_qos'       => false,  // 是否全局QoS
+            'delayed_exchange' => env('RABBITMQ_DELAYED_EXCHANGE', 'delayed'),  // 延迟交换机名称
+            'queue_arguments'  => [],  // 队列参数
         ],
         'kafka'    => [
             'type'                               => 'kafka',

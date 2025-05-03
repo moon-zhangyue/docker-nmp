@@ -40,7 +40,8 @@
         "topthink/think-swoole": "^4.1",
         "influxdata/influxdb-client-php": "^3.7",
         "monolog/monolog": "^3.9",
-        "elasticsearch/elasticsearch": "7.17.x-dev"
+        "elasticsearch/elasticsearch": "7.17.x-dev",
+        "php-amqplib/php-amqplib": "^3.7"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",
