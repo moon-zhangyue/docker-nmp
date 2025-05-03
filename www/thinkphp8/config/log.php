@@ -17,7 +17,7 @@ return [
 
     // 日志通道列表
     'channels'     => [
-        'file'  => [
+        'file'          => [
             // 日志记录方式
             'type'           => 'File',
             // 日志保存目录
@@ -40,7 +40,7 @@ return [
             // 是否实时写入
             'realtime_write' => true,
         ],
-        'audit' => [
+        'audit'         => [
             // 日志记录方式
             'type'           => 'File',
             // 日志保存目录
@@ -66,22 +66,22 @@ return [
         // Elasticsearch日志通道
         'elasticsearch' => [
             // 日志记录方式
-            'type'           => 'Elasticsearch',
+            'type'         => 'Elasticsearch',
             // 日志级别
-            'level'          => ['info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'],
+            'level'        => ['info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency', 'debug'],
             // 使用JSON格式记录
-            'json'           => true,
+            'json'         => true,
             // 日志处理
-            'processor'      => null,
+            'processor'    => null,
             // 关闭通道日志写入
-            'close'          => false,
+            'close'        => false,
             // 日志输出格式化
-            'time_format'    => 'Y-m-d H:i:s',
-            'format'         => '[%s][%s] %s',
+            'time_format'  => 'Y-m-d H:i:s',
+            'format'       => '[%s][%s] %s',
             // 是否按天轮转索引
-            'day_rotate'     => true,
+            'day_rotate'   => true,
             // 索引前缀
-            'index_prefix'   => env('ELASTICSEARCH_INDEX_PREFIX', 'logs'),
+            'index_prefix' => env('ELASTICSEARCH_INDEX_PREFIX', 'logs'),
         ],
     ],
 

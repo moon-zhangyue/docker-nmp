@@ -40,4 +40,8 @@ return [
     'goods/autocomplete',
     'goods/updateMapping',
     'logdemo/index',
+    'logdemo/withContext',
+    'logdemo/specificChannel',
+    'logdemo/allLevels',
+    'logdemo/batch',
 ];

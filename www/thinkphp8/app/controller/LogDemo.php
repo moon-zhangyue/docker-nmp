@@ -25,10 +25,10 @@ class LogDemo extends BaseController
         Log::notice('这是一条通知日志');
         Log::warning('这是一条警告日志');
         Log::error('这是一条错误日志');
-        
+
         return json([
             'code' => 0,
-            'msg' => '日志记录成功',
+            'msg'  => '日志记录成功',
             'data' => null
         ]);
     }
@@ -42,27 +42,27 @@ class LogDemo extends BaseController
     {
         // 记录带上下文的日志
         $user = [
-            'id' => 1,
-            'name' => '测试用户',
+            'id'    => 1,
+            'name'  => '测试用户',
             'email' => 'test@example.com'
         ];
-        
-        Log::info('用户登录成功', $user);
-        
+
+        Log::info('用户登录成功{user}', ['user' => json_encode($user, JSON_UNESCAPED_UNICODE)]);
+
         // 记录异常信息
         try {
             throw new \Exception('模拟异常测试');
         } catch (\Exception $e) {
             Log::error('捕获到异常: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
         }
-        
+
         return json([
             'code' => 0,
-            'msg' => '带上下文的日志记录成功',
+            'msg'  => '带上下文的日志记录成功',
             'data' => null
         ]);
     }
@@ -76,16 +76,16 @@ class LogDemo extends BaseController
     {
         // 仅记录到文件
         Log::channel('file')->info('仅记录到文件的日志');
-        
+
         // 仅记录到Elasticsearch
         Log::channel('elasticsearch')->info('仅记录到Elasticsearch的日志');
-        
+
         // 记录到多个通道
         Log::channel(['file', 'elasticsearch'])->error('同时记录到文件和Elasticsearch的错误');
-        
+
         return json([
             'code' => 0,
-            'msg' => '指定通道日志记录成功',
+            'msg'  => '指定通道日志记录成功',
             'data' => null
         ]);
     }
@@ -105,18 +105,18 @@ class LogDemo extends BaseController
             ['action' => '删除用户', 'user_id' => 3, 'ip' => '192.168.1.3', 'time' => time() + 90],
             ['action' => '退出登录', 'user_id' => 1, 'ip' => '192.168.1.1', 'time' => time() + 120],
         ];
-        
+
         foreach ($operations as $op) {
             Log::channel('elasticsearch')->info("用户操作: {$op['action']}", $op);
         }
-        
+
         return json([
             'code' => 0,
-            'msg' => '批量日志记录成功',
+            'msg'  => '批量日志记录成功',
             'data' => null
         ]);
     }
-    
+
     /**
      * 测试各种错误级别
      * 
@@ -125,7 +125,7 @@ class LogDemo extends BaseController
     public function allLevels(): Response
     {
         $message = '这是一条测试日志消息';
-        
+
         Log::emergency($message . ' - EMERGENCY');
         Log::alert($message . ' - ALERT');
         Log::critical($message . ' - CRITICAL');
@@ -134,11 +134,11 @@ class LogDemo extends BaseController
         Log::notice($message . ' - NOTICE');
         Log::info($message . ' - INFO');
         Log::debug($message . ' - DEBUG');
-        
+
         return json([
             'code' => 0,
-            'msg' => '所有级别的日志记录成功',
+            'msg'  => '所有级别的日志记录成功',
             'data' => null
         ]);
     }
-} 
+}

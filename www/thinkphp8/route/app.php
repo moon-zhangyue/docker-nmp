@@ -52,6 +52,10 @@ Route::post('KafkaQueue/push', 'KafkaQueue/push'); //kafka队列
 
 // Elasticsearch 日志测试路由
 Route::get('logdemo/index', 'LogDemo/index'); // 日志测试接口
+Route::get('logdemo/withContext', 'LogDemo/withContext'); // 测试带上下文的日志
+Route::get('logdemo/specificChannel', 'LogDemo/specificChannel'); // 测试通道日志
+Route::get('logdemo/allLevels', 'LogDemo/allLevels'); // 测试所有级别的日志
+Route::get('logdemo/batch', 'LogDemo/batch'); // 批量日志测试
 
 //监控指标
 Route::get('metrics/prometheus', 'metrics/prometheus'); //Prometheus指标

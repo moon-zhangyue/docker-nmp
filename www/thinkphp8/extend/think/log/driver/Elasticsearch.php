@@ -148,7 +148,7 @@ class Elasticsearch implements LogHandlerInterface
                                 'message'    => ['type' => 'text'],
                                 'context'    => ['type' => 'object', 'dynamic' => true],
                                 'extra'      => ['type' => 'object', 'dynamic' => true],
-                                'datetime'   => ['type' => 'date'],
+                                'datetime'   => ['type' => 'date', 'format' => 'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||strict_date_optional_time||epoch_millis'],
                                 'app_name'   => ['type' => 'keyword'],
                                 'host'       => ['type' => 'keyword'],
                                 'request_id' => ['type' => 'keyword'],
@@ -166,7 +166,7 @@ class Elasticsearch implements LogHandlerInterface
         } catch (\Exception $e) {
             // 记录错误，但不中断流程
             error_log('[ES Template Error] ' . $e->getMessage());
-            
+
             // 尝试直接创建索引
             try {
                 $this->createIndex();
@@ -175,7 +175,7 @@ class Elasticsearch implements LogHandlerInterface
             }
         }
     }
-    
+
     /**
      * 直接创建索引（当模板创建失败时使用）
      */
@@ -186,9 +186,9 @@ class Elasticsearch implements LogHandlerInterface
             // 创建索引
             $this->client->indices()->create([
                 'index' => $this->index,
-                'body' => [
+                'body'  => [
                     'settings' => [
-                        'number_of_shards' => $this->config['number_of_shards'] ?? 3,
+                        'number_of_shards'   => $this->config['number_of_shards'] ?? 3,
                         'number_of_replicas' => $this->config['number_of_replicas'] ?? 1,
                     ],
                     'mappings' => [
@@ -199,7 +199,7 @@ class Elasticsearch implements LogHandlerInterface
                             'message'    => ['type' => 'text'],
                             'context'    => ['type' => 'object', 'dynamic' => true],
                             'extra'      => ['type' => 'object', 'dynamic' => true],
-                            'datetime'   => ['type' => 'date'],
+                            'datetime'   => ['type' => 'date', 'format' => 'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||strict_date_optional_time||epoch_millis'],
                             'app_name'   => ['type' => 'keyword'],
                             'host'       => ['type' => 'keyword'],
                             'request_id' => ['type' => 'keyword'],
