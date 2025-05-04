@@ -27,10 +27,10 @@ return [
         ],
         'rabbitmq' => [  // RabbitMQ 队列配置
             'type'             => 'RabbitMQ',  // 队列类型为 RabbitMQ
-            'host'             => env('RABBITMQ_HOST', 'localhost'),  // RabbitMQ 服务器地址
+            'host'             => env('RABBITMQ_HOST', 'rabbitmq'),  // RabbitMQ 服务器地址
             'port'             => env('RABBITMQ_PORT', 5672),  // RabbitMQ 服务器端口
-            'login'            => env('RABBITMQ_LOGIN', 'guest'),  // RabbitMQ 登录用户名
-            'password'         => env('RABBITMQ_PASSWORD', 'guest'),  // RabbitMQ 登录密码
+            'login'            => env('RABBITMQ_LOGIN', 'myuser'),  // RabbitMQ 登录用户名
+            'password'         => env('RABBITMQ_PASSWORD', 'mypass'),  // RabbitMQ 登录密码
             'vhost'            => env('RABBITMQ_VHOST', '/'),  // RabbitMQ 虚拟主机
             'queue'            => env('RABBITMQ_QUEUE', 'default'),  // 默认队列名称
             'exchange'         => env('RABBITMQ_EXCHANGE', 'default'),  // 交换机名称

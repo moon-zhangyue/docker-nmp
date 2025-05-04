@@ -72,11 +72,11 @@ Route::post('queue/test/delay', 'QueueTest/pushDelay');
 
 // RabbitMQ测试路由
 Route::group('rabbitmq', function () {
-    Route::get('send', 'RabbitMQTest/send');
-    Route::get('send-delayed', 'RabbitMQTest/sendDelayed');
-    Route::get('send-task-type/:type', 'RabbitMQTest/sendTaskType');
-    Route::get('batch-send/:count', 'RabbitMQTest/batchSend');
-    Route::get('queue-size', 'RabbitMQTest/getQueueSize');
+    Route::post('send', 'RabbitMQTest/send'); //发送消息
+    Route::post('send-delayed', 'RabbitMQTest/sendDelayed'); // 发送延迟消息
+    Route::post('send-task-type', 'RabbitMQTest/sendTaskType'); // 发送任务类型消息
+    Route::post('batch-send', 'RabbitMQTest/batchSend'); // 批量发送消息
+    Route::get('queue-size', 'RabbitMQTest/getQueueSize'); // 获取队列大小
 });
 
 

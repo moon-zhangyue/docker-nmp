@@ -6,15 +6,16 @@ namespace app\controller;
 
 use app\BaseController;
 use app\service\queue\RabbitMQProducer;
+use think\App;
 use think\facade\Log;
-use think\facade\Queue;
 use think\Response;
+use think\Request;
 
 /**
  * RabbitMQ测试控制器
- * 
+ *
  * 该控制器提供了测试RabbitMQ队列功能的接口
- * 
+ *
  * @package app\controller
  */
 class RabbitMQTest extends BaseController
@@ -28,10 +29,12 @@ class RabbitMQTest extends BaseController
 
     /**
      * 构造函数
+     *
+     * @param App $app 应用实例
      */
-    public function __construct()
+    public function __construct(\think\App $app)
     {
-        parent::__construct();
+        parent::__construct($app);
         $this->producer = new RabbitMQProducer();
     }
 
@@ -124,8 +127,10 @@ class RabbitMQTest extends BaseController
      * @param string $type 任务类型
      * @return Response
      */
-    public function sendTaskType(string $type = 'default')
+    public function sendTaskType(Request $request)
     {
+        $type = $request->param('type', 'default');
+
         $validTypes = ['default', 'process_data', 'send_notification', 'generate_report'];
 
         if (!in_array($type, $validTypes)) {
@@ -200,8 +205,10 @@ class RabbitMQTest extends BaseController
      * @param int $count 消息数量
      * @return Response
      */
-    public function batchSend(int $count = 5)
+    public function batchSend(Request $request)
     {
+        $count = $request->param('count', 10);
+
         if ($count <= 0 || $count > 100) {
             return json([
                 'code' => 1,
@@ -257,7 +264,7 @@ class RabbitMQTest extends BaseController
      * @param string $queue 队列名称
      * @return Response
      */
-    public function getQueueSize(string $queue = null)
+    public function getQueueSize(?string $queue = null)
     {
         try {
             $size = $this->producer->getQueueSize($queue);

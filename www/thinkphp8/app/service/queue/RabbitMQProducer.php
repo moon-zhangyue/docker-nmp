@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace app\service\queue;
@@ -36,7 +37,7 @@ class RabbitMQProducer
      * @param string $queue 队列名称
      * @param string $connection 连接名称
      */
-    public function __construct(string $queue = null, string $connection = null)
+    public function __construct(?string $queue = null, ?string $connection = null)
     {
         if ($queue) {
             $this->defaultQueue = $queue;
@@ -55,26 +56,26 @@ class RabbitMQProducer
      * @param string $queue 队列名称
      * @return mixed
      */
-    public function send(string $job, array $data = [], string $queue = null)
+    public function send(string $job, array $data = [], ?string $queue = null)
     {
         $queue = $queue ?: $this->defaultQueue;
-        
+
         // 添加消息ID和时间戳
         $data['message_id'] = $data['message_id'] ?? $this->generateMessageId();
         $data['created_at'] = $data['created_at'] ?? date('Y-m-d H:i:s');
-        
+
         try {
             // 使用队列门面发送消息
             $result = Queue::connection($this->connection)
                 ->push($job, $data, $queue);
-            
+
             Log::info('消息已发送到队列', [
                 'queue' => $queue,
                 'job' => $job,
                 'message_id' => $data['message_id'],
                 'result' => $result
             ]);
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('发送消息到队列失败', [
@@ -84,7 +85,7 @@ class RabbitMQProducer
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             throw $e;
         }
     }
@@ -98,19 +99,19 @@ class RabbitMQProducer
      * @param string $queue 队列名称
      * @return mixed
      */
-    public function sendLater(int $delay, string $job, array $data = [], string $queue = null)
+    public function sendLater(int $delay, string $job, array $data = [], ?string $queue = null)
     {
         $queue = $queue ?: $this->defaultQueue;
-        
+
         // 添加消息ID和时间戳
         $data['message_id'] = $data['message_id'] ?? $this->generateMessageId();
         $data['created_at'] = $data['created_at'] ?? date('Y-m-d H:i:s');
-        
+
         try {
             // 使用队列门面发送延迟消息
             $result = Queue::connection($this->connection)
                 ->later($delay, $job, $data, $queue);
-            
+
             Log::info('延迟消息已发送到队列', [
                 'queue' => $queue,
                 'job' => $job,
@@ -118,7 +119,7 @@ class RabbitMQProducer
                 'message_id' => $data['message_id'],
                 'result' => $result
             ]);
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('发送延迟消息到队列失败', [
@@ -129,7 +130,7 @@ class RabbitMQProducer
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             throw $e;
         }
     }
@@ -141,11 +142,11 @@ class RabbitMQProducer
      * @param string $queue 队列名称
      * @return array
      */
-    public function batchSend(array $messages, string $queue = null)
+    public function batchSend(array $messages, ?string $queue = null)
     {
         $queue = $queue ?: $this->defaultQueue;
         $results = [];
-        
+
         foreach ($messages as $index => $message) {
             if (!isset($message['job'])) {
                 Log::warning('批量发送消息时缺少job字段', [
@@ -154,10 +155,10 @@ class RabbitMQProducer
                 ]);
                 continue;
             }
-            
+
             $job = $message['job'];
             $data = $message['data'] ?? [];
-            
+
             try {
                 $results[$index] = $this->send($job, $data, $queue);
             } catch (\Exception $e) {
@@ -169,7 +170,7 @@ class RabbitMQProducer
                 ]);
             }
         }
-        
+
         return $results;
     }
 
@@ -189,10 +190,10 @@ class RabbitMQProducer
      * @param string $queue 队列名称
      * @return int
      */
-    public function getQueueSize(string $queue = null): int
+    public function getQueueSize(?string $queue = null): int
     {
         $queue = $queue ?: $this->defaultQueue;
-        
+
         try {
             return Queue::connection($this->connection)->size($queue);
         } catch (\Exception $e) {
@@ -200,7 +201,7 @@ class RabbitMQProducer
                 'queue' => $queue,
                 'error' => $e->getMessage()
             ]);
-            
+
             return 0;
         }
     }

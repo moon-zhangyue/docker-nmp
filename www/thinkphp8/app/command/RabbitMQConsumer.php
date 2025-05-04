@@ -11,6 +11,7 @@ use think\console\input\Option;
 use think\console\Output;
 use think\facade\Config;
 use think\facade\Log;
+use think\queue\Job;
 
 /**
  * RabbitMQ消费者命令
@@ -35,7 +36,7 @@ class RabbitMQConsumer extends Command
     protected function configure()
     {
         $this->setName('rabbitmq:consume')
-            ->addOption('queue', 'q', Option::VALUE_OPTIONAL, '队列名称', 'default')
+            ->addOption('queue', 'Q', Option::VALUE_OPTIONAL, '队列名称', 'default')
             ->addOption('connection', 'c', Option::VALUE_OPTIONAL, '连接名称', 'rabbitmq')
             ->addOption('timeout', 't', Option::VALUE_OPTIONAL, '超时时间（秒）', 0)
             ->addOption('memory', 'm', Option::VALUE_OPTIONAL, '内存限制（MB）', 128)
@@ -84,8 +85,8 @@ class RabbitMQConsumer extends Command
         $consumerConfig = [
             'host'           => $config['host'] ?? 'localhost',
             'port'           => $config['port'] ?? 5672,
-            'login'          => $config['login'] ?? 'guest',
-            'password'       => $config['password'] ?? 'guest',
+            'login'          => $config['login'] ?? 'myuser',
+            'password'       => $config['password'] ?? 'mypass',
             'vhost'          => $config['vhost'] ?? '/',
             'exchange'       => $config['exchange'] ?? 'default',
             'exchange_type'  => $config['exchange_type'] ?? 'direct',
@@ -124,15 +125,17 @@ class RabbitMQConsumer extends Command
                     // 创建任务处理类实例
                     $instance = app()->make($job);
 
-                    // 模拟Job对象
-                    $mockJob = new class($body, $message) {
+                    // 模拟Job对象，继承自think\queue\Job
+                    $mockJob = new class($body, $message) extends Job {
                         protected $payload;
                         protected $message;
+                        protected $app;
 
                         public function __construct($payload, $message)
                         {
                             $this->payload = $payload;
                             $this->message = $message;
+                            $this->app = app();
                         }
 
                         public function getJobId()

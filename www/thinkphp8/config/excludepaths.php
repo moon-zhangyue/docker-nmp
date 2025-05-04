@@ -44,4 +44,9 @@ return [
     'logdemo/specificChannel',
     'logdemo/allLevels',
     'logdemo/batch',
+    'rabbitmq/send',
+    'rabbitmq/send-delayed',
+    'rabbitmq/send-task-type',
+    'rabbitmq/batch-send',
+    'rabbitmq/queue-size',
 ];

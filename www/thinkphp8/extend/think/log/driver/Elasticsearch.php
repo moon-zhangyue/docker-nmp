@@ -299,21 +299,122 @@ class Elasticsearch implements LogHandlerInterface
      */
     protected function getClientIp(): string
     {
-        if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-        } elseif (isset($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (isset($_SERVER['REMOTE_ADDR'])) {
-            $ip = $_SERVER['REMOTE_ADDR'];
-        } else {
-            $ip = '0.0.0.0';
+        // 检查各种可能的代理头
+        $headers = [
+            'HTTP_X_REAL_IP',           // Nginx 代理
+            'HTTP_X_FORWARDED_FOR',     // 常见代理
+            'HTTP_CLIENT_IP',           // 客户端 IP
+            'HTTP_X_FORWARDED',         // 常见代理
+            'HTTP_X_CLUSTER_CLIENT_IP', // 集群代理
+            'HTTP_FORWARDED_FOR',       // 较旧的代理
+            'HTTP_FORWARDED',           // 较旧的代理
+            'REMOTE_ADDR',              // 直接连接
+        ];
+
+        $ip = '0.0.0.0';
+
+        // 遍历所有可能的头，找到第一个有效的 IP
+        foreach ($headers as $header) {
+            if (isset($_SERVER[$header]) && !empty($_SERVER[$header])) {
+                $ip = $_SERVER[$header];
+                break;
+            }
         }
 
         // 处理多IP情况，只取第一个
         if (strpos($ip, ',') !== false) {
-            $ip = explode(',', $ip)[0];
+            $ip = trim(explode(',', $ip)[0]);
         }
 
-        return $ip;
+        // 验证 IP 格式
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+
+        // 如果在 Docker 环境中，尝试获取容器 IP
+        if (file_exists('/.dockerenv')) {
+            // 尝试获取容器 IP
+            $containerIp = $this->getContainerIp();
+            if (!empty($containerIp)) {
+                return $containerIp;
+            }
+        }
+
+        // 如果所有方法都失败，返回服务器 IP
+        $serverIp = $this->getServerIp();
+        return !empty($serverIp) ? $serverIp : '0.0.0.0';
+    }
+
+    /**
+     * 获取容器 IP 地址
+     * @return string
+     */
+    protected function getContainerIp(): string
+    {
+        try {
+            // 尝试从 /etc/hosts 获取容器 IP
+            $hosts = file_get_contents('/etc/hosts');
+            if (preg_match('/^(\d+\.\d+\.\d+\.\d+).*?localhost/m', $hosts, $matches)) {
+                return $matches[1];
+            }
+
+            // 尝试使用 hostname -i 命令
+            $ip = trim(shell_exec('hostname -i 2>/dev/null'));
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        } catch (\Exception $e) {
+            // 忽略错误
+        }
+
+        return '';
+    }
+
+    /**
+     * 获取服务器 IP 地址
+     * @return string
+     */
+    protected function getServerIp(): string
+    {
+        try {
+            // 尝试获取服务器 IP
+            if (function_exists('gethostbyname') && function_exists('gethostname')) {
+                $ip = gethostbyname(gethostname());
+                if ($ip !== gethostname() && filter_var($ip, FILTER_VALIDATE_IP)) {
+                    return $ip;
+                }
+            }
+
+            // 尝试通过网络接口获取 IP
+            $ips = [];
+            if (function_exists('shell_exec')) {
+                // Linux
+                $ipCommand = shell_exec('hostname -I 2>/dev/null');
+                if ($ipCommand) {
+                    $ips = array_filter(explode(' ', trim($ipCommand)));
+                }
+
+                // 如果上面的方法失败，尝试使用 ifconfig
+                if (empty($ips)) {
+                    $ifConfig = shell_exec('ifconfig 2>/dev/null');
+                    if ($ifConfig && preg_match_all('/inet\s+(\d+\.\d+\.\d+\.\d+)/', $ifConfig, $matches)) {
+                        $ips = array_filter($matches[1], function($ip) {
+                            return $ip !== '127.0.0.1';
+                        });
+                    }
+                }
+            }
+
+            // 过滤并返回第一个非本地 IP
+            foreach ($ips as $ip) {
+                if (filter_var($ip, FILTER_VALIDATE_IP) && !preg_match('/^(127\.|169\.254\.|::1)/', $ip)) {
+                    return $ip;
+                }
+            }
+        } catch (\Exception $e) {
+            // 忽略错误
+        }
+
+        return '';
     }
 }
