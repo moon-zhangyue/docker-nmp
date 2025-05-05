@@ -79,13 +79,13 @@ class RabbitMQJob
                 'job_id' => $job->getJobId(),
                 'data' => $data
             ]);
-            
+
             // 处理任务逻辑
             // ...
-            
+
             // 标记任务为已完成
             $job->delete();
-            
+
             // 记录任务完成
             Log::info('RabbitMQJob处理完成', [
                 'job_id' => $job->getJobId(),
@@ -99,7 +99,7 @@ class RabbitMQJob
                 'job_id' => $job->getJobId(),
                 'data' => $data
             ]);
-            
+
             // 如果有尝试次数，延迟重试
             $attempts = $job->attempts();
             if ($attempts < 3) {
@@ -112,7 +112,7 @@ class RabbitMQJob
             }
         }
     }
-    
+
     // 任务失败处理
     public function failed($data): void
     {
@@ -204,23 +204,23 @@ $consumer->consume(function ($body, $message) {
     // 处理消息
     $job = $body['job'] ?? null;
     $data = $body['data'] ?? [];
-    
+
     if (empty($job)) {
         return false;
     }
-    
+
     try {
         // 创建任务处理类实例
         $instance = app()->make($job);
-        
+
         // 模拟Job对象
         $mockJob = new class($body, $message) {
             // ...
         };
-        
+
         // 调用任务处理方法
         $instance->fire($mockJob, $data);
-        
+
         return true;
     } catch (\Exception $e) {
         return false;

@@ -10,9 +10,9 @@ use think\helper\Str;
 
 /**
  * RabbitMQ生产者服务
- * 
+ *
  * 该类封装了RabbitMQ消息队列的生产者功能，提供了发送消息的方法
- * 
+ *
  * @package app\service\queue
  */
 class RabbitMQProducer
@@ -66,24 +66,23 @@ class RabbitMQProducer
 
         try {
             // 使用队列门面发送消息
-            $result = Queue::connection($this->connection)
-                ->push($job, $data, $queue);
+            $result = Queue::connection($this->connection)->push($job, $data, $queue);
 
-            Log::info('消息已发送到队列', [
-                'queue' => $queue,
-                'job' => $job,
+            Log::info('消息已发送到队列 - 队列: {queue}, 任务: {job}, 消息ID: {message_id} , 结果: {result}', [
+                'queue'      => $queue,
+                'job'        => $job,
                 'message_id' => $data['message_id'],
-                'result' => $result
+                'result'     => $result
             ]);
 
             return $result;
         } catch (\Exception $e) {
-            Log::error('发送消息到队列失败', [
-                'queue' => $queue,
-                'job' => $job,
+            Log::error('发送消息到队列失败 - 队列: {queue}, 任务: {job}, 消息ID: {message_id}, 错误: {error}, 跟踪: {trace}', [
+                'queue'      => $queue,
+                'job'        => $job,
                 'message_id' => $data['message_id'],
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString()
             ]);
 
             throw $e;
@@ -112,23 +111,23 @@ class RabbitMQProducer
             $result = Queue::connection($this->connection)
                 ->later($delay, $job, $data, $queue);
 
-            Log::info('延迟消息已发送到队列', [
-                'queue' => $queue,
-                'job' => $job,
-                'delay' => $delay,
+            Log::info('延迟消息已发送到队列 - 队列: {queue}, 任务: {job}, 延迟: {delay}秒, 消息ID: {message_id}, 结果: {result}', [
+                'queue'      => $queue,
+                'job'        => $job,
+                'delay'      => $delay,
                 'message_id' => $data['message_id'],
-                'result' => $result
+                'result'     => $result
             ]);
 
             return $result;
         } catch (\Exception $e) {
-            Log::error('发送延迟消息到队列失败', [
-                'queue' => $queue,
-                'job' => $job,
-                'delay' => $delay,
+            Log::error('发送延迟消息到队列失败 - 队列: {queue}, 任务: {job}, 延迟: {delay}秒, 消息ID: {message_id}, 错误: {error}, 跟踪: {trace}', [
+                'queue'      => $queue,
+                'job'        => $job,
+                'delay'      => $delay,
                 'message_id' => $data['message_id'],
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString()
             ]);
 
             throw $e;
@@ -144,28 +143,28 @@ class RabbitMQProducer
      */
     public function batchSend(array $messages, ?string $queue = null)
     {
-        $queue = $queue ?: $this->defaultQueue;
+        $queue   = $queue ?: $this->defaultQueue;
         $results = [];
 
         foreach ($messages as $index => $message) {
             if (!isset($message['job'])) {
-                Log::warning('批量发送消息时缺少job字段', [
-                    'index' => $index,
+                Log::warning('批量发送消息时缺少job字段 - 索引: {index}, 消息: {message}', [
+                    'index'   => $index,
                     'message' => $message
                 ]);
                 continue;
             }
 
-            $job = $message['job'];
+            $job  = $message['job'];
             $data = $message['data'] ?? [];
 
             try {
                 $results[$index] = $this->send($job, $data, $queue);
             } catch (\Exception $e) {
                 $results[$index] = false;
-                Log::error('批量发送消息失败', [
+                Log::error('批量发送消息失败 - 索引: {index}, 任务: {job}, 错误: {error}', [
                     'index' => $index,
-                    'job' => $job,
+                    'job'   => $job,
                     'error' => $e->getMessage()
                 ]);
             }
@@ -197,7 +196,7 @@ class RabbitMQProducer
         try {
             return Queue::connection($this->connection)->size($queue);
         } catch (\Exception $e) {
-            Log::error('获取队列长度失败', [
+            Log::error('获取队列长度失败 - 队列: {queue}, 错误: {error}', [
                 'queue' => $queue,
                 'error' => $e->getMessage()
             ]);

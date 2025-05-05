@@ -32,7 +32,7 @@ class RabbitMQTest extends BaseController
      *
      * @param App $app 应用实例
      */
-    public function __construct(\think\App $app)
+    public function __construct(App $app)
     {
         parent::__construct($app);
         $this->producer = new RabbitMQProducer();
@@ -46,10 +46,10 @@ class RabbitMQTest extends BaseController
     public function send()
     {
         $data = [
-            'id' => uniqid(),
-            'name' => 'test job',
-            'data' => ['key' => 'value'],
-            'task_type' => 'default',
+            'id'         => uniqid(),
+            'name'       => 'test job',
+            'data'       => ['key' => 'value'],
+            'task_type'  => 'default',
             'created_at' => date('Y-m-d H:i:s')
         ];
 
@@ -59,21 +59,21 @@ class RabbitMQTest extends BaseController
 
             return json([
                 'code' => 0,
-                'msg' => '消息已发送到队列',
+                'msg'  => '消息已发送到队列',
                 'data' => [
-                    'job_id' => $result,
+                    'job_id'   => $result,
                     'job_data' => $data
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('发送消息到队列失败', [
+            Log::error('发送消息到队列失败: {error}', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return json([
                 'code' => 1,
-                'msg' => '发送消息失败: ' . $e->getMessage()
+                'msg'  => '发送消息失败: ' . $e->getMessage()
             ]);
         }
     }
@@ -86,10 +86,10 @@ class RabbitMQTest extends BaseController
     public function sendDelayed()
     {
         $data = [
-            'id' => uniqid(),
-            'name' => 'delayed job',
-            'data' => ['key' => 'value'],
-            'task_type' => 'default',
+            'id'         => uniqid(),
+            'name'       => 'delayed job',
+            'data'       => ['key' => 'value'],
+            'task_type'  => 'default',
             'created_at' => date('Y-m-d H:i:s')
         ];
 
@@ -101,22 +101,23 @@ class RabbitMQTest extends BaseController
 
             return json([
                 'code' => 0,
-                'msg' => '延迟消息已发送到队列',
+                'msg'  => '延迟消息已发送到队列',
                 'data' => [
-                    'job_id' => $result,
+                    'job_id'   => $result,
                     'job_data' => $data,
-                    'delay' => $delay
+                    'delay'    => $delay
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('发送延迟消息到队列失败', [
+            Log::error('发送延迟消息到队列失败: {error}, 延迟: {delay}秒', [
                 'error' => $e->getMessage(),
+                'delay' => $delay,
                 'trace' => $e->getTraceAsString()
             ]);
 
             return json([
                 'code' => 1,
-                'msg' => '发送延迟消息失败: ' . $e->getMessage()
+                'msg'  => '发送延迟消息失败: ' . $e->getMessage()
             ]);
         }
     }
@@ -136,14 +137,14 @@ class RabbitMQTest extends BaseController
         if (!in_array($type, $validTypes)) {
             return json([
                 'code' => 1,
-                'msg' => '无效的任务类型，有效类型: ' . implode(', ', $validTypes)
+                'msg'  => '无效的任务类型，有效类型: ' . implode(', ', $validTypes)
             ]);
         }
 
         $data = [
-            'id' => uniqid(),
-            'name' => $type . ' job',
-            'task_type' => $type,
+            'id'         => uniqid(),
+            'name'       => $type . ' job',
+            'task_type'  => $type,
             'created_at' => date('Y-m-d H:i:s')
         ];
 
@@ -168,7 +169,7 @@ class RabbitMQTest extends BaseController
                 $data['period'] = 'monthly';
                 $data['parameters'] = [
                     'start_date' => date('Y-m-01'),
-                    'end_date' => date('Y-m-t')
+                    'end_date'   => date('Y-m-t')
                 ];
                 break;
         }
@@ -179,22 +180,22 @@ class RabbitMQTest extends BaseController
 
             return json([
                 'code' => 0,
-                'msg' => $type . '类型的任务已发送到队列',
+                'msg'  => $type . '类型的任务已发送到队列',
                 'data' => [
-                    'job_id' => $result,
+                    'job_id'   => $result,
                     'job_data' => $data
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('发送任务到队列失败', [
-                'type' => $type,
+            Log::error('发送任务到队列失败: {error}, 任务类型: {type}', [
+                'type'  => $type,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return json([
                 'code' => 1,
-                'msg' => '发送任务失败: ' . $e->getMessage()
+                'msg'  => '发送任务失败: ' . $e->getMessage()
             ]);
         }
     }
@@ -212,20 +213,20 @@ class RabbitMQTest extends BaseController
         if ($count <= 0 || $count > 100) {
             return json([
                 'code' => 1,
-                'msg' => '消息数量必须在1-100之间'
+                'msg'  => '消息数量必须在1-100之间'
             ]);
         }
 
         $messages = [];
         for ($i = 0; $i < $count; $i++) {
             $messages[] = [
-                'job' => 'app\job\RabbitMQJob',
+                'job'  => 'app\job\RabbitMQJob',
                 'data' => [
-                    'id' => uniqid(),
-                    'name' => 'batch job ' . ($i + 1),
-                    'task_type' => 'default',
+                    'id'          => uniqid(),
+                    'name'        => 'batch job ' . ($i + 1),
+                    'task_type'   => 'default',
                     'batch_index' => $i,
-                    'created_at' => date('Y-m-d H:i:s')
+                    'created_at'  => date('Y-m-d H:i:s')
                 ]
             ];
         }
@@ -238,22 +239,23 @@ class RabbitMQTest extends BaseController
 
             return json([
                 'code' => 0,
-                'msg' => "批量发送消息完成，成功: {$successCount}，失败: " . ($count - $successCount),
+                'msg'  => "批量发送消息完成，成功: {$successCount}，失败: " . ($count - $successCount),
                 'data' => [
-                    'total' => $count,
+                    'total'   => $count,
                     'success' => $successCount,
                     'results' => $results
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('批量发送消息到队列失败', [
+            Log::error('批量发送消息到队列失败: {error}, 消息数量: {count}', [
                 'error' => $e->getMessage(),
+                'count' => $count,
                 'trace' => $e->getTraceAsString()
             ]);
 
             return json([
                 'code' => 1,
-                'msg' => '批量发送消息失败: ' . $e->getMessage()
+                'msg'  => '批量发送消息失败: ' . $e->getMessage()
             ]);
         }
     }
@@ -271,22 +273,22 @@ class RabbitMQTest extends BaseController
 
             return json([
                 'code' => 0,
-                'msg' => '获取队列长度成功',
+                'msg'  => '获取队列长度成功',
                 'data' => [
                     'queue' => $queue ?: 'default',
-                    'size' => $size
+                    'size'  => $size
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('获取队列长度失败', [
-                'queue' => $queue,
+            Log::error('获取队列长度失败: {error}, 队列: {queue}', [
+                'queue' => $queue ?: 'default',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return json([
                 'code' => 1,
-                'msg' => '获取队列长度失败: ' . $e->getMessage()
+                'msg'  => '获取队列长度失败: ' . $e->getMessage()
             ]);
         }
     }
