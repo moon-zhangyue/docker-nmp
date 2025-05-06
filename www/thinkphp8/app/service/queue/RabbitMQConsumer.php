@@ -84,31 +84,31 @@ class RabbitMQConsumer
         try {
             // 创建连接参数
             $connectionParams = [
-                'host'     => $this->options['host'],
-                'port'     => $this->options['port'],
-                'user'     => $this->options['login'],
-                'password' => $this->options['password'],
-                'vhost'    => $this->options['vhost']
+                'host'     => $this->options['host'] ?? 'localhost',
+                'port'     => $this->options['port'] ?? 5672,
+                'user'     => $this->options['login'] ?? 'myuser',
+                'password' => $this->options['password'] ?? 'mypass',
+                'vhost'    => $this->options['vhost'] ?? '/'
             ];
 
             // 添加可选的连接参数
             if (isset($this->options['heartbeat'])) {
-                $connectionParams['heartbeat'] = $this->options['heartbeat'];
+                $connectionParams['heartbeat'] = (int) $this->options['heartbeat'];
             }
 
             if (isset($this->options['connection_timeout'])) {
-                $connectionParams['connection_timeout'] = $this->options['connection_timeout'];
+                $connectionParams['connection_timeout'] = (float) $this->options['connection_timeout'];
             }
 
             if (isset($this->options['read_write_timeout'])) {
-                $connectionParams['read_write_timeout'] = $this->options['read_write_timeout'];
+                $connectionParams['read_write_timeout'] = (float) $this->options['read_write_timeout'];
             }
 
             // 添加SSL支持
             if (isset($this->options['ssl']) && $this->options['ssl']) {
-                $connectionParams['ssl'] = true;
+                $connectionParams['ssl'] = (bool) $this->options['ssl'];
 
-                if (isset($this->options['ssl_options'])) {
+                if (isset($this->options['ssl_options']) && is_array($this->options['ssl_options'])) {
                     $connectionParams['ssl_options'] = $this->options['ssl_options'];
                 }
             }
@@ -120,11 +120,15 @@ class RabbitMQConsumer
                 $connectionParams['user'],
                 $connectionParams['password'],
                 $connectionParams['vhost'],
-                $connectionParams['ssl'] ?? false,
-                $connectionParams['ssl_options'] ?? [],
-                $connectionParams['heartbeat'] ?? 60,
+                false, // insist
+                'AMQPLAIN', // login_method
+                null, // login_response
+                'en_US', // locale
                 $connectionParams['connection_timeout'] ?? 3.0,
-                $connectionParams['read_write_timeout'] ?? 3.0
+                $connectionParams['read_write_timeout'] ?? 3.0,
+                null, // context
+                false, // keepalive
+                $connectionParams['heartbeat'] ?? 60
             );
 
             // 创建通道
@@ -146,11 +150,14 @@ class RabbitMQConsumer
                 'queue'    => $this->options['queue'],
                 'exchange' => $this->options['exchange']
             ]);
-        } catch (\Exception $e) {
-            Log::error('RabbitMQ消费者连接初始化失败: 错误信息: {error}, 调用堆栈: {trace}, 配置信息: {options}', [
-                'error'   => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
-                'options' => array_diff_key($this->options, ['password' => '***']) // 记录配置但隐藏密码
+        } catch (\Throwable $e) {
+            // 将配置信息转换为JSON字符串，避免数组到字符串的直接转换
+            $optionsStr = json_encode(array_diff_key($this->options, ['password' => '***']), JSON_UNESCAPED_UNICODE);
+
+            Log::error('RabbitMQ消费者连接初始化失败: {error}', [
+                'error'       => $e->getMessage(),
+                'trace'       => $e->getTraceAsString(),
+                'options_str' => $optionsStr
             ]);
 
             // 清理资源
@@ -315,7 +322,7 @@ class RabbitMQConsumer
                                 'message_id' => Arr::get($body, 'id', '未知')
                             ]);
                         }
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         Log::error('消息处理异常: {error}', [
                             'error' => $e->getMessage(),
                             'trace' => $e->getTraceAsString()
@@ -342,8 +349,8 @@ class RabbitMQConsumer
             while ($this->running && $this->channel->is_consuming()) {
                 $this->channel->wait();
             }
-        } catch (\Exception $e) {
-            Log::error('消费消息异常: {error},{trace}', [
+        } catch (\Throwable $e) {
+            Log::error('消费消息异常: {error}', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -369,7 +376,7 @@ class RabbitMQConsumer
                     'consumer_tag' => $this->options['consumer_tag']
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('停止消费异常: {error}', [
                 'error' => $e->getMessage()
             ]);
@@ -393,7 +400,7 @@ class RabbitMQConsumer
             }
 
             Log::info('RabbitMQ连接已关闭');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('关闭RabbitMQ连接异常: {error}', [
                 'error' => $e->getMessage()
             ]);

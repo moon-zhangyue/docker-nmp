@@ -8,9 +8,9 @@ use think\queue\Job;
 
 /**
  * RabbitMQ示例任务处理类
- * 
+ *
  * 该类用于处理RabbitMQ队列中的任务
- * 
+ *
  * @package app\job
  */
 class RabbitMQJob
@@ -26,9 +26,12 @@ class RabbitMQJob
     {
         try {
             // 记录任务开始处理
-            Log::info('RabbitMQJob开始处理：job_id={job_id}，data={data}', [
-                'job_id' => $job->getJobId(),
-                'data'   => $data
+            // 将数据转换为JSON字符串，避免数组到字符串的直接转换
+            $dataStr = json_encode($data, JSON_UNESCAPED_UNICODE);
+
+            Log::info('RabbitMQJob开始处理 - 任务ID: {job_id} , 数据: {data_str}', [
+                'job_id'   => $job->getJobId(),
+                'data_str' => $dataStr
             ]);
 
             // 根据任务类型执行不同的处理逻辑
@@ -56,18 +59,18 @@ class RabbitMQJob
             $job->delete();
 
             // 记录任务完成
-            Log::info('RabbitMQJob处理完成:job_id={job_id}， execution_time={execution_time}', [
+            Log::info('RabbitMQJob处理完成 - 任务ID: {job_id}, 执行时间: {execution_time}', [
                 'job_id'         => $job->getJobId(),
                 'execution_time' => date('Y-m-d H:i:s')
             ]);
         } catch (\Exception $e) {
             // 记录异常
-            Log::error('RabbitMQJob处理异常:'.json_encode([
+            Log::error('RabbitMQJob处理异常: {error}, 任务ID: {job_id}, 数据: {data}, 调用栈: {trace}', [
                 'error'  => $e->getMessage(),
                 'trace'  => $e->getTraceAsString(),
                 'job_id' => $job->getJobId(),
-                'data'   => $data
-            ],JSON_UNESCAPED_UNICODE));
+                'data'   => json_encode($data, JSON_UNESCAPED_UNICODE)
+            ]);
 
             // 如果有尝试次数，延迟重试
             $attempts = $job->attempts();
@@ -76,19 +79,19 @@ class RabbitMQJob
                 $delay = pow(2, $attempts);
                 $job->release($delay);
 
-                Log::info('任务将延迟重试:'.json_encode([
+                Log::info('任务将延迟重试 - 任务ID: {job_id}, 尝试次数: {attempts}, 延迟: {delay}秒', [
                     'job_id'   => $job->getJobId(),
                     'attempts' => $attempts,
                     'delay'    => $delay
-                ],JSON_UNESCAPED_UNICODE));
+                ]);
             } else {
                 // 尝试次数过多，删除任务
                 $job->delete();
 
-                Log::error('任务重试次数过多，已删除'.json_encode([
+                Log::error('任务重试次数过多，已删除 - 任务ID: {job_id}, 尝试次数: {attempts}', [
                     'job_id'   => $job->getJobId(),
                     'attempts' => $attempts
-                ],JSON_UNESCAPED_UNICODE));
+                ]);
             }
         }
     }
@@ -102,7 +105,7 @@ class RabbitMQJob
     protected function processData(array $data): void
     {
         // 模拟数据处理
-        Log::info('处理数据:数据量={data_size}, 处理时间={processing_time}', [
+        Log::info('处理数据 - 数据量: {data_size}, 处理时间: {processing_time}', [
             'data_size'       => count($data),
             'processing_time' => date('Y-m-d H:i:s')
         ]);
@@ -124,7 +127,7 @@ class RabbitMQJob
         $message    = $data['message'] ?? '默认通知消息';
         $type       = $data['type'] ?? 'email';
 
-        Log::info('发送通知：类型={type}, 接收人数={recipients_count}, 消息长度={message_length}, 发送时间={send_time}', [
+        Log::info('发送通知 - 类型: {type}, 接收人数: {recipients_count}, 消息长度: {message_length}, 发送时间: {send_time}', [
             'type'             => $type,
             'recipients_count' => count($recipients),
             'message_length'   => strlen($message),
@@ -147,7 +150,7 @@ class RabbitMQJob
         $reportType = $data['report_type'] ?? 'default';
         $period     = $data['period'] ?? 'monthly';
 
-        Log::info('生成报告：类型={report_type}, 时间段={period}, 生成时间={generation_time}', [
+        Log::info('生成报告 - 类型: {report_type}, 时间段: {period}, 生成时间: {generation_time}', [
             'report_type'     => $reportType,
             'period'          => $period,
             'generation_time' => date('Y-m-d H:i:s')
@@ -166,8 +169,11 @@ class RabbitMQJob
     protected function defaultProcess(array $data): void
     {
         // 默认任务处理逻辑
-        Log::info('执行默认任务处理：数据={data}, 执行时间={execution_time}', [
-            'data'           => $data,
+        // 将数据转换为JSON字符串，避免数组到字符串的直接转换
+        $dataStr = json_encode($data, JSON_UNESCAPED_UNICODE);
+
+        Log::info('执行默认任务处理 - 执行时间: {execution_time}', [
+            'data_str'       => $dataStr,
             'execution_time' => date('Y-m-d H:i:s')
         ]);
 
@@ -177,15 +183,18 @@ class RabbitMQJob
 
     /**
      * 任务失败处理
-     * 
+     *
      * @param array $data 任务数据
      * @return void
      */
     public function failed($data): void
     {
         // 记录任务失败
-        Log::error('RabbitMQJob任务最终失败: 数据={data}, 失败时间={failure_time}', [
-            'data'         => $data,
+        // 将数据转换为JSON字符串，避免数组到字符串的直接转换
+        $dataStr = json_encode($data, JSON_UNESCAPED_UNICODE);
+
+        Log::error('RabbitMQJob任务最终失败 - 失败时间: {failure_time}', [
+            'data_str'     => $dataStr,
             'failure_time' => date('Y-m-d H:i:s')
         ]);
     }

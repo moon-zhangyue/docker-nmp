@@ -99,7 +99,7 @@ class ConsumerManager
             }, false);
 
             return true;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->output->error("消费者异常: " . $e->getMessage());
             Log::error('消费者异常: {error}', [
                 'error' => $e->getMessage(),

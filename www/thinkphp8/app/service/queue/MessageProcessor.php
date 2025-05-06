@@ -163,7 +163,7 @@ class MessageProcessor
             Cache::set('rabbitmq_metrics', $metrics);
         } catch (\Throwable $e) {
             // 记录错误但不中断处理流程
-            Log::error('记录RabbitMQ指标失败: {error}-{trace}', [
+            Log::error('记录RabbitMQ指标失败: {error}', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -218,8 +218,13 @@ class MessageProcessor
             $logData['context'] = $context;
         }
 
-        Log::error('处理消息异常: {error}，任务ID: {job_id}，上下文: {context}, 堆栈跟踪: {trace}', array_merge($logData, [
-            'job_id' => $context['id'] ?? '未知'
+        // 提取上下文信息，避免直接将数组转换为字符串
+        $jobId = $context['id'] ?? '未知';
+        $contextStr = !empty($context) ? json_encode($context, JSON_UNESCAPED_UNICODE) : '{}';
+
+        Log::error('处理消息异常: {error},任务ID: {job_id}，堆栈跟踪: {trace}', array_merge($logData, [
+            'job_id' => $jobId,
+            'context_str' => $contextStr
         ]));
     }
 }
