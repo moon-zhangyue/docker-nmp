@@ -231,14 +231,15 @@ class RabbitMQConsumer
             $arguments['x-max-length'] = (int) $this->options['max_length'];
         }
 
-        $this->channel->queue_declare(
-            $this->options['queue'],
-            $passive,
-            $durable,
-            $exclusive,
-            $autoDelete,
-            $nowait,
-            $arguments
+        // 声明队列
+        $this->channel->queue_declare(           
+            $this->options['queue'],// 队列名称          
+            $passive,// 是否为被动队列           
+            $durable,// 是否持久化           
+            $exclusive,// 是否为独占队列           
+            $autoDelete,// 是否自动删除           
+            $nowait,// 是否立即返回
+            $arguments// 其他参数
         );
     }
 
@@ -294,12 +295,12 @@ class RabbitMQConsumer
         try {
             // 设置消息处理回调
             $this->channel->basic_consume(
-                $this->options['queue'],        // queue
-                $this->options['consumer_tag'], // consumer_tag
-                false,                          // no_local
-                $noAck,                         // no_ack
-                false,                          // exclusive
-                false,                          // nowait
+                $this->options['queue'],        // 队列名称
+                $this->options['consumer_tag'], // 消费者标签，用于标识消费者
+                false,                          // no_local，设置为false，表示消费者可以接收本机发布的消息
+                $noAck,                         // no_ack，设置是否需要消费者确认消息
+                false,                          // exclusive，设置为false，表示队列可以被多个消费者订阅
+                false,                          // nowait，设置为false，表示服务器可以在处理完命令后回复应答
                 function (AMQPMessage $message) use ($callback, $noAck) {
                     try {
                         // 解析消息体
