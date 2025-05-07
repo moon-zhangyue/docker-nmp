@@ -44,6 +44,9 @@ return [
             'global_qos'       => false,  // 是否全局QoS
             'delayed_exchange' => env('RABBITMQ_DELAYED_EXCHANGE', 'delayed'),  // 延迟交换机名称
             'queue_arguments'  => [],  // 队列参数
+            'publisher_confirms' => env('RABBITMQ_PUBLISHER_CONFIRMS', false),  // 是否启用发布者确认模式
+            'wait_for_confirm'   => env('RABBITMQ_WAIT_FOR_CONFIRM', false),    // 是否等待发布者确认
+            'confirm_timeout'    => env('RABBITMQ_CONFIRM_TIMEOUT', 5.0),       // 发布者确认超时时间（秒）
         ],
         'kafka'    => [
             'type'                               => 'kafka',

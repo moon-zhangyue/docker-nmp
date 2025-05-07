@@ -42,6 +42,9 @@ composer require php-amqplib/php-amqplib
     'global_qos'    => false,  // 是否全局QoS
     'delayed_exchange' => env('RABBITMQ_DELAYED_EXCHANGE', 'delayed'),  // 延迟交换机名称
     'queue_arguments' => [],  // 队列参数
+    'publisher_confirms' => env('RABBITMQ_PUBLISHER_CONFIRMS', false),  // 是否启用发布者确认模式
+    'wait_for_confirm'   => env('RABBITMQ_WAIT_FOR_CONFIRM', false),    // 是否等待发布者确认
+    'confirm_timeout'    => env('RABBITMQ_CONFIRM_TIMEOUT', 5.0),       // 发布者确认超时时间（秒）
 ],
 ```
 
@@ -246,11 +249,45 @@ RabbitMQ 驱动支持消息确认机制，确保消息被正确处理：
 - 当任务处理成功时，调用 `$job->delete()` 确认消息
 - 当任务需要重试时，调用 `$job->release($delay)` 将消息重新放回队列
 
-### 3. 消息持久化
+### 3. 发布者确认机制
+
+RabbitMQ 驱动支持发布者确认机制，确保消息成功发送到 RabbitMQ 服务器：
+
+```php
+// 在配置文件中启用发布者确认
+// config/queue.php
+'rabbitmq' => [
+    // ...其他配置...
+    'publisher_confirms' => true,  // 启用发布者确认模式
+    'wait_for_confirm'   => true,  // 是否等待确认（同步模式）
+    'confirm_timeout'    => 5.0,   // 等待确认的超时时间（秒）
+],
+
+// 使用生产者服务时启用发布者确认
+$producer = new RabbitMQProducer(
+    'default',    // 队列名称
+    'rabbitmq',   // 连接名称
+    true,         // 启用发布者确认
+    true,         // 等待确认
+    5.0           // 确认超时时间
+);
+
+// 发送消息
+$producer->send('app\job\RabbitMQJob', $data);
+```
+
+发布者确认模式有两种工作方式：
+
+1. **同步模式**：设置 `wait_for_confirm` 为 `true`，发送消息后会等待服务器确认，直到收到确认或超时。
+2. **异步模式**：设置 `wait_for_confirm` 为 `false`，发送消息后立即返回，通过回调函数处理确认结果。
+
+发布者确认机制可以大幅提高消息可靠性，确保消息不会在发送过程中丢失。
+
+### 4. 消息持久化
 
 RabbitMQ 驱动默认启用消息持久化，确保消息在 RabbitMQ 服务器重启后不会丢失。
 
-### 4. 预取数量
+### 5. 预取数量
 
 可以通过 `prefetch_count` 配置项设置预取数量，控制消费者一次获取的消息数量，避免消费者过载。
 

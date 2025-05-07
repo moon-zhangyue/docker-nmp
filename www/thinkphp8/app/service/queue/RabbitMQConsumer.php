@@ -274,10 +274,11 @@ class RabbitMQConsumer
         $prefetchCount = $this->options['prefetch_count'] ?? 1;
         $global        = $this->options['global_qos'] ?? false;
 
+        // 设置每个消费者在服务器端的最大未确认消息数
         $this->channel->basic_qos(
-            $prefetchSize,
-            $prefetchCount,
-            $global
+            $prefetchSize, // 每个消费者在服务器端的最大未确认消息字节数
+            $prefetchCount, // 每个消费者在服务器端的最大未确认消息数
+            $global // 是否将此设置应用于整个通道，还是仅应用于每个消费者
         );
     }
 

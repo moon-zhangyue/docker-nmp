@@ -32,12 +32,36 @@ class RabbitMQProducer
     protected $connection = 'rabbitmq';
 
     /**
+     * 是否启用发布者确认模式
+     *
+     * @var bool
+     */
+    protected $publisherConfirms = false;
+
+    /**
+     * 是否等待发布者确认
+     *
+     * @var bool
+     */
+    protected $waitForConfirm = false;
+
+    /**
+     * 发布者确认超时时间（秒）
+     *
+     * @var float
+     */
+    protected $confirmTimeout = 5.0;
+
+    /**
      * 构造函数
      *
      * @param string $queue 队列名称
      * @param string $connection 连接名称
+     * @param bool $publisherConfirms 是否启用发布者确认模式
+     * @param bool $waitForConfirm 是否等待发布者确认
+     * @param float $confirmTimeout 发布者确认超时时间（秒）
      */
-    public function __construct(?string $queue = null, ?string $connection = null)
+    public function __construct(?string $queue = null, ?string $connection = null, bool $publisherConfirms = false, bool $waitForConfirm = false, float $confirmTimeout = 5.0)
     {
         if ($queue) {
             $this->defaultQueue = $queue;
@@ -46,6 +70,10 @@ class RabbitMQProducer
         if ($connection) {
             $this->connection = $connection;
         }
+
+        $this->publisherConfirms = $publisherConfirms;
+        $this->waitForConfirm = $waitForConfirm;
+        $this->confirmTimeout = $confirmTimeout;
     }
 
     /**
@@ -65,14 +93,32 @@ class RabbitMQProducer
         $data['created_at'] = $data['created_at'] ?? date('Y-m-d H:i:s');
 
         try {
-            // 使用队列门面发送消息
-            $result = Queue::connection($this->connection)->push($job, $data, $queue);
+            // 准备发送选项
+            $options = [];
 
-            Log::info('消息已发送到队列 - 队列: {queue}, 任务: {job}, 消息ID: {message_id} , 结果: {result}', [
+            // 如果启用了发布者确认模式，添加相关选项
+            if ($this->publisherConfirms) {
+                $options['wait_for_confirm'] = $this->waitForConfirm;
+                $options['confirm_timeout'] = $this->confirmTimeout;
+            }
+
+            // 使用队列门面发送消息
+            $queueConnection = Queue::connection($this->connection);
+
+            // 如果是我们修改过的RabbitMQ连接器，可以传递选项
+            if (method_exists($queueConnection, 'pushWithOptions')) {
+                $result = $queueConnection->pushWithOptions($job, $data, $queue, $options);
+            } else {
+                // 否则使用标准方法
+                $result = $queueConnection->push($job, $data, $queue);
+            }
+
+            Log::info('消息已发送到队列 - 队列: {queue}, 任务: {job}, 消息ID: {message_id}, 结果: {result}, 发布者确认: {confirms}', [
                 'queue'      => $queue,
                 'job'        => $job,
                 'message_id' => $data['message_id'],
-                'result'     => $result
+                'result'     => $result,
+                'confirms'   => $this->publisherConfirms ? 'enabled' : 'disabled'
             ]);
 
             return $result;
@@ -107,16 +153,33 @@ class RabbitMQProducer
         $data['created_at'] = $data['created_at'] ?? date('Y-m-d H:i:s');
 
         try {
-            // 使用队列门面发送延迟消息
-            $result = Queue::connection($this->connection)
-                ->later($delay, $job, $data, $queue);
+            // 准备发送选项
+            $options = [];
 
-            Log::info('延迟消息已发送到队列 - 队列: {queue}, 任务: {job}, 延迟: {delay}秒, 消息ID: {message_id}, 结果: {result}', [
+            // 如果启用了发布者确认模式，添加相关选项
+            if ($this->publisherConfirms) {
+                $options['wait_for_confirm'] = $this->waitForConfirm;
+                $options['confirm_timeout'] = $this->confirmTimeout;
+            }
+
+            // 使用队列门面发送延迟消息
+            $queueConnection = Queue::connection($this->connection);
+
+            // 如果是我们修改过的RabbitMQ连接器，可以传递选项
+            if (method_exists($queueConnection, 'laterWithOptions')) {
+                $result = $queueConnection->laterWithOptions($delay, $job, $data, $queue, $options);
+            } else {
+                // 否则使用标准方法
+                $result = $queueConnection->later($delay, $job, $data, $queue);
+            }
+
+            Log::info('延迟消息已发送到队列 - 队列: {queue}, 任务: {job}, 延迟: {delay}秒, 消息ID: {message_id}, 结果: {result}, 发布者确认: {confirms}', [
                 'queue'      => $queue,
                 'job'        => $job,
                 'delay'      => $delay,
                 'message_id' => $data['message_id'],
-                'result'     => $result
+                'result'     => $result,
+                'confirms'   => $this->publisherConfirms ? 'enabled' : 'disabled'
             ]);
 
             return $result;
