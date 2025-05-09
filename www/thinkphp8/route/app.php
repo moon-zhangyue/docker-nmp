@@ -79,6 +79,15 @@ Route::group('rabbitmq', function () {
     Route::get('queue-size', 'RabbitMQTest/getQueueSize'); // 获取队列大小
 });
 
+// RabbitMQ六种工作模式示例路由
+Route::group('rabbitmq-examples', function () {
+    Route::get('simple', 'RabbitMQExamplesController/testSimpleMode'); // 简单模式
+    Route::get('work', 'RabbitMQExamplesController/testWorkMode'); // 工作模式
+    Route::get('publish-subscribe', 'RabbitMQExamplesController/testPublishSubscribeMode'); // 发布/订阅模式
+    Route::get('routing', 'RabbitMQExamplesController/testRoutingMode'); // 路由模式
+    Route::get('topic', 'RabbitMQExamplesController/testTopicMode'); // 主题模式
+    Route::get('rpc', 'RabbitMQExamplesController/testRPCMode'); // RPC模式
+});
 
 // 红包
 Route::get('redpacket/index', 'RedPacketController/index');

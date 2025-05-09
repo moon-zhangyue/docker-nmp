@@ -72,8 +72,8 @@ class RabbitMQProducer
         }
 
         $this->publisherConfirms = $publisherConfirms;
-        $this->waitForConfirm = $waitForConfirm;
-        $this->confirmTimeout = $confirmTimeout;
+        $this->waitForConfirm    = $waitForConfirm;
+        $this->confirmTimeout    = $confirmTimeout;
     }
 
     /**
@@ -99,7 +99,7 @@ class RabbitMQProducer
             // 如果启用了发布者确认模式，添加相关选项
             if ($this->publisherConfirms) {
                 $options['wait_for_confirm'] = $this->waitForConfirm;
-                $options['confirm_timeout'] = $this->confirmTimeout;
+                $options['confirm_timeout']  = $this->confirmTimeout;
             }
 
             // 使用队列门面发送消息
@@ -159,7 +159,7 @@ class RabbitMQProducer
             // 如果启用了发布者确认模式，添加相关选项
             if ($this->publisherConfirms) {
                 $options['wait_for_confirm'] = $this->waitForConfirm;
-                $options['confirm_timeout'] = $this->confirmTimeout;
+                $options['confirm_timeout']  = $this->confirmTimeout;
             }
 
             // 使用队列门面发送延迟消息

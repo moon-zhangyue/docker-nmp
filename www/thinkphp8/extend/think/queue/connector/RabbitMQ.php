@@ -117,12 +117,12 @@ class RabbitMQ extends Connector
      */
     public function __construct(array $options = [])
     {
-        $this->options = $options;
-        $this->default = $options['queue'] ?? 'default';
-        $this->exchange = $options['exchange'] ?? 'default';
-        $this->exchangeType = $options['exchange_type'] ?? 'direct';
-        $this->delayedExchange = $options['delayed_exchange'] ?? 'delayed';
-        $this->connectionName = $options['connection_name'] ?? 'rabbitmq';
+        $this->options           = $options;
+        $this->default           = $options['queue'] ?? 'default';
+        $this->exchange          = $options['exchange'] ?? 'default';
+        $this->exchangeType      = $options['exchange_type'] ?? 'direct';
+        $this->delayedExchange   = $options['delayed_exchange'] ?? 'delayed';
+        $this->connectionName    = $options['connection_name'] ?? 'rabbitmq';
         $this->publisherConfirms = $options['publisher_confirms'] ?? false;
 
         // 获取容器实例
@@ -194,9 +194,9 @@ class RabbitMQ extends Connector
             $this->declareQueue($this->default);
 
             // 设置QOS
-            $prefetchSize = $this->options['prefetch_size'] ?? 0;// $prefetchSize：预取窗口大小，限制消费者一次性能接收的消息大小总和
+            $prefetchSize  = $this->options['prefetch_size'] ?? 0;// $prefetchSize：预取窗口大小，限制消费者一次性能接收的消息大小总和
             $prefetchCount = $this->options['prefetch_count'] ?? 1;// $prefetchCount：预取数量，限制消费者一次性能接收但未确认的消息数量
-            $global = $this->options['global_qos'] ?? false;// $global：是否全局应用此设置，true表示对所有消费者生效，false表示仅对当前消费者生效
+            $global        = $this->options['global_qos'] ?? false;// $global：是否全局应用此设置，true表示对所有消费者生效，false表示仅对当前消费者生效
 
             // 设置消息的预取质量，以控制消费者接收消息的数量和频率
             $this->channel->basic_qos($prefetchSize, $prefetchCount, $global);
@@ -249,8 +249,8 @@ class RabbitMQ extends Connector
 
         // 声明延迟队列
         $delayedQueue = $queue . '_delayed';
-        $arguments = new AMQPTable([
-            'x-dead-letter-exchange' => $this->exchange,
+        $arguments    = new AMQPTable([
+            'x-dead-letter-exchange'    => $this->exchange,
             'x-dead-letter-routing-key' => $queue,
         ]);
 
@@ -345,15 +345,15 @@ class RabbitMQ extends Connector
             $message = new AMQPMessage(
                 $payload,
                 [
-                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
-                    'content_type' => 'application/json',
+                    'delivery_mode'    => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                    'content_type'     => 'application/json',
                     'content_encoding' => 'utf-8',
                 ] + ($options['properties'] ?? [])
             );
 
             // 解析payload获取任务ID
             $payloadArray = json_decode($payload, true);
-            $jobId = $payloadArray['id'] ?? null;
+            $jobId        = $payloadArray['id'] ?? null;
 
             // 如果启用了发布者确认模式
             if ($this->publisherConfirms) {
@@ -366,17 +366,17 @@ class RabbitMQ extends Connector
                     // 确认回调
                     function ($tag) use ($jobId, $queue) {
                         Log::info('消息发布已确认 - 队列: {queue}, 任务ID: {job_id}, 标签: {tag}', [
-                            'queue' => $queue,
+                            'queue'  => $queue,
                             'job_id' => $jobId,
-                            'tag' => $tag
+                            'tag'    => $tag
                         ]);
                     },
                     // 拒绝回调
                     function ($tag, $requeue) use ($jobId, $queue) {
                         Log::warning('消息发布已拒绝 - 队列: {queue}, 任务ID: {job_id}, 标签: {tag}, 重新入队: {requeue}', [
-                            'queue' => $queue,
-                            'job_id' => $jobId,
-                            'tag' => $tag,
+                            'queue'   => $queue,
+                            'job_id'  => $jobId,
+                            'tag'     => $tag,
                             'requeue' => $requeue ? 'true' : 'false'
                         ]);
                     }
@@ -388,12 +388,12 @@ class RabbitMQ extends Connector
 
             // 如果启用了发布者确认模式且配置了等待确认
             if ($this->publisherConfirms && ($options['wait_for_confirm'] ?? false)) {
-                $timeout = $options['confirm_timeout'] ?? 5.0; // 默认等待5秒
+                $timeout   = $options['confirm_timeout'] ?? 5.0; // 默认等待5秒
                 $confirmed = $this->waitForConfirms($timeout);
 
                 if (!$confirmed) {
                     Log::warning('消息发布确认超时 - 队列: {queue}, 任务ID: {job_id}', [
-                        'queue' => $queue,
+                        'queue'  => $queue,
                         'job_id' => $jobId
                     ]);
                 }
@@ -434,7 +434,7 @@ class RabbitMQ extends Connector
     public function laterWithOptions($delay, $job, $data = '', $queue = null, array $options = [])
     {
         try {
-            $queue = $this->getQueue($queue);
+            $queue        = $this->getQueue($queue);
             $delayedQueue = $queue . '_delayed';
 
             // 确保延迟队列存在
@@ -456,10 +456,10 @@ class RabbitMQ extends Connector
             $message = new AMQPMessage(
                 $payload,
                 [
-                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
-                    'content_type' => 'application/json',
+                    'delivery_mode'    => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                    'content_type'     => 'application/json',
                     'content_encoding' => 'utf-8',
-                    'expiration' => $delay * 1000, // 转换为毫秒
+                    'expiration'       => $delay * 1000, // 转换为毫秒
                 ]
             );
 
@@ -477,19 +477,19 @@ class RabbitMQ extends Connector
                     // 确认回调
                     function ($tag) use ($jobId, $delayedQueue, $delay) {
                         Log::info('延迟消息发布已确认 - 队列: {queue}, 任务ID: {job_id}, 延迟: {delay}秒, 标签: {tag}', [
-                            'queue' => $delayedQueue,
+                            'queue'  => $delayedQueue,
                             'job_id' => $jobId,
-                            'delay' => $delay,
-                            'tag' => $tag
+                            'delay'  => $delay,
+                            'tag'    => $tag
                         ]);
                     },
                     // 拒绝回调
                     function ($tag, $requeue) use ($jobId, $delayedQueue, $delay) {
                         Log::warning('延迟消息发布已拒绝 - 队列: {queue}, 任务ID: {job_id}, 延迟: {delay}秒, 标签: {tag}, 重新入队: {requeue}', [
-                            'queue' => $delayedQueue,
-                            'job_id' => $jobId,
-                            'delay' => $delay,
-                            'tag' => $tag,
+                            'queue'   => $delayedQueue,
+                            'job_id'  => $jobId,
+                            'delay'   => $delay,
+                            'tag'     => $tag,
                             'requeue' => $requeue ? 'true' : 'false'
                         ]);
                     }
@@ -501,14 +501,14 @@ class RabbitMQ extends Connector
 
             // 如果启用了发布者确认模式且配置了等待确认
             if ($this->publisherConfirms && ($options['wait_for_confirm'] ?? false)) {
-                $timeout = $options['confirm_timeout'] ?? 5.0; // 默认等待5秒
+                $timeout   = $options['confirm_timeout'] ?? 5.0; // 默认等待5秒
                 $confirmed = $this->waitForConfirms($timeout);
 
                 if (!$confirmed) {
                     Log::warning('延迟消息发布确认超时 - 队列: {queue}, 任务ID: {job_id}, 延迟: {delay}秒', [
-                        'queue' => $delayedQueue,
+                        'queue'  => $delayedQueue,
                         'job_id' => $jobId,
-                        'delay' => $delay
+                        'delay'  => $delay
                     ]);
                 }
             }
@@ -584,20 +584,20 @@ class RabbitMQ extends Connector
 
         // 如果需要延迟，则重新发布到延迟队列
         if ($delay > 0) {
-            $payload = $job->getRawBody();
-            $payloadArray = json_decode($payload, true);
+            $payload                  = $job->getRawBody();
+            $payloadArray             = json_decode($payload, true);
             $payloadArray['attempts'] = ($payloadArray['attempts'] ?? 0) + 1;
-            $payload = json_encode($payloadArray);
+            $payload                  = json_encode($payloadArray);
 
             $delayedQueue = $queue . '_delayed';
 
             $message = new AMQPMessage(
                 $payload,
                 [
-                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
-                    'content_type' => 'application/json',
+                    'delivery_mode'    => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                    'content_type'     => 'application/json',
                     'content_encoding' => 'utf-8',
-                    'expiration' => $delay * 1000, // 转换为毫秒
+                    'expiration'       => $delay * 1000, // 转换为毫秒
                 ]
             );
 
@@ -615,19 +615,19 @@ class RabbitMQ extends Connector
                     // 确认回调
                     function ($tag) use ($jobId, $delayedQueue, $delay) {
                         Log::info('重新发布消息已确认 - 队列: {queue}, 任务ID: {job_id}, 延迟: {delay}秒, 标签: {tag}', [
-                            'queue' => $delayedQueue,
+                            'queue'  => $delayedQueue,
                             'job_id' => $jobId,
-                            'delay' => $delay,
-                            'tag' => $tag
+                            'delay'  => $delay,
+                            'tag'    => $tag
                         ]);
                     },
                     // 拒绝回调
                     function ($tag, $requeue) use ($jobId, $delayedQueue, $delay) {
                         Log::warning('重新发布消息已拒绝 - 队列: {queue}, 任务ID: {job_id}, 延迟: {delay}秒, 标签: {tag}, 重新入队: {requeue}', [
-                            'queue' => $delayedQueue,
-                            'job_id' => $jobId,
-                            'delay' => $delay,
-                            'tag' => $tag,
+                            'queue'   => $delayedQueue,
+                            'job_id'  => $jobId,
+                            'delay'   => $delay,
+                            'tag'     => $tag,
                             'requeue' => $requeue ? 'true' : 'false'
                         ]);
                     }
@@ -638,14 +638,14 @@ class RabbitMQ extends Connector
 
             // 如果启用了发布者确认模式，等待确认
             if ($this->publisherConfirms) {
-                $timeout = 5.0; // 默认等待5秒
+                $timeout   = 5.0; // 默认等待5秒
                 $confirmed = $this->waitForConfirms($timeout);
 
                 if (!$confirmed) {
                     Log::warning('重新发布消息确认超时 - 队列: {queue}, 任务ID: {job_id}, 延迟: {delay}秒', [
-                        'queue' => $delayedQueue,
+                        'queue'  => $delayedQueue,
                         'job_id' => $jobId,
-                        'delay' => $delay
+                        'delay'  => $delay
                     ]);
                 }
             }
@@ -692,7 +692,7 @@ class RabbitMQ extends Connector
     protected function createPayloadArray($job, $data = '')
     {
         return array_merge(parent::createPayloadArray($job, $data), [
-            'id' => $this->getRandomId(),
+            'id'       => $this->getRandomId(),
             'attempts' => 0,
         ]);
     }
@@ -771,7 +771,7 @@ class RabbitMQ extends Connector
 
                     // 记录日志
                     Log::warning('RabbitMQ消息已拒绝 - 标签: {tag}, 重新入队: {requeue}', [
-                        'tag' => $tag,
+                        'tag'     => $tag,
                         'requeue' => $requeue ? 'true' : 'false'
                     ]);
 
@@ -787,7 +787,7 @@ class RabbitMQ extends Connector
 
             // 记录日志
             Log::warning('RabbitMQ消息已拒绝 - 标签: {tag}, 重新入队: {requeue}', [
-                'tag' => $deliveryTag,
+                'tag'     => $deliveryTag,
                 'requeue' => $requeue ? 'true' : 'false'
             ]);
 
@@ -807,7 +807,7 @@ class RabbitMQ extends Connector
     public function registerConfirmCallback($deliveryTag, $ackCallback = null, $nackCallback = null)
     {
         $this->confirmCallbacks[$deliveryTag] = [
-            'ack' => $ackCallback,
+            'ack'  => $ackCallback,
             'nack' => $nackCallback
         ];
     }
