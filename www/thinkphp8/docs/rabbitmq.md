@@ -328,13 +328,13 @@ RabbitMQ 驱动默认启用消息持久化，确保消息在 RabbitMQ 服务器�
 
 ## 目录
 
-1. [Simple简单模式](#1-simple简单模式)
-2. [Work工作模式](#2-work工作模式)
-3. [Publish/Subscribe发布订阅模式](#3-publishsubscribe发布订阅模式)
-4. [Routing路由模式](#4-routing路由模式)
-5. [Topic主题模式](#5-topic主题模式)
-6. [RPC远程过程调用模式](#6-rpc远程过程调用模式)
-7. [如何运行示例](#7-如何运行示例)
+1. [Simple简单模式](https://www.rabbitmq.com/tutorials/tutorial-one-php.html)
+2. [Work工作模式](https://www.rabbitmq.com/tutorials/tutorial-two-php.html)
+3. [Publish/Subscribe发布订阅模式](https://www.rabbitmq.com/tutorials/tutorial-three-php)
+4. [Routing路由模式](https://www.rabbitmq.com/tutorials/tutorial-four-php)
+5. [Topic主题模式](https://www.rabbitmq.com/tutorials/tutorial-five-php)
+6. [RPC远程过程调用模式](https://www.rabbitmq.com/tutorials/tutorial-six-php)
+7. [如何运行示例](https://www.rabbitmq.com/tutorials/tutorial-seven-php)
 
 ## 1. Simple简单模式
 
