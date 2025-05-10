@@ -251,24 +251,24 @@ class RoutingMode
         // 以下代码仅作为示例，实际使用时需要在不同进程中运行
         
         // 消费者1 - 只处理错误和严重错误日志
-        // $this->subscribe('error-handler', ['error', 'critical'], function ($message, $routingKey, $consumerName) {
-        //     echo "[$consumerName] 接收到[$routingKey]级别消息: $message\n";
-        //     file_put_contents('./logs/errors.log', "[$routingKey] $message\n", FILE_APPEND);
-        //     return true;
-        // });
+        $this->subscribe('error-handler', ['error', 'critical'], function ($message, $routingKey, $consumerName) {
+            echo "[$consumerName] 接收到[$routingKey]级别消息: $message\n";
+            file_put_contents('./logs/errors.log', "[$routingKey] $message\n", FILE_APPEND);
+            return true;
+        });
         
         // 消费者2 - 处理所有日志
-        // $this->subscribe('all-logs-handler', ['info', 'warning', 'error', 'critical'], function ($message, $routingKey, $consumerName) {
-        //     echo "[$consumerName] 接收到[$routingKey]级别消息: $message\n";
-        //     file_put_contents('./logs/all.log', "[$routingKey] $message\n", FILE_APPEND);
-        //     return true;
-        // });
+        $this->subscribe('all-logs-handler', ['info', 'warning', 'error', 'critical'], function ($message, $routingKey, $consumerName) {
+            echo "[$consumerName] 接收到[$routingKey]级别消息: $message\n";
+            file_put_contents('./logs/all.log', "[$routingKey] $message\n", FILE_APPEND);
+            return true;
+        });
         
         // 消费者3 - 只处理警告日志
-        // $this->subscribe('warning-handler', ['warning'], function ($message, $routingKey, $consumerName) {
-        //     echo "[$consumerName] 接收到[$routingKey]级别消息: $message\n";
-        //     file_put_contents('./logs/warnings.log', "[$routingKey] $message\n", FILE_APPEND);
-        //     return true;
-        // });
+        $this->subscribe('warning-handler', ['warning'], function ($message, $routingKey, $consumerName) {
+            echo "[$consumerName] 接收到[$routingKey]级别消息: $message\n";
+            file_put_contents('./logs/warnings.log', "[$routingKey] $message\n", FILE_APPEND);
+            return true;
+        });
     }
 } 

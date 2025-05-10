@@ -18,12 +18,12 @@ class SimpleMode
      * 队列名称
      */
     protected $queueName = 'simple_queue';
-    
+
     /**
      * 连接配置
      */
     protected $config = [];
-    
+
     /**
      * 构造函数
      */
@@ -38,7 +38,7 @@ class SimpleMode
             'vhost'    => config('queue.connections.rabbitmq.vhost', '/'),
         ];
     }
-    
+
     /**
      * 生产者：发送消息
      *
@@ -56,10 +56,10 @@ class SimpleMode
                 $this->config['password'],
                 $this->config['vhost']
             );
-            
+
             // 创建通道
             $channel = $connection->channel();
-            
+
             // 声明队列
             $channel->queue_declare(
                 $this->queueName, // 队列名称
@@ -68,7 +68,7 @@ class SimpleMode
                 false,           // exclusive
                 false            // auto delete
             );
-            
+
             // 创建消息
             $msg = new AMQPMessage(
                 $message,
@@ -77,27 +77,27 @@ class SimpleMode
                     'content_type'  => 'text/plain',
                 ]
             );
-            
+
             // 发布消息到队列
             $channel->basic_publish($msg, '', $this->queueName);
-            
+
             Log::info('简单模式 - 消息已发送: {message}', ['message' => $message]);
-            
+
             // 关闭通道和连接
             $channel->close();
             $connection->close();
-            
+
             return true;
         } catch (\Exception $e) {
             Log::error('简单模式 - 发送消息失败: {error}', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return false;
         }
     }
-    
+
     /**
      * 消费者：接收消息
      *
@@ -115,10 +115,10 @@ class SimpleMode
                 $this->config['password'],
                 $this->config['vhost']
             );
-            
+
             // 创建通道
             $channel = $connection->channel();
-            
+
             // 声明队列
             $channel->queue_declare(
                 $this->queueName, // 队列名称
@@ -127,12 +127,12 @@ class SimpleMode
                 false,           // exclusive
                 false            // auto delete
             );
-            
+
             // 设置每次只接收一条消息
-            $channel->basic_qos(null, 1, null);
-            
+            $channel->basic_qos(0, 1, null);
+
             Log::info('简单模式 - 等待接收消息...');
-            
+
             // 消费消息
             $channel->basic_consume(
                 $this->queueName,        // 队列名称
@@ -143,23 +143,23 @@ class SimpleMode
                 false,                   // no wait
                 function (AMQPMessage $message) use ($callback) {
                     // 调用回调函数处理消息
-                    $result = call_user_func($callback, $message->body);
-                    
+                    $result = call_user_func($callback, $message->getBody());
+
                     // 确认消息已处理
                     $message->ack();
-                    
+
                     Log::info('简单模式 - 消息已处理: {message}, 结果: {result}', [
-                        'message' => $message->body,
+                        'message' => $message->getBody(),
                         'result'  => $result ? 'success' : 'failed'
                     ]);
                 }
             );
-            
+
             // 持续等待消息，直到连接关闭
             while ($channel->is_consuming()) {
                 $channel->wait();
             }
-            
+
             // 关闭通道和连接
             $channel->close();
             $connection->close();
@@ -170,7 +170,7 @@ class SimpleMode
             ]);
         }
     }
-    
+
     /**
      * 使用示例
      */
@@ -178,7 +178,7 @@ class SimpleMode
     {
         // 发送消息示例
         $this->send('Hello RabbitMQ Simple Mode! ' . date('Y-m-d H:i:s'));
-        
+
         // 接收消息示例
         // 注意：在实际应用中，消费者通常在单独的进程中运行
         // $this->receive(function ($message) {
@@ -186,4 +186,4 @@ class SimpleMode
         //     return true;
         // });
     }
-} 
+}

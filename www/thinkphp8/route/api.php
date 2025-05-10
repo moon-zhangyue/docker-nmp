@@ -53,6 +53,22 @@ Route::group('api', function () {
         Route::get('consumers', 'api.Monitoring/getConsumers')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
     });
     
+    // 商品相关路由
+    Route::group('goods', function () {
+        Route::get('', 'api.GoodsController/index');
+        Route::get(':id', 'api.GoodsController/read');
+        Route::post('', 'api.GoodsController/save');
+        Route::put(':id', 'api.GoodsController/update');
+        Route::delete(':id', 'api.GoodsController/delete');
+    });
+    
+    // 促销相关路由
+    Route::group('promotion', function () {
+        Route::get('price/:id', 'api.PromotionController/price');
+        Route::post('seckill', 'api.PromotionController/createSeckill');
+        Route::post('seckill/join', 'api.PromotionController/joinSeckill');
+    });
+    
     // 连接池相关路由
     Route::group('pool', function () {
         Route::get('status', 'api.Pool/getStatus')->middleware('jwt_auth', ['admin', 'operator']);
