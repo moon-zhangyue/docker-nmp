@@ -23,7 +23,7 @@ Route::group('api', function () {
         Route::post('dead-letters/clear', 'api.QueueManager/clearDeadLetters')->middleware('jwt_auth', ['admin']);
         Route::post('dead-letters/retry', 'api.QueueManager/retryDeadLetter')->middleware('jwt_auth', ['operator', 'admin']);
     });
-    
+
     // Kafka相关路由
     Route::group('kafka', function () {
         Route::get('topics', 'api.KafkaManager/getTopics')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
@@ -31,7 +31,7 @@ Route::group('api', function () {
         Route::post('topics/delete', 'api.KafkaManager/deleteTopic')->middleware('jwt_auth', ['admin']);
         Route::get('brokers', 'api.KafkaManager/getBrokers')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
     });
-    
+
     // 系统管理相关路由
     Route::group('system', function () {
         Route::get('users', 'api.System/getUsers')->middleware('jwt_auth', ['admin']);
@@ -45,30 +45,30 @@ Route::group('api', function () {
         Route::get('logs', 'api.System/getLogs')->middleware('jwt_auth', ['admin', 'operator']);
         Route::get('audit-logs', 'api.System/getAuditLogs')->middleware('jwt_auth', ['admin']);
     });
-    
+
     // 监控相关路由
     Route::group('monitoring', function () {
         Route::get('metrics', 'api.Monitoring/getMetrics')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
         Route::get('health', 'api.Monitoring/getHealth');
         Route::get('consumers', 'api.Monitoring/getConsumers')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
     });
-    
+
     // 商品相关路由
     Route::group('goods', function () {
         Route::get('', 'api.GoodsController/index');
         Route::get(':id', 'api.GoodsController/read');
         Route::post('', 'api.GoodsController/save');
-        Route::put(':id', 'api.GoodsController/update');
+        Route::post('update', 'api.GoodsController/update');
         Route::delete(':id', 'api.GoodsController/delete');
     });
-    
+
     // 促销相关路由
     Route::group('promotion', function () {
-        Route::get('price/:id', 'api.PromotionController/price');
-        Route::post('seckill', 'api.PromotionController/createSeckill');
-        Route::post('seckill/join', 'api.PromotionController/joinSeckill');
+        Route::get('price/:id', 'api.PromotionController/price');//获取商品促销价格
+        Route::post('seckill', 'api.PromotionController/createSeckill');//创建秒杀活动
+        Route::post('joinSeckill', 'api.PromotionController/joinSeckill');//参与秒杀活动
     });
-    
+
     // 连接池相关路由
     Route::group('pool', function () {
         Route::get('status', 'api.Pool/getStatus')->middleware('jwt_auth', ['admin', 'operator']);
@@ -93,6 +93,6 @@ Route::group(function () {
     // 用户相关
     Route::post('auth/logout', 'api.Auth/logout');
     Route::get('auth/me', 'api.Auth/me');
-    
+
     // 其他需要验证的接口...
-})->middleware('jwt_auth'); 
+})->middleware('jwt_auth');

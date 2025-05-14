@@ -157,3 +157,5 @@ Route::group('parking/metrics', function () {
     // 诊断接口
     Route::get('diagnose', 'ParkingMetricsController/diagnoseInfluxDB'); // 诊断InfluxDB连接和配置问题
 });
+
+// Redis演示路由已移至 route/redis.php 文件

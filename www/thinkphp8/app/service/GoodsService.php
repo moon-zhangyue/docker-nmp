@@ -427,7 +427,7 @@ class GoodsService
                 }
             }
 
-            // 更新属性
+            // 更新商品属性
             if (!empty($data['attributes'])) {
                 // 获取当前属性ID列表
                 $currentAttrIds = $spu->attributes()->column('id');
@@ -447,7 +447,8 @@ class GoodsService
                         $newAttrIds[] = $attr->id;
                     } else {
                         // 创建新属性
-                        $attr         = new GoodsAttribute;
+                        $attr = new GoodsAttribute;
+
                         $attr->spu_id = $spu->id;
                         $attr->name   = $attrData['name'];
                         $attr->value  = $attrData['value'];

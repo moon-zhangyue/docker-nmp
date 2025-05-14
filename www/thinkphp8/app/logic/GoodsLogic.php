@@ -152,8 +152,9 @@ class GoodsLogic
 
         // 创建时必须包含至少一个SKU
         if ($isCreate && (empty($data['skus']) || !is_array($data['skus']) || count($data['skus']) === 0)) {
-            throw new Exception("至少需要一个SKU");
+            throw new Exception(message: "至少需要一个SKU");
         }
+       
 
         // 验证SKU数据
         if (!empty($data['skus']) && is_array($data['skus'])) {

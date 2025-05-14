@@ -22,7 +22,7 @@ class SeckillStockWarmupJob
     public function fire(Job $job, array $data): void
     {
         try {
-            $skuId = $data['sku_id'] ?? 0;
+            $skuId      = $data['sku_id'] ?? 0;
             $totalStock = $data['total_stock'] ?? 0;
 
             if (!$skuId || !$totalStock) {
@@ -53,12 +53,12 @@ class SeckillStockWarmupJob
             $pipeline->exec();
 
             // 获取秒杀信息，更新过期时间
-            $seckillKey = "seckill:goods:{$skuId}";
+            $seckillKey  = "seckill:goods:{$skuId}";
             $seckillInfo = Cache::store('redis')->hGetAll($seckillKey);
 
             if (!empty($seckillInfo) && isset($seckillInfo['end_time'])) {
                 // 设置库存队列的过期时间为活动结束后1小时
-                $endTime = (int)$seckillInfo['end_time'];
+                $endTime = (int) $seckillInfo['end_time'];
                 Cache::store('redis')->expireAt($stockKey, $endTime + 3600);
             } else {
                 // 默认24小时过期
