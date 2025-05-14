@@ -56,7 +56,7 @@ class SeckillGoods extends Model
      * 状态常量
      */
     const STATUS_OFFLINE = 0; // 下架
-    const STATUS_ONLINE  = 1;  // 上架
+    const STATUS_ONLINE  = 1; // 上架
 
     /**
      * 关联秒杀活动

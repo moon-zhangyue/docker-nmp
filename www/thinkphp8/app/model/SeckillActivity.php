@@ -51,8 +51,8 @@ class SeckillActivity extends Model
      */
     const STATUS_NOT_STARTED = 0; // 未开始
     const STATUS_IN_PROGRESS = 1; // 进行中
-    const STATUS_ENDED       = 2;       // 已结束
-    const STATUS_CANCELED    = 3;    // 已取消
+    const STATUS_ENDED       = 2; // 已结束
+    const STATUS_CANCELED    = 3; // 已取消
 
     /**
      * 获取状态文本

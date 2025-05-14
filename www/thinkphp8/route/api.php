@@ -67,6 +67,7 @@ Route::group('api', function () {
         Route::get('price/:id', 'api.PromotionController/price');//获取商品促销价格
         Route::post('seckill', 'api.PromotionController/createSeckill');//创建秒杀活动
         Route::post('joinSeckill', 'api.PromotionController/joinSeckill');//参与秒杀活动
+        Route::get('list', 'api.PromotionController/getSeckillList');//获取秒杀活动列表
     });
 
     // 连接池相关路由

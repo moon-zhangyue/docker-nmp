@@ -68,7 +68,7 @@ return [
             // 日志记录方式
             'type'         => 'Elasticsearch',
             // 日志级别
-            'level'        => ['info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency', 'debug'],
+            'level'        => ['info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency', 'debug', 'sql'],
             // 使用JSON格式记录
             'json'         => true,
             // 日志处理

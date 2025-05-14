@@ -34,7 +34,7 @@ class SeckillStockWarmupJob
             // 获取SKU信息
             $sku = GoodsSku::find($skuId);
             if (!$sku) {
-                Log::error("SeckillStockWarmupJob: 商品SKU {$skuId} 不存在");
+                Log::error("SeckillStockWarmupJob: 商品SKU {$skuId} 不存在",['skuId' => $skuId]);
                 $job->delete();
                 return;
             }

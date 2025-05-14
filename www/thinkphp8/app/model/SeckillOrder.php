@@ -55,10 +55,10 @@ class SeckillOrder extends Model
     /**
      * 订单状态常量
      */
-    const STATUS_PENDING  = 0;   // 待支付
-    const STATUS_PAID     = 1;      // 已支付
+    const STATUS_PENDING  = 0;  // 待支付
+    const STATUS_PAID     = 1;  // 已支付
     const STATUS_CANCELED = 2;  // 已取消
-    const STATUS_TIMEOUT  = 3;   // 已超时
+    const STATUS_TIMEOUT  = 3;  // 已超时
 
     /**
      * 支付方式常量

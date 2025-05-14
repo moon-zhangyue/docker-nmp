@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\GoodsSku;
+use app\model\SeckillActivity;
+use app\model\SeckillGoods;
 use think\facade\Cache;
 use think\facade\Queue;
 use think\facade\Db;
@@ -224,12 +226,12 @@ class PromotionService
             Db::startTrans();
             try {
                 // 创建秒杀活动
-                $activity                = new \app\model\SeckillActivity;
+                $activity                = new SeckillActivity();
                 $activity->title         = $title;
                 $activity->description   = $description;
                 $activity->start_time    = $startTime;
                 $activity->end_time      = $endTime;
-                $activity->status        = \app\model\SeckillActivity::STATUS_NOT_STARTED;
+                $activity->status        = SeckillActivity::STATUS_NOT_STARTED;
                 $activity->max_buy_limit = $data['max_buy_limit'] ?? 1;
                 $activity->is_featured   = $data['is_featured'] ?? false;
                 $activity->banner_image  = $data['banner_image'] ?? '';
@@ -239,7 +241,7 @@ class PromotionService
                 $this->lastActivityId = $activity->id;
 
                 // 创建秒杀商品
-                $seckillGoods                 = new \app\model\SeckillGoods;
+                $seckillGoods                 = new SeckillGoods();
                 $seckillGoods->activity_id    = $activity->id;
                 $seckillGoods->sku_id         = $skuId;
                 $seckillGoods->spu_id         = $sku->spu_id;
@@ -249,7 +251,7 @@ class PromotionService
                 $seckillGoods->remain_stock   = $totalStock;
                 $seckillGoods->limit_per_user = $data['limit_per_user'] ?? 1;
                 $seckillGoods->sort_order     = $data['sort_order'] ?? 0;
-                $seckillGoods->status         = \app\model\SeckillGoods::STATUS_ONLINE;
+                $seckillGoods->status         = SeckillGoods::STATUS_ONLINE;
                 $seckillGoods->save();
 
                 // 提交事务
@@ -257,6 +259,18 @@ class PromotionService
 
                 // 设置秒杀活动信息到Redis（保持向后兼容）
                 $seckillKey  = "seckill:goods:{$skuId}";
+                // 检查活动是否已经开始
+                $now = time();
+                $activityStatus = SeckillActivity::STATUS_NOT_STARTED;
+
+                if ($now >= $startTime && $now <= $endTime) {
+                    $activityStatus = SeckillActivity::STATUS_IN_PROGRESS;
+
+                    // 更新数据库中的活动状态
+                    $activity->status = $activityStatus;
+                    $activity->save();
+                }
+
                 $seckillData = [
                     'sku_id'         => $skuId,
                     'spu_id'         => $sku->spu_id,
@@ -266,9 +280,10 @@ class PromotionService
                     'end_time'       => $endTime,
                     'total_stock'    => $totalStock,
                     'remain_stock'   => $totalStock,
-                    'status'         => 1,
+                    'status'         => $activityStatus, // 使用与数据库一致的状态
                     'activity_id'    => $activity->id,
-                    'goods_id'       => $seckillGoods->id
+                    'goods_id'       => $seckillGoods->id,
+                    'limit_per_user' => $seckillGoods->limit_per_user
                 ];
 
                 Cache::store('redis')->hMSet($seckillKey, $seckillData);
@@ -337,8 +352,8 @@ class PromotionService
 
         // 如果Redis中没有活动ID，但有SKU ID，尝试从数据库查找
         if ($activityId === 0) {
-            $seckillGoods = \app\model\SeckillGoods::where('sku_id', $skuId)
-                ->where('status', \app\model\SeckillGoods::STATUS_ONLINE)
+            $seckillGoods =  SeckillGoods::where('sku_id', $skuId)
+                ->where('status', SeckillGoods::STATUS_ONLINE)
                 ->find();
 
             if ($seckillGoods) {
@@ -360,11 +375,29 @@ class PromotionService
             throw new Exception("秒杀活动已结束");
         }
 
-        // 检查活动状态
+        // 只检查活动状态，不更新
         if ($activityId > 0) {
-            $activity = \app\model\SeckillActivity::find($activityId);
-            if ($activity && $activity->status === \app\model\SeckillActivity::STATUS_CANCELED) {
-                throw new Exception("秒杀活动已取消");
+            $activity = SeckillActivity::find($activityId);
+            if ($activity) {
+                // 如果活动已取消，抛出异常
+                if ($activity->status === SeckillActivity::STATUS_CANCELED) {
+                    throw new Exception("秒杀活动已取消");
+                }
+
+                // 如果活动未开始，抛出异常
+                if ($activity->status === SeckillActivity::STATUS_NOT_STARTED) {
+                    throw new Exception("秒杀活动还未开始");
+                }
+
+                // 如果活动已结束，抛出异常
+                if ($activity->status === SeckillActivity::STATUS_ENDED) {
+                    throw new Exception("秒杀活动已结束");
+                }
+
+                // 确保活动状态为进行中
+                if ($activity->status !== SeckillActivity::STATUS_IN_PROGRESS) {
+                    throw new Exception("秒杀活动状态异常，无法参与");
+                }
             }
         }
 
@@ -375,7 +408,7 @@ class PromotionService
         // 获取每人限购数量
         $limitPerUser = 1; // 默认限购1件
         if ($goodsId > 0) {
-            $seckillGoods = \app\model\SeckillGoods::find($goodsId);
+            $seckillGoods = SeckillGoods::find($goodsId);
             if ($seckillGoods) {
                 $limitPerUser = $seckillGoods->limit_per_user;
             }
@@ -413,7 +446,7 @@ class PromotionService
 
         // 如果存在数据库记录，则更新数据库中的库存
         if ($goodsId > 0) {
-            $seckillGoods = \app\model\SeckillGoods::find($goodsId);
+            $seckillGoods = SeckillGoods::find($goodsId);
             if ($seckillGoods) {
                 $seckillGoods->remain_stock = $remainStock;
                 $seckillGoods->save();

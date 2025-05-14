@@ -25,13 +25,21 @@
    - 停车记录模块
    - 收费规则模块
 
-4. [API接口文档](./api-documentation.md)
+4. [秒杀活动系统](./seckill-activity-guide.md)
+   - 系统概述
+   - 数据表设计
+   - 活动状态管理
+   - 使用指南
+   - 性能优化
+   - 常见问题
+
+5. [API接口文档](./api-documentation.md)
    - 接口规范
    - 认证机制
    - 接口列表
    - 错误码说明
 
-5. [部署指南](./deployment-guide.md)
+6. [部署指南](./deployment-guide.md)
    - 环境要求
    - 安装步骤
    - 配置说明

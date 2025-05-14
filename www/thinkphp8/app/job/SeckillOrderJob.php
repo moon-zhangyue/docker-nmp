@@ -102,7 +102,7 @@ class SeckillOrderJob
                 Db::commit();
 
                 // 记录订单创建成功
-                Log::info("SeckillOrderJob: 用户 {$userId} 秒杀订单 {$orderSn} 创建成功");
+                Log::info("SeckillOrderJob: 用户 {$userId} 秒杀订单 {$orderSn} 创建成功",['userId' => $userId, 'orderSn' => $orderSn]);
 
                 // 通知用户（实际场景中可能发送消息、短信等）
                 // TODO: 调用通知服务
@@ -122,7 +122,7 @@ class SeckillOrderJob
 
                 // 如果尝试次数超过3次，则放弃
                 if ($job->attempts() > 3) {
-                    Log::error("SeckillOrderJob: 创建订单 {$orderSn} 失败次数过多，已放弃");
+                    Log::error("SeckillOrderJob: 创建订单 {$orderSn} 失败次数过多，已放弃",['orderSn' => $orderSn]);
 
                     // 释放秒杀资格限制（允许用户重新参与秒杀）
                     $userBoughtKey = "seckill:user:{$userId}:bought:{$skuId}";
