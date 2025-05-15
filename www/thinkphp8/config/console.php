@@ -16,5 +16,7 @@ return [
         'es:manager' => 'app\command\ElasticsearchManager',
         'rabbitmq:consume' => 'app\command\RabbitMQConsumer',
         'app\command\RabbitMQConsumers',
+        'seckill:task' => 'app\command\SeckillUpdateStatus',
+        'seckill:update-status' => 'app\command\UpdateSeckillStatus',//更新秒杀状态
     ],
 ];
