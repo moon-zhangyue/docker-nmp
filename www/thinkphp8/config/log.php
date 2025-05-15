@@ -5,7 +5,7 @@
 // +----------------------------------------------------------------------
 return [
     // 默认日志记录通道
-    'default'      => env('log.channel', 'complex'),
+    'default'      => env('log.channel', 'elasticsearch'),
     // 日志记录级别
     'level'        => [],
     // 日志类型记录的通道 ['error'=>'email',...]
@@ -82,15 +82,6 @@ return [
             'day_rotate'   => true,
             // 索引前缀
             'index_prefix' => env('ELASTICSEARCH_INDEX_PREFIX', 'logs'),
-        ],
-        // 复合日志通道 - 同时记录到文件和Elasticsearch
-        'complex' => [
-            // 日志记录方式
-            'type'      => 'Complex',
-            // 使用的日志通道
-            'channels'  => ['file', 'elasticsearch'],
-            // 关闭通道日志写入
-            'close'     => false,
         ],
     ],
 
