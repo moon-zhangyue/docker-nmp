@@ -133,7 +133,7 @@ services:
        - ${MYSQL_CONF_FILE}:/etc/mysql/conf.d/mysql.cnf:ro
        - ${DATA_DIR}/mysql:/var/lib/mysql/:rw
        - ${MYSQL_LOG_DIR}:/var/log/mysql/:rw
-  
+
      restart: always
      networks:
        - default
@@ -527,9 +527,9 @@ services:
 
   # 添加监控服务
 
-  
+
   # Prometheus 服务已存在，保持不变
-  
+
   # Node Exporter - 系统指标监控
   # node-exporter:
   #   image: prom/node-exporter:latest
@@ -548,7 +548,7 @@ services:
   #     - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
   #   networks:
   #     - default
-  
+
   # MySQL Exporter - MySQL 监控
   # mysql-exporter:
   #   image: prom/mysqld-exporter:latest
@@ -562,7 +562,7 @@ services:
   #     - mysql5
   #   networks:
   #     - default
-  
+
   # Redis Exporter - Redis 监控
   # redis-exporter:
   #   image: oliver006/redis_exporter:latest
@@ -576,7 +576,7 @@ services:
   #     - redis
   #   networks:
   #     - default
-  
+
   # Nginx Exporter - Nginx 监控
   # nginx-exporter:
   #   image: nginx/nginx-prometheus-exporter:latest
@@ -590,7 +590,7 @@ services:
   #     - nginx
   #   networks:
   #     - default
-  
+
   # PHP-FPM Exporter - PHP-FPM 监控
   # php-fpm-exporter:
   #   image: hipages/php-fpm_exporter:latest
@@ -604,7 +604,7 @@ services:
   #     - php
   #   networks:
   #     - default
-  
+
   # Kafka Exporter - Kafka 监控
   # kafka-exporter:
   #   image: danielqsj/kafka-exporter:latest
@@ -618,7 +618,7 @@ services:
   #     - kafka
   #   networks:
   #     - default
-      
+
   # TDengine - 时序数据库
   tdengine:
     build:
@@ -642,7 +642,7 @@ services:
     command: ["/usr/bin/taosd", "--skip-sysctl"]
     networks:
       - default
-      
+
   # InfluxDB - 时序数据库
   influxdb:
     build:
@@ -667,7 +667,7 @@ services:
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
     networks:
       - default
-      
+
   # Consul - 服务发现和配置
   consul:
     image: consul:${CONSUL_VERSION}
@@ -725,6 +725,29 @@ services:
     networks:
       - default
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION}
+    container_name: clickhouse
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT}:8123"
+      - "${CLICKHOUSE_TCP_PORT}:9000"
+    volumes:
+      - ${CLICKHOUSE_DATA_DIR}:/var/lib/clickhouse
+      - ${CLICKHOUSE_LOG_DIR}:/var/log/clickhouse-server
+      - ./services/clickhouse/config.xml:/etc/clickhouse-server/config.xml
+      - ./services/clickhouse/users.xml:/etc/clickhouse-server/users.xml
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=${CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT}
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    restart: always
+    networks:
+      - default
+
 networks:
   default:
     driver: bridge
@@ -734,5 +757,5 @@ networks:
       #config:
       #  - subnet: 10.0.0.0/24
 
-      
+
 
