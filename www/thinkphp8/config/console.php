@@ -18,5 +18,6 @@ return [
         'app\command\RabbitMQConsumers',
         'seckill:task' => 'app\command\SeckillUpdateStatus',
         'seckill:update-status' => 'app\command\UpdateSeckillStatus',//更新秒杀状态
+        'swagger' => 'app\command\Swagger',
     ],
 ];

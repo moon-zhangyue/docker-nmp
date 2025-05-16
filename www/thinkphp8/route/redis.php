@@ -51,8 +51,10 @@ Route::group('redis', function () {
     Route::group('set', function () {
         Route::get('', 'redis.SetDemo/index'); // 演示页面
         Route::get('basic', 'redis.SetDemo/basic'); // 基本用法示例
-        Route::get('friend-relation', 'redis.SetDemo/friendRelation'); // 好友关系示例
-        Route::get('tag-cloud', 'redis.SetDemo/tagCloud'); // 标签云示例
+        Route::get('tagsystem', 'redis.SetDemo/tagSystem');// 标签系统示例
+        Route::get('ipaccesscontrol', 'redis.SetDemo/ipAccessControl');// IP访问控制示例
+        Route::get('setOperations', 'redis.SetDemo/setOperations'); // 集合操作示例
+        Route::get('userfollows', 'redis.SetDemo/userFollows'); // 用户关注示例
         Route::get('random-prize', 'redis.SetDemo/randomPrize'); // 随机抽奖示例
     });
     

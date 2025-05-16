@@ -1,0 +1,54 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "ThinkPHP 8 API文档",
+        "version": "1.0.0",
+        "description": "ThinkPHP 8项目API接口文档"
+    },
+    "paths": {
+        "/api/example": {
+            "get": {
+                "summary": "示例API",
+                "responses": {
+                    "200": {
+                        "description": "成功响应"
+                    }
+                }
+            }
+        },
+        "/redis/set/userfollows": {
+            "get": {
+                "summary": "用户关注关系操作",
+                "description": "管理用户之间的关注关系",
+                "tags": ["Redis Set"],
+                "responses": {
+                    "200": {
+                        "description": "操作成功"
+                    }
+                }
+            }
+        },
+        "/redis/set/random-prize": {
+            "get": {
+                "summary": "随机抽奖功能",
+                "description": "使用Redis Set实现随机抽奖功能",
+                "tags": ["Redis Set"],
+                "responses": {
+                    "200": {
+                        "description": "操作成功"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Redis",
+            "description": "Redis相关接口"
+        },
+        {
+            "name": "Redis Set",
+            "description": "Redis Set类型操作接口"
+        }
+    ]
+}

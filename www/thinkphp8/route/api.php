@@ -14,15 +14,15 @@ Route::group('api', function () {
     });
 
     // 队列管理相关路由
-    Route::group('queue', function () {
-        Route::get('connections', 'api.QueueManager/getConnections')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
-        Route::post('connections/update', 'api.QueueManager/updateConnection')->middleware('jwt_auth', ['admin']);
-        Route::get('status', 'api.QueueManager/getStatus')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
-        Route::post('push', 'api.QueueManager/push')->middleware('jwt_auth', ['operator', 'admin']);
-        Route::get('dead-letters', 'api.QueueManager/getDeadLetters')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
-        Route::post('dead-letters/clear', 'api.QueueManager/clearDeadLetters')->middleware('jwt_auth', ['admin']);
-        Route::post('dead-letters/retry', 'api.QueueManager/retryDeadLetter')->middleware('jwt_auth', ['operator', 'admin']);
-    });
+    // Route::group('queue', function () {
+    //     Route::get('connections', 'api.QueueManager/getConnections')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
+    //     Route::post('connections/update', 'api.QueueManager/updateConnection')->middleware('jwt_auth', ['admin']);
+    //     Route::get('status', 'api.QueueManager/getStatus')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
+    //     Route::post('push', 'api.QueueManager/push')->middleware('jwt_auth', ['operator', 'admin']);
+    //     Route::get('dead-letters', 'api.QueueManager/getDeadLetters')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
+    //     Route::post('dead-letters/clear', 'api.QueueManager/clearDeadLetters')->middleware('jwt_auth', ['admin']);
+    //     Route::post('dead-letters/retry', 'api.QueueManager/retryDeadLetter')->middleware('jwt_auth', ['operator', 'admin']);
+    // });
 
     // Kafka相关路由
     Route::group('kafka', function () {

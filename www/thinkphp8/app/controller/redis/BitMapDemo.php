@@ -11,11 +11,26 @@ use think\facade\View;
  * Redis BitMap类型演示控制器
  *
  * 演示Redis BitMap类型的常见应用场景
+ * 
+ * @OA\Tag(
+ *     name="BitMap",
+ *     description="Redis BitMap相关操作"
+ * )
  */
 class BitMapDemo extends RedisDemo
 {
     /**
      * 演示页面
+     * 
+     * @OA\Get(
+     *     path="/redis/bitmap",
+     *     tags={"BitMap"},
+     *     summary="BitMap演示页面",
+     *     @OA\Response(
+     *         response=200,
+     *         description="成功返回BitMap演示页面"
+     *     )
+     * )
      */
     public function index()
     {
@@ -24,6 +39,16 @@ class BitMapDemo extends RedisDemo
 
     /**
      * 基本用法示例
+     * 
+     * @OA\Get(
+     *     path="/redis/bitmap/basic",
+     *     tags={"BitMap"},
+     *     summary="BitMap基本用法示例",
+     *     @OA\Response(
+     *         response=200,
+     *         description="成功返回BitMap基本用法结果"
+     *     )
+     * )
      */
     public function basic()
     {
