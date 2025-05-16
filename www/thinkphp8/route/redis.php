@@ -60,10 +60,13 @@ Route::group('redis', function () {
     Route::group('string', function () {
         Route::get('', 'redis.StringDemo/index'); // 演示页面
         Route::get('basic', 'redis.StringDemo/basic'); // 基本用法示例
+        Route::get('cacheuser', 'redis.StringDemo/cacheUser');//缓存用户示例
         Route::get('counter', 'redis.StringDemo/counter'); // 计数器示例
         Route::get('distributed-lock', 'redis.StringDemo/distributedLock'); // 分布式锁示例
         Route::get('cache', 'redis.StringDemo/cache'); // 缓存示例
-        Route::get('rate-limiter', 'redis.StringDemo/rateLimiter'); // 限流器示例
+        Route::get('rate-limiter', 'redis.StringDemo/rateLimit'); // 限流器示例
+        Route::get('preventcacheAvalanche', 'redis.StringDemo/preventCacheAvalanche'); // 防止缓存雪崩示例
+        Route::get('preventcachePenetration', 'redis.StringDemo/preventCachePenetration'); // 防止缓存穿透示例
     });
     
     // ZSet演示

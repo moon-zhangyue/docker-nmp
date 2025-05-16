@@ -8,7 +8,7 @@ use Redis;
 
 /**
  * Redis Sorted Set类型数据服务
- * 
+ *
  * 提供对Redis Sorted Set类型的操作封装
  */
 class ZSetService
@@ -51,7 +51,7 @@ class ZSetService
         if (is_array($member) || is_object($member)) {
             $member = json_encode($member, JSON_UNESCAPED_UNICODE);
         }
-        
+
         return $this->redis->zAdd($key, $score, $member);
     }
 
@@ -72,7 +72,7 @@ class ZSetService
             $params[] = $score;
             $params[] = $member;
         }
-        
+
         return $this->redis->zAdd($key, ...$params);
     }
 
@@ -113,7 +113,7 @@ class ZSetService
         if (is_array($member) || is_object($member)) {
             $member = json_encode($member, JSON_UNESCAPED_UNICODE);
         }
-        
+
         return $this->redis->zIncrBy($key, $increment, $member);
     }
 
@@ -130,7 +130,7 @@ class ZSetService
     public function zRange(string $key, int $start, int $stop, bool $withScores = false, bool $isJson = false): array
     {
         $result = $this->redis->zRange($key, $start, $stop, $withScores);
-        
+
         if ($isJson && !$withScores) {
             foreach ($result as &$member) {
                 if ($member) {
@@ -149,7 +149,7 @@ class ZSetService
             }
             $result = $processedResult;
         }
-        
+
         return $result;
     }
 
@@ -166,7 +166,7 @@ class ZSetService
     public function zRevRange(string $key, int $start, int $stop, bool $withScores = false, bool $isJson = false): array
     {
         $result = $this->redis->zRevRange($key, $start, $stop, $withScores);
-        
+
         if ($isJson && !$withScores) {
             foreach ($result as &$member) {
                 if ($member) {
@@ -185,7 +185,7 @@ class ZSetService
             }
             $result = $processedResult;
         }
-        
+
         return $result;
     }
 
@@ -203,7 +203,7 @@ class ZSetService
     public function zRangeByScore(string $key, float $min, float $max, bool $withScores = false, bool $isJson = false, array $options = []): array
     {
         $result = $this->redis->zRangeByScore($key, $min, $max, $options, $withScores ? ['withscores' => true] : []);
-        
+
         if ($isJson && !$withScores) {
             foreach ($result as &$member) {
                 if ($member) {
@@ -222,7 +222,7 @@ class ZSetService
             }
             $result = $processedResult;
         }
-        
+
         return $result;
     }
 
@@ -240,7 +240,7 @@ class ZSetService
     public function zRevRangeByScore(string $key, float $max, float $min, bool $withScores = false, bool $isJson = false, array $options = []): array
     {
         $result = $this->redis->zRevRangeByScore($key, $max, $min, $options, $withScores ? ['withscores' => true] : []);
-        
+
         if ($isJson && !$withScores) {
             foreach ($result as &$member) {
                 if ($member) {
@@ -259,7 +259,7 @@ class ZSetService
             }
             $result = $processedResult;
         }
-        
+
         return $result;
     }
 
@@ -275,7 +275,7 @@ class ZSetService
         if (is_array($member) || is_object($member)) {
             $member = json_encode($member, JSON_UNESCAPED_UNICODE);
         }
-        
+
         $rank = $this->redis->zRank($key, $member);
         return $rank === false ? null : $rank;
     }
@@ -292,7 +292,7 @@ class ZSetService
         if (is_array($member) || is_object($member)) {
             $member = json_encode($member, JSON_UNESCAPED_UNICODE);
         }
-        
+
         $rank = $this->redis->zRevRank($key, $member);
         return $rank === false ? null : $rank;
     }
@@ -359,7 +359,7 @@ class ZSetService
         if (is_array($member) || is_object($member)) {
             $member = json_encode($member, JSON_UNESCAPED_UNICODE);
         }
-        
+
         $score = $this->redis->zScore($key, $member);
         return $score === false ? null : $score;
     }
@@ -379,7 +379,7 @@ class ZSetService
         if (!in_array($aggregate, ['SUM', 'MIN', 'MAX'])) {
             $aggregate = 'SUM';
         }
-        
+
         return $this->redis->zInterStore($destination, $keys, $weights, $aggregate);
     }
 
@@ -398,7 +398,18 @@ class ZSetService
         if (!in_array($aggregate, ['SUM', 'MIN', 'MAX'])) {
             $aggregate = 'SUM';
         }
-        
+
         return $this->redis->zUnionStore($destination, $keys, $weights, $aggregate);
     }
-} 
+
+    /**
+     * 删除一个或多个键
+     *
+     * @param string|array $keys 键名或键名数组
+     * @return int 删除的键数量
+     */
+    public function delete($keys): int
+    {
+        return $this->redis->del($keys);
+    }
+}

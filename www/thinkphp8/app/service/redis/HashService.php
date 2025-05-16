@@ -9,7 +9,7 @@ use Closure;
 
 /**
  * Redis Hash类型数据服务
- * 
+ *
  * 提供对Redis Hash类型的操作封装
  */
 class HashService
@@ -52,7 +52,7 @@ class HashService
         if (is_array($value) || is_object($value)) {
             $value = json_encode($value, JSON_UNESCAPED_UNICODE);
         }
-        
+
         return (bool)$this->redis->hSet($key, $field, $value);
     }
 
@@ -67,15 +67,15 @@ class HashService
     public function hGet(string $key, string $field, bool $isJson = false)
     {
         $value = $this->redis->hGet($key, $field);
-        
+
         if ($value === false) {
             return null;
         }
-        
+
         if ($isJson && $value) {
             return json_decode($value, true);
         }
-        
+
         return $value;
     }
 
@@ -92,42 +92,42 @@ class HashService
     {
         // 尝试从缓存获取数据
         $value = $this->hGet($key, $field, $isJson);
-        
+
         // 如果缓存中存在数据，直接返回
         if ($value !== null && $value !== false) {
             return $value;
         }
-        
+
         // 尝试获取分布式锁，防止缓存击穿
         $lockKey = "lock:{$key}:{$field}";
         $gotLock = $this->redisService->acquireLock($lockKey, 10);
-        
+
         if (!$gotLock) {
             // 如果没有获取到锁，等待一段时间后再次尝试从缓存获取
             usleep(200000); // 等待200毫秒
             return $this->hGet($key, $field, $isJson);
         }
-        
+
         try {
             // 再次检查缓存（双重检查，避免锁竞争后重复生成）
             $value = $this->hGet($key, $field, $isJson);
             if ($value !== null && $value !== false) {
                 return $value;
             }
-            
+
             // 执行回调函数获取数据
             $value = $callback();
-            
+
             // 处理空值结果，防止缓存穿透
             if ($value === null || $value === false || (is_array($value) && empty($value))) {
                 // 对于空值，设置一个空字符串，避免穿透
                 $this->hSet($key, $field, '');
                 return null;
             }
-            
+
             // 缓存结果
             $this->hSet($key, $field, $value);
-            
+
             return $value;
         } finally {
             // 释放锁
@@ -149,7 +149,7 @@ class HashService
                 $data[$field] = json_encode($value, JSON_UNESCAPED_UNICODE);
             }
         }
-        
+
         return (bool)$this->redis->hMSet($key, $data);
     }
 
@@ -263,4 +263,15 @@ class HashService
             return $this->redis->hDel($key, $fields);
         }
     }
-} 
+
+    /**
+     * 删除一个或多个键
+     *
+     * @param string|array $keys 键名或键名数组
+     * @return int 删除的键数量
+     */
+    public function delete($keys): int
+    {
+        return $this->redis->del($keys);
+    }
+}

@@ -32,7 +32,7 @@ class BitMapDemo extends RedisDemo
             $key   = 'bitmap_demo_basic';
 
             // 清空之前的测试数据
-            $redis->redis->del($key);
+            $redis->delete($key);
 
             // 设置bit位
             $redis->setBit($key, 0, 1); // 设置第0位为1
@@ -477,7 +477,7 @@ class BitMapDemo extends RedisDemo
                 case 'test':
                 default:
                     // 测试布隆过滤器
-                    $redis->redis->del($key);
+                    $redis->delete($key);
 
                     // 添加一组元素
                     $testValues = [

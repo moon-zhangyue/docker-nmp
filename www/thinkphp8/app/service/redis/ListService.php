@@ -8,7 +8,7 @@ use Redis;
 
 /**
  * Redis List类型数据服务
- * 
+ *
  * 提供对Redis List类型的操作封装
  */
 class ListService
@@ -96,15 +96,15 @@ class ListService
     public function lPop(string $key, bool $isJson = false)
     {
         $value = $this->redis->lPop($key);
-        
+
         if ($value === false) {
             return null;
         }
-        
+
         if ($isJson && $value) {
             return json_decode($value, true);
         }
-        
+
         return $value;
     }
 
@@ -118,15 +118,15 @@ class ListService
     public function rPop(string $key, bool $isJson = false)
     {
         $value = $this->redis->rPop($key);
-        
+
         if ($value === false) {
             return null;
         }
-        
+
         if ($isJson && $value) {
             return json_decode($value, true);
         }
-        
+
         return $value;
     }
 
@@ -141,15 +141,15 @@ class ListService
     public function rPopLPush(string $source, string $destination, bool $isJson = false)
     {
         $value = $this->redis->rPopLPush($source, $destination);
-        
+
         if ($value === false) {
             return null;
         }
-        
+
         if ($isJson && $value) {
             return json_decode($value, true);
         }
-        
+
         return $value;
     }
 
@@ -175,15 +175,15 @@ class ListService
     public function lIndex(string $key, int $index, bool $isJson = false)
     {
         $value = $this->redis->lIndex($key, $index);
-        
+
         if ($value === false) {
             return null;
         }
-        
+
         if ($isJson && $value) {
             return json_decode($value, true);
         }
-        
+
         return $value;
     }
 
@@ -199,7 +199,7 @@ class ListService
     public function lRange(string $key, int $start, int $stop, bool $isJson = false): array
     {
         $values = $this->redis->lRange($key, $start, $stop);
-        
+
         if ($isJson) {
             foreach ($values as &$value) {
                 if ($value) {
@@ -207,7 +207,7 @@ class ListService
                 }
             }
         }
-        
+
         return $values;
     }
 
@@ -250,7 +250,7 @@ class ListService
         if (is_array($value) || is_object($value)) {
             $value = json_encode($value, JSON_UNESCAPED_UNICODE);
         }
-        
+
         return $this->redis->lSet($key, $index, $value) === true;
     }
 
@@ -268,7 +268,7 @@ class ListService
         if (is_array($value) || is_object($value)) {
             $value = json_encode($value, JSON_UNESCAPED_UNICODE);
         }
-        
+
         return $this->redis->lInsert($key, $after ? Redis::AFTER : Redis::BEFORE, $pivot, $value);
     }
 
@@ -283,15 +283,15 @@ class ListService
     public function blPop(array $keys, int $timeout, bool $isJson = false): ?array
     {
         $result = $this->redis->blPop($keys, $timeout);
-        
+
         if (!$result) {
             return null;
         }
-        
+
         if ($isJson && isset($result[1])) {
             $result[1] = json_decode($result[1], true);
         }
-        
+
         return $result;
     }
 
@@ -306,15 +306,26 @@ class ListService
     public function brPop(array $keys, int $timeout, bool $isJson = false): ?array
     {
         $result = $this->redis->brPop($keys, $timeout);
-        
+
         if (!$result) {
             return null;
         }
-        
+
         if ($isJson && isset($result[1])) {
             $result[1] = json_decode($result[1], true);
         }
-        
+
         return $result;
     }
-} 
+
+    /**
+     * 删除一个或多个键
+     *
+     * @param string|array $keys 键名或键名数组
+     * @return int 删除的键数量
+     */
+    public function delete($keys): int
+    {
+        return $this->redis->del($keys);
+    }
+}

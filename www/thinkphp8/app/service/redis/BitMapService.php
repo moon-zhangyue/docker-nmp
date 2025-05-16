@@ -8,7 +8,7 @@ use Redis;
 
 /**
  * Redis BitMap类型数据服务
- * 
+ *
  * 提供对Redis BitMap类型的操作封装，用于位图操作
  */
 class BitMapService
@@ -87,7 +87,7 @@ class BitMapService
     public function bitOp(string $operation, string $destKey, $keys): int
     {
         $operation = strtoupper($operation);
-        
+
         if (is_array($keys)) {
             return $this->redis->bitOp($operation, $destKey, ...$keys);
         } else {
@@ -123,7 +123,7 @@ class BitMapService
         $datetime = new \DateTime($date);
         $offset = $datetime->format('z'); // 获取一年中的第几天（0-365）
         $yearKey = $key . $userId . ':' . $datetime->format('Y');
-        
+
         return $this->setBit($yearKey, $offset, $status);
     }
 
@@ -140,7 +140,7 @@ class BitMapService
         $datetime = new \DateTime($date);
         $offset = $datetime->format('z'); // 获取一年中的第几天（0-365）
         $yearKey = $key . $userId . ':' . $datetime->format('Y');
-        
+
         return (bool)$this->getBit($yearKey, $offset);
     }
 
@@ -155,7 +155,7 @@ class BitMapService
     public function getYearlyActiveDays(string $key, int $userId, string $year): int
     {
         $yearKey = $key . $userId . ':' . $year;
-        
+
         return $this->bitCount($yearKey);
     }
 
@@ -172,18 +172,18 @@ class BitMapService
         $datetime = new \DateTime($yearMonth . '-01');
         $year = $datetime->format('Y');
         $month = (int)$datetime->format('m');
-        
+
         $yearKey = $key . $userId . ':' . $year;
-        
+
         // 获取这个月第一天是一年中的第几天
         $firstDay = new \DateTime($year . '-' . $month . '-01');
         $firstDayOffset = (int)$firstDay->format('z');
-        
+
         // 获取这个月最后一天是一年中的第几天
         $lastDay = clone $firstDay;
         $lastDay->modify('last day of this month');
         $lastDayOffset = (int)$lastDay->format('z');
-        
+
         // 计算这个月的天数
         return $this->bitCount($yearKey, $firstDayOffset, $lastDayOffset);
     }
@@ -200,17 +200,28 @@ class BitMapService
     {
         $result = [];
         $today = new \DateTime();
-        
+
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = clone $today;
             $date->modify("-{$i} days");
-            
+
             $dateStr = $date->format('Y-m-d');
             $isActive = $this->checkDailyActive($key, $userId, $dateStr);
-            
+
             $result[$dateStr] = $isActive ? 1 : 0;
         }
-        
+
         return $result;
     }
-} 
+
+    /**
+     * 删除一个或多个键
+     *
+     * @param string|array $keys 键名或键名数组
+     * @return int 删除的键数量
+     */
+    public function delete($keys): int
+    {
+        return $this->redis->del($keys);
+    }
+}

@@ -117,7 +117,7 @@ class StringDemo extends RedisDemo
 
             if ($lockResult) {
                 // 模拟执行耗时操作
-                usleep(100000); // 休眠100毫秒
+                usleep(10000); // 休眠100毫秒
 
                 // 执行完成，释放锁
                 $releaseResult = Redis::releaseLock($key);

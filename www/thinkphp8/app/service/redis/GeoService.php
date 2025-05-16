@@ -8,7 +8,7 @@ use Redis;
 
 /**
  * Redis Geo类型数据服务
- * 
+ *
  * 提供对Redis地理位置功能的操作封装
  */
 class GeoService
@@ -69,11 +69,11 @@ class GeoService
                 $params[] = $item[2]; // 成员名
             }
         }
-        
+
         if (empty($params)) {
             return 0;
         }
-        
+
         return $this->redis->geoAdd($key, ...$params);
     }
 
@@ -87,11 +87,11 @@ class GeoService
     public function geoPos(string $key, string $member): ?array
     {
         $result = $this->redis->geoPos($key, $member);
-        
+
         if (empty($result) || empty($result[0])) {
             return null;
         }
-        
+
         return $result[0];
     }
 
@@ -161,11 +161,11 @@ class GeoService
     public function geoHash(string $key, string $member): ?string
     {
         $result = $this->redis->geoHash($key, $member);
-        
+
         if (empty($result) || !isset($result[0])) {
             return null;
         }
-        
+
         return $result[0];
     }
 
@@ -180,4 +180,15 @@ class GeoService
     {
         return $this->redis->geoHash($key, ...$members);
     }
-} 
+
+    /**
+     * 删除一个或多个键
+     *
+     * @param string|array $keys 键名或键名数组
+     * @return int 删除的键数量
+     */
+    public function delete($keys): int
+    {
+        return $this->redis->del($keys);
+    }
+}

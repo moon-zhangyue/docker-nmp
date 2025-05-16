@@ -8,7 +8,7 @@ use Redis;
 
 /**
  * Redis HyperLogLog类型数据服务
- * 
+ *
  * 提供对Redis HyperLogLog类型的操作封装，用于基数统计
  */
 class HyperLogLogService
@@ -95,4 +95,15 @@ class HyperLogLogService
     {
         return $this->redis->pfMerge($destKey, ...$sourceKeys);
     }
-} 
+
+    /**
+     * 删除一个或多个键
+     *
+     * @param string|array $keys 键名或键名数组
+     * @return int 删除的键数量
+     */
+    public function delete($keys): int
+    {
+        return $this->redis->del($keys);
+    }
+}

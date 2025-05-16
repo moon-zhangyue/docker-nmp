@@ -8,7 +8,7 @@ use Redis;
 
 /**
  * Redis Set类型数据服务
- * 
+ *
  * 提供对Redis Set类型的操作封装
  */
 class SetService
@@ -72,7 +72,7 @@ class SetService
     public function sMembers(string $key, bool $isJson = false): array
     {
         $members = $this->redis->sMembers($key);
-        
+
         if ($isJson) {
             foreach ($members as &$member) {
                 if ($member) {
@@ -80,7 +80,7 @@ class SetService
                 }
             }
         }
-        
+
         return $members;
     }
 
@@ -96,7 +96,7 @@ class SetService
         if (is_array($member) || is_object($member)) {
             $member = json_encode($member, JSON_UNESCAPED_UNICODE);
         }
-        
+
         return (bool)$this->redis->sIsMember($key, $member);
     }
 
@@ -145,7 +145,7 @@ class SetService
     public function sInter(array $keys, bool $isJson = false): array
     {
         $result = $this->redis->sInter(...$keys);
-        
+
         if ($isJson) {
             foreach ($result as &$item) {
                 if ($item) {
@@ -153,7 +153,7 @@ class SetService
                 }
             }
         }
-        
+
         return $result;
     }
 
@@ -167,7 +167,7 @@ class SetService
     public function sUnion(array $keys, bool $isJson = false): array
     {
         $result = $this->redis->sUnion(...$keys);
-        
+
         if ($isJson) {
             foreach ($result as &$item) {
                 if ($item) {
@@ -175,7 +175,7 @@ class SetService
                 }
             }
         }
-        
+
         return $result;
     }
 
@@ -189,7 +189,7 @@ class SetService
     public function sDiff(array $keys, bool $isJson = false): array
     {
         $result = $this->redis->sDiff(...$keys);
-        
+
         if ($isJson) {
             foreach ($result as &$item) {
                 if ($item) {
@@ -197,7 +197,7 @@ class SetService
                 }
             }
         }
-        
+
         return $result;
     }
 
@@ -248,7 +248,7 @@ class SetService
     public function sRandMember(string $key, int $count = 1, bool $isJson = false)
     {
         $result = $this->redis->sRandMember($key, $count);
-        
+
         if ($isJson) {
             if (is_array($result)) {
                 foreach ($result as &$item) {
@@ -260,7 +260,7 @@ class SetService
                 $result = json_decode($result, true);
             }
         }
-        
+
         return $result;
     }
 
@@ -274,15 +274,15 @@ class SetService
     public function sPop(string $key, bool $isJson = false)
     {
         $result = $this->redis->sPop($key);
-        
+
         if ($result === false) {
             return null;
         }
-        
+
         if ($isJson && $result) {
             return json_decode($result, true);
         }
-        
+
         return $result;
     }
 
@@ -299,7 +299,18 @@ class SetService
         if (is_array($member) || is_object($member)) {
             $member = json_encode($member, JSON_UNESCAPED_UNICODE);
         }
-        
+
         return (bool)$this->redis->sMove($source, $destination, $member);
     }
-} 
+
+    /**
+     * 删除一个或多个键
+     *
+     * @param string|array $keys 键名或键名数组
+     * @return int 删除的键数量
+     */
+    public function delete($keys): int
+    {
+        return $this->redis->del($keys);
+    }
+}
