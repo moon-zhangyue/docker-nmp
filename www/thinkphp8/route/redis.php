@@ -76,7 +76,7 @@ Route::group('redis', function () {
         Route::get('', 'redis.ZSetDemo/index'); // 演示页面
         Route::get('basic', 'redis.ZSetDemo/basic'); // 基本用法示例
         Route::get('leaderboard', 'redis.ZSetDemo/leaderboard'); // 排行榜示例
-        Route::get('weighted-random', 'redis.ZSetDemo/weightedRandom'); // 权重随机示例
+        Route::get('weighted-random', 'redis.ZSetDemo/weightedSearch'); // 权重随机示例
         Route::get('delayed-queue', 'redis.ZSetDemo/delayedQueue'); // 延迟队列示例
     });
 });

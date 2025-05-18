@@ -43,12 +43,14 @@ class BitMapService
      *
      * @param string $key 键名
      * @param int $offset 偏移量
-     * @param int $value 值，0或1
+     * @param bool|int $value 值，true/false或1/0
      * @return int 原来位的值
      */
-    public function setBit(string $key, int $offset, int $value): int
+    public function setBit(string $key, int $offset, $value): int
     {
-        return $this->redis->setBit($key, $offset, $value);
+        // 确保值为布尔类型
+        $boolValue = (bool)$value;
+        return $this->redis->setBit($key, $offset, $boolValue);
     }
 
     /**
@@ -99,14 +101,16 @@ class BitMapService
      * 查找位图中第一个指定值的位的位置
      *
      * @param string $key 键名
-     * @param int $bit 要查找的位值，0或1
+     * @param bool|int $bit 要查找的位值，true/false或1/0
      * @param int $start 开始查找的位置
      * @param int|null $end 结束查找的位置，默认为-1，表示到最后一个位
      * @return int 位置，如果未找到则返回-1
      */
-    public function bitPos(string $key, int $bit, int $start = 0, ?int $end = -1): int
+    public function bitPos(string $key, $bit, int $start = 0, ?int $end = -1): int
     {
-        return $this->redis->bitPos($key, $bit, $start, $end);
+        // 确保值为布尔类型
+        $boolValue = (bool)$bit;
+        return $this->redis->bitPos($key, $boolValue, $start, $end);
     }
 
     /**
@@ -115,14 +119,14 @@ class BitMapService
      * @param string $key 键名前缀，通常为user:sign:
      * @param int $userId 用户ID
      * @param string $date 日期，格式为YYYY-MM-DD
-     * @param int $status 状态，0或1
+     * @param bool|int $status 状态，true/false或1/0
      * @return int 原来的状态
      */
-    public function setDailyActive(string $key, int $userId, string $date, int $status = 1): int
+    public function setDailyActive(string $key, int $userId, string $date, $status = 1): int
     {
         $datetime = new \DateTime($date);
-        $offset = $datetime->format('z'); // 获取一年中的第几天（0-365）
-        $yearKey = $key . $userId . ':' . $datetime->format('Y');
+        $offset = (int)$datetime->format('z'); // 获取一年中的第几天（0-365）
+        $yearKey = "{$key}{$userId}:{$datetime->format('Y')}";
 
         return $this->setBit($yearKey, $offset, $status);
     }
@@ -138,8 +142,8 @@ class BitMapService
     public function checkDailyActive(string $key, int $userId, string $date): bool
     {
         $datetime = new \DateTime($date);
-        $offset = $datetime->format('z'); // 获取一年中的第几天（0-365）
-        $yearKey = $key . $userId . ':' . $datetime->format('Y');
+        $offset = (int)$datetime->format('z'); // 获取一年中的第几天（0-365）
+        $yearKey = "{$key}{$userId}:{$datetime->format('Y')}";
 
         return (bool)$this->getBit($yearKey, $offset);
     }
@@ -154,7 +158,7 @@ class BitMapService
      */
     public function getYearlyActiveDays(string $key, int $userId, string $year): int
     {
-        $yearKey = $key . $userId . ':' . $year;
+        $yearKey = "{$key}{$userId}:{$year}";
 
         return $this->bitCount($yearKey);
     }
@@ -169,14 +173,14 @@ class BitMapService
      */
     public function getMonthlyActiveDays(string $key, int $userId, string $yearMonth): int
     {
-        $datetime = new \DateTime($yearMonth . '-01');
+        $datetime = new \DateTime("{$yearMonth}-01");
         $year = $datetime->format('Y');
         $month = (int)$datetime->format('m');
 
-        $yearKey = $key . $userId . ':' . $year;
+        $yearKey = "{$key}{$userId}:{$year}";
 
         // 获取这个月第一天是一年中的第几天
-        $firstDay = new \DateTime($year . '-' . $month . '-01');
+        $firstDay = new \DateTime("{$year}-{$month}-01");
         $firstDayOffset = (int)$firstDay->format('z');
 
         // 获取这个月最后一天是一年中的第几天
