@@ -91,11 +91,11 @@ class ZSetService
      * 计算有序集合中指定分数区间的成员数量
      *
      * @param string $key 有序集合键名
-     * @param float $min 最小分数
-     * @param float $max 最大分数
+     * @param string $min 最小分数
+     * @param string $max 最大分数
      * @return int
      */
-    public function zCount(string $key, float $min, float $max): int
+    public function zCount(string $key, string $min, string $max): int
     {
         return $this->redis->zCount($key, $min, $max);
     }
@@ -193,16 +193,30 @@ class ZSetService
      * 通过分数返回有序集合指定区间内的成员，分数从小到大排序
      *
      * @param string $key 有序集合键名
-     * @param float $min 最小分数
-     * @param float $max 最大分数
+     * @param string $min 最小分数
+     * @param string $max 最大分数
      * @param bool $withScores 是否返回分数
      * @param bool $isJson 是否为JSON数据
      * @param array $options 额外选项，如：['limit' => [offset, count]]
      * @return array
      */
-    public function zRangeByScore(string $key, float $min, float $max, bool $withScores = false, bool $isJson = false, array $options = []): array
+    public function zRangeByScore(string $key, string $min, string $max, bool $withScores = false, bool $isJson = false, array $options = []): array
     {
-        $result = $this->redis->zRangeByScore($key, $min, $max, $options, $withScores ? ['withscores' => true] : []);
+        // 准备Redis参数
+        $redisOptions = [];
+
+        // 添加withscores选项
+        if ($withScores) {
+            $redisOptions['withscores'] = true;
+        }
+
+        // 添加limit选项
+        if (!empty($options['limit']) && is_array($options['limit']) && count($options['limit']) == 2) {
+            $redisOptions['limit'] = $options['limit'];
+        }
+
+        // 调用Redis原生方法
+        $result = $this->redis->zRangeByScore($key, $min, $max, $redisOptions);
 
         if ($isJson && !$withScores) {
             foreach ($result as &$member) {
@@ -230,16 +244,30 @@ class ZSetService
      * 通过分数返回有序集合指定区间内的成员，分数从大到小排序
      *
      * @param string $key 有序集合键名
-     * @param float $max 最大分数
-     * @param float $min 最小分数
+     * @param string $max 最大分数
+     * @param string $min 最小分数
      * @param bool $withScores 是否返回分数
      * @param bool $isJson 是否为JSON数据
      * @param array $options 额外选项，如：['limit' => [offset, count]]
      * @return array
      */
-    public function zRevRangeByScore(string $key, float $max, float $min, bool $withScores = false, bool $isJson = false, array $options = []): array
+    public function zRevRangeByScore(string $key, string $max, string $min, bool $withScores = false, bool $isJson = false, array $options = []): array
     {
-        $result = $this->redis->zRevRangeByScore($key, $max, $min, $options, $withScores ? ['withscores' => true] : []);
+        // 准备Redis参数
+        $redisOptions = [];
+
+        // 添加withscores选项
+        if ($withScores) {
+            $redisOptions['withscores'] = true;
+        }
+
+        // 添加limit选项
+        if (!empty($options['limit']) && is_array($options['limit']) && count($options['limit']) == 2) {
+            $redisOptions['limit'] = $options['limit'];
+        }
+
+        // 调用Redis原生方法
+        $result = $this->redis->zRevRangeByScore($key, $max, $min, $redisOptions);
 
         if ($isJson && !$withScores) {
             foreach ($result as &$member) {
@@ -338,11 +366,11 @@ class ZSetService
      * 移除有序集合中给定的分数区间的所有成员
      *
      * @param string $key 有序集合键名
-     * @param float $min 最小分数
-     * @param float $max 最大分数
+     * @param string $min 最小分数
+     * @param string $max 最大分数
      * @return int 被移除成员的数量
      */
-    public function zRemRangeByScore(string $key, float $min, float $max): int
+    public function zRemRangeByScore(string $key, string $min, string $max): int
     {
         return $this->redis->zRemRangeByScore($key, $min, $max);
     }

@@ -21,6 +21,18 @@ class SetDemo extends RedisDemo
 {
     /**
      * 演示页面
+     *
+     * @OA\Get(
+     *     path="/redis/set",
+     *     summary="Redis Set演示页面",
+     *     description="显示Redis Set类型的演示页面",
+     *     operationId="setIndex",
+     *     tags={"Redis Set"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="成功返回页面",
+     *     )
+     * )
      */
     public function index()
     {
@@ -29,6 +41,50 @@ class SetDemo extends RedisDemo
 
     /**
      * 基本用法示例
+     *
+     * @OA\Get(
+     *     path="/redis/set/basic",
+     *     summary="Redis Set基本用法示例",
+     *     description="演示Redis Set类型的基本操作，包括添加、删除、判断元素是否存在等",
+     *     operationId="setBasic",
+     *     tags={"Redis Set"},
+     *     @OA\Parameter(
+     *         name="key",
+     *         in="query",
+     *         description="Redis键名，默认为'set_demo_basic'",
+     *         required=false,
+     *         @OA\Schema(type="string", default="set_demo_basic")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=1),
+     *             @OA\Property(property="msg", type="string", example="Set基本用法演示"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="members", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="size", type="integer", example=3),
+     *                 @OA\Property(property="exists_value1", type="boolean", example=true),
+     *                 @OA\Property(property="exists_value4", type="boolean", example=false),
+     *                 @OA\Property(property="random_member", type="string", example="value2"),
+     *                 @OA\Property(property="members_after_remove", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="popped_member", type="string", example="value1"),
+     *                 @OA\Property(property="members_after_pop", type="array", @OA\Items(type="string"))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="操作失败",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=0),
+     *             @OA\Property(property="msg", type="string", example="Set基本用法演示失败"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function basic()
     {
@@ -81,6 +137,55 @@ class SetDemo extends RedisDemo
 
     /**
      * 集合运算示例
+     *
+     * @OA\Get(
+     *     path="/redis/set/set-operations",
+     *     summary="Redis Set集合运算示例",
+     *     description="演示Redis Set类型的集合运算，包括并集、交集和差集操作",
+     *     operationId="setOperations",
+     *     tags={"Redis Set"},
+     *     @OA\Parameter(
+     *         name="key1",
+     *         in="query",
+     *         description="第一个集合的键名，默认为'set_demo_ops_1'",
+     *         required=false,
+     *         @OA\Schema(type="string", default="set_demo_ops_1")
+     *     ),
+     *     @OA\Parameter(
+     *         name="key2",
+     *         in="query",
+     *         description="第二个集合的键名，默认为'set_demo_ops_2'",
+     *         required=false,
+     *         @OA\Schema(type="string", default="set_demo_ops_2")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=1),
+     *             @OA\Property(property="msg", type="string", example="Set集合运算演示"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="set1", type="array", @OA\Items(type="string"), example={"A", "B", "C", "D"}),
+     *                 @OA\Property(property="set2", type="array", @OA\Items(type="string"), example={"C", "D", "E", "F"}),
+     *                 @OA\Property(property="union", type="array", @OA\Items(type="string"), example={"A", "B", "C", "D", "E", "F"}),
+     *                 @OA\Property(property="intersection", type="array", @OA\Items(type="string"), example={"C", "D"}),
+     *                 @OA\Property(property="difference_1_2", type="array", @OA\Items(type="string"), example={"A", "B"}),
+     *                 @OA\Property(property="difference_2_1", type="array", @OA\Items(type="string"), example={"E", "F"})
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="操作失败",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=0),
+     *             @OA\Property(property="msg", type="string", example="Set集合运算演示失败"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function setOperations()
     {
@@ -128,6 +233,69 @@ class SetDemo extends RedisDemo
 
     /**
      * 标签系统示例
+     *
+     * @OA\Get(
+     *     path="/redis/set/tag-system",
+     *     summary="Redis Set实现标签系统",
+     *     description="使用Redis Set实现标签系统，包括添加标签、移除标签、获取项目标签、查找带有特定标签的项目等",
+     *     operationId="tagSystem",
+     *     tags={"Redis Set"},
+     *     @OA\Parameter(
+     *         name="action",
+     *         in="query",
+     *         description="操作类型：add(添加标签)、remove(移除标签)、get_item_tags(获取项目标签)、get_tag_items(获取带有标签的项目)、find_items_with_all_tags(查找具有所有标签的项目)、find_items_with_any_tags(查找具有任一标签的项目)、list(列出示例项目)",
+     *         required=false,
+     *         @OA\Schema(type="string", default="list")
+     *     ),
+     *     @OA\Parameter(
+     *         name="item_id",
+     *         in="query",
+     *         description="项目ID",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="tag",
+     *         in="query",
+     *         description="标签名称",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="tags",
+     *         in="query",
+     *         description="多个标签，用逗号分隔",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=1),
+     *             @OA\Property(property="msg", type="string", example="标签系统操作成功"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="status", type="string", example="success"),
+     *                 @OA\Property(property="message", type="string", example="标签 tech 已添加到项目 1"),
+     *                 @OA\Property(property="demo_items", type="object"),
+     *                 @OA\Property(property="tags", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="items", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="count", type="integer", example=2)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="操作失败",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=0),
+     *             @OA\Property(property="msg", type="string", example="标签系统操作失败"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function tagSystem()
     {
@@ -293,6 +461,58 @@ class SetDemo extends RedisDemo
 
     /**
      * IP黑白名单示例
+     *
+     * @OA\Get(
+     *     path="/redis/set/ip-access-control",
+     *     summary="Redis Set实现IP黑白名单",
+     *     description="使用Redis Set实现IP访问控制，包括黑名单和白名单管理",
+     *     operationId="ipAccessControl",
+     *     tags={"Redis Set"},
+     *     @OA\Parameter(
+     *         name="action",
+     *         in="query",
+     *         description="操作类型：add_to_blacklist(添加到黑名单)、remove_from_blacklist(从黑名单移除)、add_to_whitelist(添加到白名单)、remove_from_whitelist(从白名单移除)、get_blacklist(获取黑名单)、get_whitelist(获取白名单)、check(检查IP访问权限)",
+     *         required=false,
+     *         @OA\Schema(type="string", default="check")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ip",
+     *         in="query",
+     *         description="IP地址，默认为当前访问IP",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=1),
+     *             @OA\Property(property="msg", type="string", example="IP访问控制操作成功"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="status", type="string", example="success"),
+     *                 @OA\Property(property="message", type="string", example="IP 192.168.1.1 已添加到黑名单"),
+     *                 @OA\Property(property="ip", type="string", example="192.168.1.1"),
+     *                 @OA\Property(property="in_blacklist", type="boolean", example=true),
+     *                 @OA\Property(property="in_whitelist", type="boolean", example=false),
+     *                 @OA\Property(property="access_allowed", type="boolean", example=false),
+     *                 @OA\Property(property="blacklist", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="whitelist", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="count", type="integer", example=5)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="操作失败",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=0),
+     *             @OA\Property(property="msg", type="string", example="IP访问控制操作失败"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function ipAccessControl()
     {
@@ -658,7 +878,7 @@ class SetDemo extends RedisDemo
     public function randomPrize()
     {
         try {
-            $redis = Redis::set();
+            $redis  = Redis::set();
             $action = $this->request->param('action', 'draw');
             $userId = $this->request->param('user_id', 0, 'intval');
 
@@ -678,30 +898,30 @@ class SetDemo extends RedisDemo
 
                     // 添加奖品到奖品池
                     $prizes = [
-                        'iphone' => '苹果手机',
-                        'macbook' => 'MacBook Pro',
-                        'airpods' => 'AirPods',
-                        'ipad' => 'iPad Pro',
-                        'watch' => 'Apple Watch',
+                        'iphone'        => '苹果手机',
+                        'macbook'       => 'MacBook Pro',
+                        'airpods'       => 'AirPods',
+                        'ipad'          => 'iPad Pro',
+                        'watch'         => 'Apple Watch',
                         'gift_card_100' => '100元礼品卡',
-                        'gift_card_50' => '50元礼品卡',
-                        'gift_card_20' => '20元礼品卡',
-                        'gift_card_10' => '10元礼品卡',
-                        'thanks' => '谢谢参与'
+                        'gift_card_50'  => '50元礼品卡',
+                        'gift_card_20'  => '20元礼品卡',
+                        'gift_card_10'  => '10元礼品卡',
+                        'thanks'        => '谢谢参与'
                     ];
 
                     // 设置不同奖品的数量
                     $prizeCount = [
-                        'iphone' => 1,
-                        'macbook' => 1,
-                        'airpods' => 3,
-                        'ipad' => 2,
-                        'watch' => 5,
+                        'iphone'        => 1,
+                        'macbook'       => 1,
+                        'airpods'       => 3,
+                        'ipad'          => 2,
+                        'watch'         => 5,
                         'gift_card_100' => 10,
-                        'gift_card_50' => 20,
-                        'gift_card_20' => 50,
-                        'gift_card_10' => 100,
-                        'thanks' => 500
+                        'gift_card_50'  => 20,
+                        'gift_card_20'  => 50,
+                        'gift_card_10'  => 100,
+                        'thanks'        => 500
                     ];
 
                     // 将奖品添加到奖品池中
@@ -715,11 +935,11 @@ class SetDemo extends RedisDemo
                     $poolSize = $redis->sCard($prizePoolKey);
 
                     $result = [
-                        'status' => 'success',
-                        'message' => '奖品池初始化成功',
-                        'pool_size' => $poolSize,
-                        'prizes' => $prizes,
-                        'prize_count' => $prizeCount,
+                        'status'       => 'success',
+                        'message'      => '奖品池初始化成功',
+                        'pool_size'    => $poolSize,
+                        'prizes'       => $prizes,
+                        'prize_count'  => $prizeCount,
                         'total_prizes' => array_sum($prizeCount)
                     ];
                     break;
@@ -745,9 +965,9 @@ class SetDemo extends RedisDemo
                     $redis->sAdd($participantsKey, $userId);
 
                     $result = [
-                        'status' => 'success',
-                        'message' => '成功参与抽奖',
-                        'user_id' => $userId,
+                        'status'           => 'success',
+                        'message'          => '成功参与抽奖',
+                        'user_id'          => $userId,
                         'remaining_prizes' => $poolSize
                     ];
                     break;
@@ -784,25 +1004,25 @@ class SetDemo extends RedisDemo
 
                     // 奖品名称映射
                     $prizeNames = [
-                        'iphone' => '苹果手机',
-                        'macbook' => 'MacBook Pro',
-                        'airpods' => 'AirPods',
-                        'ipad' => 'iPad Pro',
-                        'watch' => 'Apple Watch',
+                        'iphone'        => '苹果手机',
+                        'macbook'       => 'MacBook Pro',
+                        'airpods'       => 'AirPods',
+                        'ipad'          => 'iPad Pro',
+                        'watch'         => 'Apple Watch',
                         'gift_card_100' => '100元礼品卡',
-                        'gift_card_50' => '50元礼品卡',
-                        'gift_card_20' => '20元礼品卡',
-                        'gift_card_10' => '10元礼品卡',
-                        'thanks' => '谢谢参与'
+                        'gift_card_50'  => '50元礼品卡',
+                        'gift_card_20'  => '20元礼品卡',
+                        'gift_card_10'  => '10元礼品卡',
+                        'thanks'        => '谢谢参与'
                     ];
 
                     $result = [
-                        'status' => 'success',
-                        'message' => '抽奖成功',
-                        'user_id' => $userId,
-                        'prize' => $prize,
-                        'prize_name' => $prizeNames[$prize] ?? $prize,
-                        'is_winner' => ($prize && $prize !== 'thanks'),
+                        'status'           => 'success',
+                        'message'          => '抽奖成功',
+                        'user_id'          => $userId,
+                        'prize'            => $prize,
+                        'prize_name'       => $prizeNames[$prize] ?? $prize,
+                        'is_winner'        => ($prize && $prize !== 'thanks'),
                         'remaining_prizes' => $poolSize - 1
                     ];
                     break;
@@ -827,12 +1047,12 @@ class SetDemo extends RedisDemo
                     }
 
                     $result = [
-                        'status' => 'success',
-                        'pool_size' => $poolSize,
+                        'status'             => 'success',
+                        'pool_size'          => $poolSize,
                         'participants_count' => $participantsCount,
-                        'winners_count' => $winnersCount,
-                        'winners' => $winners,
-                        'remaining_prizes' => $remainingPrizes
+                        'winners_count'      => $winnersCount,
+                        'winners'            => $winners,
+                        'remaining_prizes'   => $remainingPrizes
                     ];
                     break;
 

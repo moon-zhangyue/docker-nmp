@@ -63,35 +63,79 @@ class Swagger extends Command
                 ])
             ];
 
-            // 尝试扫描目录并合并结果
+            // 直接使用SwaggerController中的JSON方法获取API文档
             try {
-                $scannedOpenapi = Generator::scan($directories);
-                if (isset($scannedOpenapi->paths)) {
-                    foreach ($scannedOpenapi->paths as $path) {
-                        $openapi->paths[] = $path;
-                    }
-                }
-                if (isset($scannedOpenapi->tags)) {
-                    $openapi->tags = $scannedOpenapi->tags;
-                }
-                $output->writeln('<info>成功扫描API目录并合并结果</info>');
+                // 实例化SwaggerController
+                $swaggerController = new \app\controller\SwaggerController();
+
+                // 获取JSON格式的API文档
+                $response = $swaggerController->json();
+
+                // 从响应中提取JSON内容
+                $jsonContent = $response->getContent();
+                $jsonArray = json_decode($jsonContent, true);
+
+                // 将JSON内容转换为OpenAPI对象
+                $openapi = json_decode($jsonContent);
+
+                $output->writeln('<info>成功从SwaggerController获取API文档</info>');
             } catch (\Exception $scanException) {
-                $output->writeln('<comment>扫描目录时出现警告：' . $scanException->getMessage() . '</comment>');
+                $output->writeln('<comment>从SwaggerController获取API文档时出现警告：' . $scanException->getMessage() . '</comment>');
                 $output->writeln('<info>将使用基本OpenAPI结构</info>');
+
+                // 尝试扫描目录作为备选方案
+                try {
+                    $scannedOpenapi = Generator::scan($directories);
+                    if (isset($scannedOpenapi->paths)) {
+                        foreach ($scannedOpenapi->paths as $path) {
+                            $openapi->paths[] = $path;
+                        }
+                    }
+                    if (isset($scannedOpenapi->tags)) {
+                        $openapi->tags = $scannedOpenapi->tags;
+                    }
+                    $output->writeln('<info>成功扫描API目录并合并结果</info>');
+                } catch (\Exception $e) {
+                    $output->writeln('<comment>扫描目录时出现警告：' . $e->getMessage() . '</comment>');
+                }
             }
 
             // 确保生成的文档包含版本字段
             if ($action === 'yaml') {
                 // 生成YAML格式
-                $yamlContent = "openapi: 3.0.0\n"; // 强制添加版本字段
-                $yamlContent .= substr($openapi->toYaml(), strpos($openapi->toYaml(), "info:"));
-                $output->writeln($yamlContent);
+                if (isset($swaggerController)) {
+                    // 直接使用SwaggerController的yaml方法
+                    $yamlContent = $swaggerController->yaml();
+                    $output->writeln($yamlContent);
+                } else {
+                    // 使用OpenAPI对象生成YAML
+                    $yamlContent = "openapi: 3.0.0\n"; // 强制添加版本字段
+                    $yamlContent .= substr($openapi->toYaml(), strpos($openapi->toYaml(), "info:"));
+                    $output->writeln($yamlContent);
+                }
             } else {
                 // 生成JSON格式
-                $jsonArray = json_decode($openapi->toJson(), true);
-                $jsonArray['openapi'] = '3.0.0'; // 强制设置版本字段
-                $jsonContent = json_encode($jsonArray, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                $output->writeln($jsonContent);
+                if (isset($jsonArray)) {
+                    // 直接使用从SwaggerController获取的JSON
+                    $jsonContent = json_encode($jsonArray, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+                    // 将JSON内容写入swagger.json文件
+                    $jsonFilePath = App::getRootPath() . 'public/swagger.json';
+                    file_put_contents($jsonFilePath, $jsonContent);
+
+                    $output->writeln('<info>已将API文档写入 ' . $jsonFilePath . '</info>');
+                } else {
+                    // 使用OpenAPI对象生成JSON
+                    $jsonArray = json_decode($openapi->toJson(), true);
+                    $jsonArray['openapi'] = '3.0.0'; // 强制设置版本字段
+                    $jsonContent = json_encode($jsonArray, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+                    // 将JSON内容写入swagger.json文件
+                    $jsonFilePath = App::getRootPath() . 'public/swagger.json';
+                    file_put_contents($jsonFilePath, $jsonContent);
+
+                    $output->writeln('<info>已将API文档写入 ' . $jsonFilePath . '</info>');
+                }
             }
 
             $output->writeln('Swagger文档生成成功！');

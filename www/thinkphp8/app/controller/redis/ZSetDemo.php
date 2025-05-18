@@ -9,13 +9,30 @@ use think\facade\View;
 
 /**
  * Redis ZSet(有序集合)类型演示控制器
- * 
+ *
  * 演示Redis ZSet类型的常见应用场景
+ *
+ * @OA\Tag(
+ *     name="Redis ZSet",
+ *     description="Redis ZSet(有序集合)类型操作接口"
+ * )
  */
 class ZSetDemo extends RedisDemo
 {
     /**
      * 演示页面
+     *
+     * @OA\Get(
+     *     path="/redis/zset",
+     *     summary="Redis ZSet演示页面",
+     *     description="显示Redis ZSet类型的演示页面",
+     *     operationId="zsetIndex",
+     *     tags={"Redis ZSet"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="成功返回页面"
+     *     )
+     * )
      */
     public function index()
     {
@@ -24,12 +41,63 @@ class ZSetDemo extends RedisDemo
 
     /**
      * 基本用法示例
+     *
+     * @OA\Get(
+     *     path="/redis/zset/basic",
+     *     summary="Redis ZSet基本用法示例",
+     *     description="演示Redis ZSet类型的基本操作，包括添加、删除、获取元素、排序等",
+     *     operationId="zsetBasic",
+     *     tags={"Redis ZSet"},
+     *     @OA\Parameter(
+     *         name="key",
+     *         in="query",
+     *         description="Redis键名，默认为'zset_demo_basic'",
+     *         required=false,
+     *         @OA\Schema(type="string", default="zset_demo_basic")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=0),
+     *             @OA\Property(property="msg", type="string", example="ZSet基本用法演示成功"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="members", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="members_with_scores", type="object"),
+     *                 @OA\Property(property="members_desc", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="members_desc_with_scores", type="object"),
+     *                 @OA\Property(property="range_by_score", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="range_by_score_with_scores", type="object"),
+     *                 @OA\Property(property="count", type="integer"),
+     *                 @OA\Property(property="count_in_range", type="integer"),
+     *                 @OA\Property(property="score_of_member3", type="number"),
+     *                 @OA\Property(property="rank_of_member3", type="integer"),
+     *                 @OA\Property(property="rev_rank_of_member3", type="integer"),
+     *                 @OA\Property(property="new_score_of_member1", type="number"),
+     *                 @OA\Property(property="final_members", type="object"),
+     *                 @OA\Property(property="members_after_remove", type="array", @OA\Items(type="string")),
+     *                 @OA\Property(property="members_after_range_remove", type="array", @OA\Items(type="string"))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="操作失败",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=1),
+     *             @OA\Property(property="msg", type="string", example="ZSet基本用法演示失败"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function basic()
     {
         try {
             $redis = Redis::zset();
-            $key   = 'zset_demo_basic';
+            $key   = $this->request->param('key', 'zset_demo_basic');
 
             // 清空之前的测试数据
             $redis->delete($key);
@@ -55,12 +123,12 @@ class ZSetDemo extends RedisDemo
             $membersDescWithScores = $redis->zRevRange($key, 0, -1, true);
 
             // 获取指定分数范围的元素
-            $rangeByScore           = $redis->zRangeByScore($key, 2, 5);
-            $rangeByScoreWithScores = $redis->zRangeByScore($key, 2, 5, true);
+            $rangeByScore           = $redis->zRangeByScore($key, '2', '5');
+            $rangeByScoreWithScores = $redis->zRangeByScore($key, '2', '5', true);
 
             // 获取元素数量
             $count        = $redis->zCard($key);
-            $countInRange = $redis->zCount($key, 2, 5);
+            $countInRange = $redis->zCount($key, '2', '5');
 
             // 获取元素的分数
             $score = $redis->zScore($key, 'member3');
@@ -107,6 +175,72 @@ class ZSetDemo extends RedisDemo
 
     /**
      * 排行榜示例
+     *
+     * @OA\Get(
+     *     path="/redis/zset/leaderboard",
+     *     summary="Redis ZSet实现排行榜",
+     *     description="使用Redis ZSet实现排行榜功能，包括添加/更新分数、获取排名、查看前N名等",
+     *     operationId="zsetLeaderboard",
+     *     tags={"Redis ZSet"},
+     *     @OA\Parameter(
+     *         name="action",
+     *         in="query",
+     *         description="操作类型：add(添加/更新分数)、increment(增加分数)、get_user_rank(获取用户排名)、get_top(获取前N名)、get_rank_range(获取指定排名范围)、get_neighbors(获取用户附近排名)、clear(清空排行榜)、view(查看排行榜)",
+     *         required=false,
+     *         @OA\Schema(type="string", default="view")
+     *     ),
+     *     @OA\Parameter(
+     *         name="user_id",
+     *         in="query",
+     *         description="用户ID",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="score",
+     *         in="query",
+     *         description="分数",
+     *         required=false,
+     *         @OA\Schema(type="number", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="获取数量限制",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=10)
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         description="起始排名（从0开始）",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="end",
+     *         in="query",
+     *         description="结束排名",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=9)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         description="获取邻近用户的数量",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=2)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=0),
+     *             @OA\Property(property="msg", type="string", example="排行榜操作成功"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function leaderboard()
     {
@@ -323,6 +457,51 @@ class ZSetDemo extends RedisDemo
 
     /**
      * 延迟队列示例
+     *
+     * @OA\Get(
+     *     path="/redis/zset/delayed-queue",
+     *     summary="Redis ZSet实现延迟队列",
+     *     description="使用Redis ZSet实现延迟队列功能，包括添加延迟任务、获取已到期任务、处理任务等",
+     *     operationId="zsetDelayedQueue",
+     *     tags={"Redis ZSet"},
+     *     @OA\Parameter(
+     *         name="action",
+     *         in="query",
+     *         description="操作类型：add(添加任务)、get_ready(获取已到期任务)、process_one(处理一个任务)、remove(移除指定任务)、clear(清空队列)、stats(队列统计信息)",
+     *         required=false,
+     *         @OA\Schema(type="string", default="stats")
+     *     ),
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="query",
+     *         description="任务ID",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="delay",
+     *         in="query",
+     *         description="延迟时间（秒）",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=60)
+     *     ),
+     *     @OA\Parameter(
+     *         name="payload",
+     *         in="query",
+     *         description="任务内容",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=0),
+     *             @OA\Property(property="msg", type="string", example="延迟队列操作成功"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function delayedQueue()
     {
@@ -368,7 +547,7 @@ class ZSetDemo extends RedisDemo
                 case 'get_ready':
                     // 获取已到期可执行的任务
                     $now = time();
-                    $readyJobs = $redis->zRangeByScore($queueKey, 0, $now);
+                    $readyJobs = $redis->zRangeByScore($queueKey, '0', (string)$now);
 
                     $formattedJobs = [];
                     foreach ($readyJobs as $jobJson) {
@@ -388,7 +567,10 @@ class ZSetDemo extends RedisDemo
                 case 'process_one':
                     // 处理一个已到期的任务
                     $now = time();
-                    $readyJobs = $redis->zRangeByScore($queueKey, 0, $now, false, false, ['limit' => [0, 1]]);
+                    // 获取分数在0到当前时间之间的一个任务
+                    $readyJobs = $redis->zRangeByScore($queueKey, '0', (string)$now);
+                    // 只取第一个任务
+                    $readyJobs = array_slice($readyJobs, 0, 1);
 
                     if (!empty($readyJobs)) {
                         $jobJson = $readyJobs[0];
@@ -461,12 +643,16 @@ class ZSetDemo extends RedisDemo
                 default:
                     // 队列统计信息
                     $now = time();
+
                     $totalJobs = $redis->zCard($queueKey);
-                    $readyJobs = $redis->zCount($queueKey, 0, $now);
-                    $pendingJobs = $redis->zCount($queueKey, $now + 1, '+inf');
+                    $readyJobs = $redis->zCount($queueKey, '0', (string)$now);
+                    $pendingJobs = $redis->zCount($queueKey, (string)($now + 1), (string)PHP_INT_MAX);
 
                     // 获取近期将要执行的任务
-                    $upcomingJobs = $redis->zRangeByScore($queueKey, $now + 1, '+inf', true, false, ['limit' => [0, 5]]);
+                    // 获取即将执行的任务（带分数）
+                    $upcomingJobs = $redis->zRangeByScore($queueKey, (string)($now + 1), (string)PHP_INT_MAX, true);
+                    // 只取前5个任务
+                    $upcomingJobs = array_slice($upcomingJobs, 0, 5, true);
 
                     $formattedUpcoming = [];
                     foreach ($upcomingJobs as $jobJson => $score) {
@@ -496,6 +682,44 @@ class ZSetDemo extends RedisDemo
 
     /**
      * 权重搜索示例
+     *
+     * @OA\Get(
+     *     path="/redis/zset/weighted-search",
+     *     summary="Redis ZSet实现权重搜索",
+     *     description="使用Redis ZSet实现带权重的搜索功能，包括建立索引和搜索操作",
+     *     operationId="zsetWeightedSearch",
+     *     tags={"Redis ZSet"},
+     *     @OA\Parameter(
+     *         name="action",
+     *         in="query",
+     *         description="操作类型：index(建立索引)、search(执行搜索)",
+     *         required=false,
+     *         @OA\Schema(type="string", default="search")
+     *     ),
+     *     @OA\Parameter(
+     *         name="keyword",
+     *         in="query",
+     *         description="搜索关键词",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="结果数量限制",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=5)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="code", type="integer", example=0),
+     *             @OA\Property(property="msg", type="string", example="权重搜索操作成功"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     )
+     * )
      */
     public function weightedSearch()
     {
@@ -578,7 +802,7 @@ class ZSetDemo extends RedisDemo
 
                     // 保存文章内容
                     foreach ($articles as $id => $article) {
-                        $redis->string()->set("article:{$id}", $article, 3600);
+                        Redis::string()->set("article:{$id}", $article, 3600);
                     }
 
                     $indexSize = $redis->zCard($keywordIndexKey);
@@ -631,7 +855,7 @@ class ZSetDemo extends RedisDemo
                     // 获取文章详情
                     $articles = [];
                     foreach ($searchResults as $articleId => $score) {
-                        $article = $redis->string()->get("article:{$articleId}", true);
+                        $article = Redis::string()->get("article:{$articleId}", true);
                         if ($article) {
                             $article['id']    = $articleId;
                             $article['score'] = $score;
