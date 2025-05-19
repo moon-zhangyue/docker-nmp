@@ -10,7 +10,7 @@ use think\Response;
 
 /**
  * Redis Geo类型演示控制器
- * 
+ *
  * 演示Redis Geo类型的常见应用场景
  *
  * @OA\Tag(
@@ -22,7 +22,7 @@ class GeoDemo extends RedisDemo
 {
     /**
      * 城市坐标数据
-     * 
+     *
      * @var array
      */
     protected array $cities = [
@@ -40,17 +40,17 @@ class GeoDemo extends RedisDemo
 
     /**
      * 演示页面
-     * 
+     *
      * @return \think\Response
      */
-    public function index()
+    public function index(): Response
     {
-        return View::fetch('redis/geo/index');
+        return response(View::fetch('redis/geo/index'));
     }
 
     /**
      * 获取Redis Geo实例
-     * 
+     *
      * @return \app\service\redis\GeoService
      */
     protected function getRedisGeo()
@@ -60,7 +60,7 @@ class GeoDemo extends RedisDemo
 
     /**
      * 基本用法示例
-     * 
+     *
      * @return Response
      */
     public function basic()
@@ -75,7 +75,7 @@ class GeoDemo extends RedisDemo
             // 添加城市地理位置
             $addResults = [];
             foreach ($this->cities as $city => $location) {
-                $result            = $redis->geoAdd($key, (float) $location[0], (float) $location[1], $city);
+                $result            = $redis->geoAdd($key, (float)$location[0], (float)$location[1], $city);
                 $addResults[$city] = $result;
             }
 
@@ -90,9 +90,9 @@ class GeoDemo extends RedisDemo
 
             // 获取上海半径300公里内的城市
             $nearShanghai = $redis->geoRadius($key, 121.472644, 31.231706, 300, 'km', [
-                'WITHDIST'  => true, // 返回距离
-                'WITHCOORD' => true, // 返回坐标
-                'ASC'       => true, // 按距离正序排列
+                'withdist'  => true, // 返回距离
+                'withcoord' => true, // 返回坐标
+                'asc'       => true, // 按距离正序排列
             ]);
 
             // 获取北京的GeoHash值
@@ -117,7 +117,7 @@ class GeoDemo extends RedisDemo
 
     /**
      * 附近的人示例
-     * 
+     *
      * @return Response
      */
     public function nearbyUsers()
@@ -141,7 +141,7 @@ class GeoDemo extends RedisDemo
                     }
 
                     if ($userId > 0 && $longitude && $latitude) {
-                        $redis->geoAdd($key, $longitude, $latitude, "user:{$userId}");
+                        $redis->geoAdd($key, (float)$longitude, (float)$latitude, "user:{$userId}");
 
                         $result = [
                             'status'    => 'success',
@@ -180,9 +180,9 @@ class GeoDemo extends RedisDemo
                     if ($userId > 0) {
                         $userKey = "user:{$userId}";
                         $options = [
-                            'WITHDIST' => true, // 返回距离
-                            'COUNT'    => $count, // 限制返回数量
-                            'ASC'      => true, // 按距离正序排列
+                            'withdist' => true, // 返回距离
+                            'count'    => $count, // 限制返回数量
+                            'asc'      => true, // 按距离正序排列
                         ];
 
                         $nearby = $redis->geoRadiusByMember($key, $userKey, $radius, $unit, $options);
@@ -228,10 +228,10 @@ class GeoDemo extends RedisDemo
 
                         if ($longitude && $latitude) {
                             $options = [
-                                'WITHDIST'  => true, // 返回距离
-                                'WITHCOORD' => true, // 返回坐标
-                                'COUNT'     => $count, // 限制返回数量
-                                'ASC'       => true, // 按距离正序排列
+                                'withdist'  => true, // 返回距离
+                                'withcoord' => true, // 返回坐标
+                                'count'     => $count, // 限制返回数量
+                                'asc'       => true, // 按距离正序排列
                             ];
 
                             $nearby = $redis->geoRadius($key, $longitude, $latitude, $radius, $unit, $options);
@@ -282,12 +282,12 @@ class GeoDemo extends RedisDemo
                 case 'list':
                 default:
                     // 列出所有用户位置
-                    $count = $redis->zCard($key); // GEO实际上是使用有序集合实现的
+                    $count = Redis::zset()->zCard($key); // GEO实际上是使用有序集合实现的
 
                     // 获取所有用户
                     $users = [];
                     if ($count > 0) {
-                        $members = $redis->zRange($key, 0, -1);
+                        $members = Redis::zset()->zRange($key, 0, -1);
 
                         if (is_array($members)) {
                             foreach ($members as $member) {
@@ -325,7 +325,7 @@ class GeoDemo extends RedisDemo
 
     /**
      * 店铺查找示例
-     * 
+     *
      * @return Response
      */
     public function storeLocator()
@@ -351,7 +351,7 @@ class GeoDemo extends RedisDemo
 
                     if ($storeId > 0 && !empty($storeName) && $longitude && $latitude) {
                         // 将店铺信息存储到Hash中
-                        $redis->hash()->hMSet("store:{$storeId}", [
+                        Redis::hash()->hMSet("store:{$storeId}", [
                             'id'          => $storeId,
                             'name'        => $storeName,
                             'longitude'   => $longitude,
@@ -360,7 +360,7 @@ class GeoDemo extends RedisDemo
                         ]);
 
                         // 添加到地理位置索引
-                        $redis->geoAdd($key, $longitude, $latitude, "store:{$storeId}");
+                        $redis->geoAdd($key, (float)$longitude, (float)$latitude, "store:{$storeId}");
 
                         $result = [
                             'status'     => 'success',
@@ -399,9 +399,9 @@ class GeoDemo extends RedisDemo
 
                     if ($longitude && $latitude) {
                         $options = [
-                            'WITHDIST' => true, // 返回距离
-                            'COUNT'    => $count, // 限制返回数量
-                            'ASC'      => true, // 按距离正序排列
+                            'withdist' => true, // 返回距离
+                            'count'    => $count, // 限制返回数量
+                            'asc'      => true, // 按距离正序排列
                         ];
 
                         $nearbyStores = $redis->geoRadius($key, $longitude, $latitude, $radius, $unit, $options);
@@ -421,7 +421,7 @@ class GeoDemo extends RedisDemo
                             }
 
                             $storeId   = str_replace('store:', '', $member);
-                            $storeInfo = $redis->hash()->hGetAll("store:{$storeId}");
+                            $storeInfo = Redis::hash()->hGetAll("store:{$storeId}");
 
                             if ($storeInfo && !empty($storeInfo)) {
                                 $storeInfo['distance'] = $distance;
@@ -450,12 +450,12 @@ class GeoDemo extends RedisDemo
                 case 'list':
                 default:
                     // 列出所有店铺
-                    $count = $redis->zCard($key); // GEO实际上是使用有序集合实现的
+                    $count = Redis::zset()->zCard($key); // GEO实际上是使用有序集合实现的
 
                     // 获取所有店铺
                     $stores = [];
                     if ($count > 0) {
-                        $members = $redis->zRange($key, 0, -1);
+                        $members = Redis::zset()->zRange($key, 0, -1);
 
                         if (is_array($members)) {
                             foreach ($members as $member) {
@@ -464,7 +464,7 @@ class GeoDemo extends RedisDemo
                                 }
 
                                 $storeId   = str_replace('store:', '', $member);
-                                $storeInfo = $redis->hash()->hGetAll("store:{$storeId}");
+                                $storeInfo = Redis::hash()->hGetAll("store:{$storeId}");
 
                                 if ($storeInfo && !empty($storeInfo)) {
                                     $stores[] = $storeInfo;
@@ -486,10 +486,10 @@ class GeoDemo extends RedisDemo
 
                         foreach ($sampleStores as $store) {
                             // 将店铺信息存储到Hash中
-                            $redis->hash()->hMSet("store:{$store['id']}", array_merge($store, ['create_time' => time()]));
+                            Redis::hash()->hMSet("store:{$store['id']}", array_merge($store, ['create_time' => time()]));
 
                             // 添加到地理位置索引
-                            $redis->geoAdd($key, $store['longitude'], $store['latitude'], "store:{$store['id']}");
+                            $redis->geoAdd($key, (float)$store['longitude'], (float)$store['latitude'], "store:{$store['id']}");
 
                             $stores[] = array_merge($store, ['create_time' => time()]);
                         }
@@ -511,7 +511,7 @@ class GeoDemo extends RedisDemo
 
     /**
      * 路径规划示例
-     * 
+     *
      * @return Response
      */
     public function routePlanning()
@@ -537,7 +537,7 @@ class GeoDemo extends RedisDemo
 
                     if (!empty($poiId) && !empty($poiName) && $longitude && $latitude) {
                         // 将POI信息存储到Hash中
-                        $redis->hash()->hMSet("poi:{$poiId}", [
+                        Redis::hash()->hMSet("poi:{$poiId}", [
                             'id'        => $poiId,
                             'name'      => $poiName,
                             'longitude' => $longitude,
@@ -545,7 +545,7 @@ class GeoDemo extends RedisDemo
                         ]);
 
                         // 添加到地理位置索引
-                        $redis->geoAdd($key, $longitude, $latitude, "poi:{$poiId}");
+                        $redis->geoAdd($key, (float)$longitude, (float)$latitude, "poi:{$poiId}");
 
                         $result = [
                             'status'    => 'success',
@@ -595,7 +595,7 @@ class GeoDemo extends RedisDemo
                     if (!$startLon || !$startLat || !$endLon || !$endLat) {
                         // 如果没有指定坐标，使用默认的示例数据
                         // 初始化一些示例POI数据
-                        if ($redis->zCard($key) == 0) {
+                        if (Redis::zset()->zCard($key) == 0) {
                             $samplePOIs = [
                                 ['id' => 'station1', 'name' => '地铁1号线国贸站', 'longitude' => 116.46, 'latitude' => 39.91],
                                 ['id' => 'station2', 'name' => '地铁1号线王府井站', 'longitude' => 116.41, 'latitude' => 39.92],
@@ -611,10 +611,10 @@ class GeoDemo extends RedisDemo
 
                             foreach ($samplePOIs as $poi) {
                                 // 将POI信息存储到Hash中
-                                $redis->hash()->hMSet("poi:{$poi['id']}", $poi);
+                                Redis::hash()->hMSet("poi:{$poi['id']}", $poi);
 
                                 // 添加到地理位置索引
-                                $redis->geoAdd($key, $poi['longitude'], $poi['latitude'], "poi:{$poi['id']}");
+                                $redis->geoAdd($key, (float)$poi['longitude'], (float)$poi['latitude'], "poi:{$poi['id']}");
                             }
                         }
 
@@ -625,9 +625,6 @@ class GeoDemo extends RedisDemo
                         $endLat   = 39.90;
                     }
 
-                    // 计算路径的大致方向和距离
-                    $dLon = $endLon - $startLon;
-                    $dLat = $endLat - $startLat;
                     // 使用Haversine公式计算球面距离，更准确
                     $earthRadius = 6371; // 地球半径，单位公里
                     $dLat = deg2rad($endLat - $startLat);
@@ -656,8 +653,8 @@ class GeoDemo extends RedisDemo
                         $lat = $point[1];
 
                         $nearbyPOIs = $redis->geoRadius($key, $lon, $lat, $radius, 'km', [
-                            'WITHDIST' => true,
-                            'ASC'      => true,
+                            'withdist' => true,
+                            'asc'      => true,
                         ]);
 
                         foreach ($nearbyPOIs as $item) {
@@ -675,7 +672,7 @@ class GeoDemo extends RedisDemo
                             // 避免重复添加同一个POI
                             if (!isset($visitedPOIs[$poiKey])) {
                                 $poiId   = str_replace('poi:', '', $poiKey);
-                                $poiInfo = $redis->hash()->hGetAll("poi:{$poiId}");
+                                $poiInfo = Redis::hash()->hGetAll("poi:{$poiId}");
 
                                 if ($poiInfo && !empty($poiInfo)) {
                                     $poiInfo['distance']  = $distance;
