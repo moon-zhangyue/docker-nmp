@@ -6,11 +6,17 @@ namespace app\controller\redis;
 use app\controller\RedisDemo;
 use app\facade\Redis;
 use think\facade\View;
+use think\Response;
 
 /**
  * Redis Geo类型演示控制器
  * 
  * 演示Redis Geo类型的常见应用场景
+ *
+ * @OA\Tag(
+ *     name="Redis Geo",
+ *     description="Redis Geo地理位置相关操作"
+ * )
  */
 class GeoDemo extends RedisDemo
 {
@@ -34,6 +40,8 @@ class GeoDemo extends RedisDemo
 
     /**
      * 演示页面
+     * 
+     * @return \think\Response
      */
     public function index()
     {
@@ -41,12 +49,24 @@ class GeoDemo extends RedisDemo
     }
 
     /**
+     * 获取Redis Geo实例
+     * 
+     * @return \app\service\redis\GeoService
+     */
+    protected function getRedisGeo()
+    {
+        return Redis::geo();
+    }
+
+    /**
      * 基本用法示例
+     * 
+     * @return Response
      */
     public function basic()
     {
         try {
-            $redis = Redis::geo();
+            $redis = $this->getRedisGeo();
             $key   = 'geo_demo_cities';
 
             // 清空之前的测试数据
@@ -97,11 +117,13 @@ class GeoDemo extends RedisDemo
 
     /**
      * 附近的人示例
+     * 
+     * @return Response
      */
     public function nearbyUsers()
     {
         try {
-            $redis  = Redis::geo();
+            $redis  = $this->getRedisGeo();
             $action = $this->request->param('action', 'list');
 
             $key = 'geo_demo_users';
@@ -112,6 +134,11 @@ class GeoDemo extends RedisDemo
                     $userId = $this->request->param('user_id', 0, 'intval');
                     $longitude = $this->request->param('longitude', 0, 'floatval');
                     $latitude = $this->request->param('latitude', 0, 'floatval');
+
+                    // 验证经纬度范围
+                    if ($longitude < -180 || $longitude > 180 || $latitude < -90 || $latitude > 90) {
+                        return $this->error('经纬度范围无效');
+                    }
 
                     if ($userId > 0 && $longitude && $latitude) {
                         $redis->geoAdd($key, $longitude, $latitude, "user:{$userId}");
@@ -135,8 +162,19 @@ class GeoDemo extends RedisDemo
                     // 查找附近的人
                     $userId = $this->request->param('user_id', 0, 'intval');
                     $radius = $this->request->param('radius', 5, 'floatval'); // 默认5公里
-                    $unit = $this->request->param('unit', 'km');
-                    $count = $this->request->param('count', 10, 'intval');
+                    $unit = $this->request->param('unit', 'km', 'trim');// 默认单位为公里
+                    $count = $this->request->param('count', 10, 'intval');// 默认返回10条数据
+
+                    // 验证参数
+                    if ($radius <= 0) {
+                        return $this->error('搜索半径必须大于0');
+                    }
+
+                    if (!in_array($unit, ['m', 'km', 'mi', 'ft'])) {
+                        $unit = 'km'; // 默认使用公里
+                    }
+
+                    $count = max(1, min(100, $count)); // 限制返回数量在1-100之间
 
                     // 如果指定了用户ID，则查找该用户附近的人
                     if ($userId > 0) {
@@ -152,11 +190,15 @@ class GeoDemo extends RedisDemo
                         // 格式化结果
                         $formattedNearby = [];
                         foreach ($nearby as $item) {
-                            $member   = $item[0];
-                            $distance = $item[1];
+                            if (!is_array($item) || count($item) < 2) {
+                                continue; // 跳过无效数据
+                            }
+
+                            $member   = $item[0] ?? '';
+                            $distance = $item[1] ?? 0;
 
                             // 排除自己
-                            if ($member !== $userKey) {
+                            if ($member && $member !== $userKey) {
                                 $nearUserId        = str_replace('user:', '', $member);
                                 $formattedNearby[] = [
                                     'user_id'  => $nearUserId,
@@ -179,6 +221,11 @@ class GeoDemo extends RedisDemo
                         $longitude = $this->request->param('longitude', 0, 'floatval');
                         $latitude  = $this->request->param('latitude', 0, 'floatval');
 
+                        // 验证经纬度范围
+                        if ($longitude < -180 || $longitude > 180 || $latitude < -90 || $latitude > 90) {
+                            return $this->error('经纬度范围无效');
+                        }
+
                         if ($longitude && $latitude) {
                             $options = [
                                 'WITHDIST'  => true, // 返回距离
@@ -192,17 +239,25 @@ class GeoDemo extends RedisDemo
                             // 格式化结果
                             $formattedNearby = [];
                             foreach ($nearby as $item) {
-                                $member   = $item[0];
-                                $distance = $item[1];
-                                $coord    = $item[2];
+                                if (!is_array($item) || count($item) < 3) {
+                                    continue; // 跳过无效数据
+                                }
+
+                                $member   = $item[0] ?? '';
+                                $distance = $item[1] ?? 0;
+                                $coord    = $item[2] ?? [];
+
+                                if (!$member || !is_array($coord) || count($coord) < 2) {
+                                    continue; // 跳过无效数据
+                                }
 
                                 $nearUserId        = str_replace('user:', '', $member);
                                 $formattedNearby[] = [
                                     'user_id'   => $nearUserId,
                                     'distance'  => $distance,
                                     'unit'      => $unit,
-                                    'longitude' => $coord[0],
-                                    'latitude'  => $coord[1],
+                                    'longitude' => $coord[0] ?? 0,
+                                    'latitude'  => $coord[1] ?? 0,
                                 ];
                             }
 
@@ -234,16 +289,22 @@ class GeoDemo extends RedisDemo
                     if ($count > 0) {
                         $members = $redis->zRange($key, 0, -1);
 
-                        foreach ($members as $member) {
-                            $userId   = str_replace('user:', '', $member);
-                            $position = $redis->geoPos($key, $member);
+                        if (is_array($members)) {
+                            foreach ($members as $member) {
+                                if (empty($member)) {
+                                    continue; // 跳过无效数据
+                                }
 
-                            if ($position) {
-                                $users[] = [
-                                    'user_id'   => $userId,
-                                    'longitude' => $position[0],
-                                    'latitude'  => $position[1],
-                                ];
+                                $userId   = str_replace('user:', '', $member);
+                                $position = $redis->geoPos($key, $member);
+
+                                if ($position && is_array($position) && isset($position[0])) {
+                                    $users[] = [
+                                        'user_id'   => $userId,
+                                        'longitude' => $position[0] ?? 0,
+                                        'latitude'  => $position[1] ?? 0,
+                                    ];
+                                }
                             }
                         }
                     }
@@ -264,11 +325,13 @@ class GeoDemo extends RedisDemo
 
     /**
      * 店铺查找示例
+     * 
+     * @return Response
      */
     public function storeLocator()
     {
         try {
-            $redis  = Redis::geo();
+            $redis  = $this->getRedisGeo();
             $action = $this->request->param('action', 'list');
 
             $key = 'geo_demo_stores';
@@ -277,9 +340,14 @@ class GeoDemo extends RedisDemo
                 case 'add':
                     // 添加店铺
                     $storeId = $this->request->param('store_id', 0, 'intval');
-                    $storeName = $this->request->param('store_name', '');
+                    $storeName = $this->request->param('store_name', '', 'trim');
                     $longitude = $this->request->param('longitude', 0, 'floatval');
                     $latitude = $this->request->param('latitude', 0, 'floatval');
+
+                    // 验证经纬度范围
+                    if ($longitude < -180 || $longitude > 180 || $latitude < -90 || $latitude > 90) {
+                        return $this->error('经纬度范围无效');
+                    }
 
                     if ($storeId > 0 && !empty($storeName) && $longitude && $latitude) {
                         // 将店铺信息存储到Hash中
@@ -315,8 +383,19 @@ class GeoDemo extends RedisDemo
                     $longitude = $this->request->param('longitude', 0, 'floatval');
                     $latitude = $this->request->param('latitude', 0, 'floatval');
                     $radius = $this->request->param('radius', 5, 'floatval'); // 默认5公里
-                    $unit = $this->request->param('unit', 'km');
+                    $unit = $this->request->param('unit', 'km', 'trim');
                     $count = $this->request->param('count', 10, 'intval');
+
+                    // 验证参数
+                    if ($radius <= 0) {
+                        return $this->error('搜索半径必须大于0');
+                    }
+
+                    if (!in_array($unit, ['m', 'km', 'mi', 'ft'])) {
+                        $unit = 'km'; // 默认使用公里
+                    }
+
+                    $count = max(1, min(100, $count)); // 限制返回数量在1-100之间
 
                     if ($longitude && $latitude) {
                         $options = [
@@ -330,13 +409,21 @@ class GeoDemo extends RedisDemo
                         // 格式化结果
                         $formattedStores = [];
                         foreach ($nearbyStores as $item) {
-                            $member   = $item[0];
-                            $distance = $item[1];
+                            if (!is_array($item) || count($item) < 2) {
+                                continue; // 跳过无效数据
+                            }
+
+                            $member   = $item[0] ?? '';
+                            $distance = $item[1] ?? 0;
+
+                            if (empty($member)) {
+                                continue; // 跳过无效数据
+                            }
 
                             $storeId   = str_replace('store:', '', $member);
                             $storeInfo = $redis->hash()->hGetAll("store:{$storeId}");
 
-                            if ($storeInfo) {
+                            if ($storeInfo && !empty($storeInfo)) {
                                 $storeInfo['distance'] = $distance;
                                 $storeInfo['unit']     = $unit;
                                 $formattedStores[]     = $storeInfo;
@@ -370,12 +457,18 @@ class GeoDemo extends RedisDemo
                     if ($count > 0) {
                         $members = $redis->zRange($key, 0, -1);
 
-                        foreach ($members as $member) {
-                            $storeId   = str_replace('store:', '', $member);
-                            $storeInfo = $redis->hash()->hGetAll("store:{$storeId}");
+                        if (is_array($members)) {
+                            foreach ($members as $member) {
+                                if (empty($member)) {
+                                    continue; // 跳过无效数据
+                                }
 
-                            if ($storeInfo) {
-                                $stores[] = $storeInfo;
+                                $storeId   = str_replace('store:', '', $member);
+                                $storeInfo = $redis->hash()->hGetAll("store:{$storeId}");
+
+                                if ($storeInfo && !empty($storeInfo)) {
+                                    $stores[] = $storeInfo;
+                                }
                             }
                         }
                     }
@@ -418,11 +511,13 @@ class GeoDemo extends RedisDemo
 
     /**
      * 路径规划示例
+     * 
+     * @return Response
      */
     public function routePlanning()
     {
         try {
-            $redis  = Redis::geo();
+            $redis  = $this->getRedisGeo();
             $action = $this->request->param('action', 'route');
 
             $key = 'geo_demo_locations';
@@ -430,10 +525,15 @@ class GeoDemo extends RedisDemo
             switch ($action) {
                 case 'add_poi':
                     // 添加兴趣点
-                    $poiId = $this->request->param('poi_id', '');
-                    $poiName = $this->request->param('poi_name', '');
+                    $poiId = $this->request->param('poi_id', '', 'trim');
+                    $poiName = $this->request->param('poi_name', '', 'trim');
                     $longitude = $this->request->param('longitude', 0, 'floatval');
                     $latitude = $this->request->param('latitude', 0, 'floatval');
+
+                    // 验证经纬度范围
+                    if ($longitude < -180 || $longitude > 180 || $latitude < -90 || $latitude > 90) {
+                        return $this->error('经纬度范围无效');
+                    }
 
                     if (!empty($poiId) && !empty($poiName) && $longitude && $latitude) {
                         // 将POI信息存储到Hash中
@@ -466,11 +566,31 @@ class GeoDemo extends RedisDemo
                 case 'route':
                 default:
                     // 路径规划（查找从起点到终点途径的POI）
-                    $startLon = $this->request->param('start_lon', 0, 'floatval');
-                    $startLat = $this->request->param('start_lat', 0, 'floatval');
+                    $startLon = $this->request->param('start_lon', 0, 'floatval');// 获取起始经度
+                    $startLat = $this->request->param('start_lat', 0, 'floatval');// 获取起始纬度
                     $endLon = $this->request->param('end_lon', 0, 'floatval');
-                    $endLat = $this->request->param('end_lat', 0, 'floatval');
+                    $endLat = $this->request->param('end_lat', 0, 'floatval');// 获取结束纬度
                     $radius = $this->request->param('radius', 1, 'floatval'); // 默认1公里
+
+                    // 验证参数
+                    if ($radius <= 0) {
+                        $radius = 1; // 确保半径为正数
+                    }
+
+                    // 验证经纬度范围
+                    $validCoords = true;
+                    if ($startLon && $startLat && $endLon && $endLat) {
+                        if (
+                            $startLon < -180 || $startLon > 180 || $startLat < -90 || $startLat > 90 ||
+                            $endLon < -180 || $endLon > 180 || $endLat < -90 || $endLat > 90
+                        ) {
+                            $validCoords = false;
+                        }
+                    }
+
+                    if (!$validCoords && ($startLon || $startLat || $endLon || $endLat)) {
+                        return $this->error('经纬度范围无效');
+                    }
 
                     if (!$startLon || !$startLat || !$endLon || !$endLat) {
                         // 如果没有指定坐标，使用默认的示例数据
@@ -508,11 +628,17 @@ class GeoDemo extends RedisDemo
                     // 计算路径的大致方向和距离
                     $dLon = $endLon - $startLon;
                     $dLat = $endLat - $startLat;
-                    $distance = sqrt($dLon * $dLon + $dLat * $dLat) * 111; // 粗略计算，每度约111公里
+                    // 使用Haversine公式计算球面距离，更准确
+                    $earthRadius = 6371; // 地球半径，单位公里
+                    $dLat = deg2rad($endLat - $startLat);
+                    $dLon = deg2rad($endLon - $startLon);
+                    $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($startLat)) * cos(deg2rad($endLat)) * sin($dLon / 2) * sin($dLon / 2);
+                    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+                    $distance = $earthRadius * $c; // 距离，单位公里
 
                     // 生成路径上的一系列点
                     $points = [];
-                    $steps = max(5, ceil($distance / $radius)); // 至少生成5个点
+                    $steps = max(5, ceil($distance / max(0.1, $radius))); // 至少生成5个点，避免除以0或极小值
 
                     for ($i = 0; $i <= $steps; $i++) {
                         $t        = $i / $steps;
@@ -535,15 +661,23 @@ class GeoDemo extends RedisDemo
                         ]);
 
                         foreach ($nearbyPOIs as $item) {
-                            $poiKey   = $item[0];
-                            $distance = $item[1];
+                            if (!is_array($item) || count($item) < 2) {
+                                continue; // 跳过无效数据
+                            }
+
+                            $poiKey   = $item[0] ?? '';
+                            $distance = $item[1] ?? 0;
+
+                            if (empty($poiKey)) {
+                                continue; // 跳过无效数据
+                            }
 
                             // 避免重复添加同一个POI
                             if (!isset($visitedPOIs[$poiKey])) {
                                 $poiId   = str_replace('poi:', '', $poiKey);
                                 $poiInfo = $redis->hash()->hGetAll("poi:{$poiId}");
 
-                                if ($poiInfo) {
+                                if ($poiInfo && !empty($poiInfo)) {
                                     $poiInfo['distance']  = $distance;
                                     $routePOIs[]          = $poiInfo;
                                     $visitedPOIs[$poiKey] = true;
@@ -554,8 +688,14 @@ class GeoDemo extends RedisDemo
 
                     // 按照与路径的位置排序
                     usort($routePOIs, function ($a, $b) use ($startLon, $startLat) {
-                        $distA = sqrt(pow($a['longitude'] - $startLon, 2) + pow($a['latitude'] - $startLat, 2));
-                        $distB = sqrt(pow($b['longitude'] - $startLon, 2) + pow($b['latitude'] - $startLat, 2));
+                        // 确保经纬度是浮点数
+                        $aLon = (float) ($a['longitude'] ?? 0);
+                        $aLat = (float) ($a['latitude'] ?? 0);
+                        $bLon = (float) ($b['longitude'] ?? 0);
+                        $bLat = (float) ($b['latitude'] ?? 0);
+
+                        $distA = sqrt(pow($aLon - $startLon, 2) + pow($aLat - $startLat, 2));
+                        $distB = sqrt(pow($bLon - $startLon, 2) + pow($bLat - $startLat, 2));
                         return $distA <=> $distB;
                     });
 

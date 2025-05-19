@@ -8,27 +8,28 @@ Route::group('redis', function () {
     Route::group('bitmap', function () {
         Route::get('', 'redis.BitMapDemo/index'); // 演示页面
         Route::get('basic', 'redis.BitMapDemo/basic'); // 基本用法示例
-        Route::get('user-sign', 'redis.BitMapDemo/userSign'); // 用户签到示例
-        Route::get('online-status', 'redis.BitMapDemo/onlineStatus'); // 在线状态示例
-        Route::get('bloom-filter', 'redis.BitMapDemo/bloomFilter'); // 布隆过滤器示例
+        Route::post('user-sign', 'redis.BitMapDemo/userSign'); // 用户签到示例
+        Route::post('online-status', 'redis.BitMapDemo/onlineStatus'); // 在线状态示例
+        Route::post('bloom-filter', 'redis.BitMapDemo/bloomFilter'); // 布隆过滤器示例
     });
     
     // Geo演示
     Route::group('geo', function () {
         Route::get('', 'redis.GeoDemo/index'); // 演示页面
         Route::get('basic', 'redis.GeoDemo/basic'); // 基本用法示例
-        Route::get('nearby-users', 'redis.GeoDemo/nearbyUsers'); // 附近的人示例
-        Route::get('store-locator', 'redis.GeoDemo/storeLocator'); // 店铺查找示例
-        Route::get('route-planning', 'redis.GeoDemo/routePlanning'); // 路径规划示例
+        Route::post('nearby-users', 'redis.GeoDemo/nearbyUsers'); // 附近的人示例
+        Route::post('store-locator', 'redis.GeoDemo/storeLocator'); // 店铺查找示例
+        Route::post('route-planning', 'redis.GeoDemo/routePlanning'); // 路径规划示例
     });
     
     // Hash演示
     Route::group('hash', function () {
         Route::get('', 'redis.HashDemo/index'); // 演示页面
         Route::get('basic', 'redis.HashDemo/basic'); // 基本用法示例
-        Route::get('user-profile', 'redis.HashDemo/userProfile'); // 用户资料示例
-        Route::get('shopping-cart', 'redis.HashDemo/shoppingCart'); // 购物车示例
-        Route::get('config-manager', 'redis.HashDemo/configManager'); // 配置管理示例
+        Route::get('inventory', 'redis.HashDemo/inventory'); // 库存管理示例
+        Route::post('cart', 'redis.HashDemo/cart'); // 购物车示例
+        Route::post('userSettings', 'redis.HashDemo/userSettings'); //用户设置示例
+        Route::get('cacheUser', 'redis.HashDemo/cacheUser'); // 缓存用户信息
     });
     
     // HyperLogLog演示
@@ -36,15 +37,17 @@ Route::group('redis', function () {
         Route::get('', 'redis.HyperLogLogDemo/index'); // 演示页面
         Route::get('basic', 'redis.HyperLogLogDemo/basic'); // 基本用法示例
         Route::get('uv-statistics', 'redis.HyperLogLogDemo/uvStatistics'); // UV统计示例
+        Route::get('searchKeywords', 'redis.HyperLogLogDemo/searchKeywords'); // 搜索关键词统计示例
     });
     
     // List演示
     Route::group('list', function () {
         Route::get('', 'redis.ListDemo/index'); // 演示页面
         Route::get('basic', 'redis.ListDemo/basic'); // 基本用法示例
-        Route::get('message-queue', 'redis.ListDemo/messageQueue'); // 消息队列示例
-        Route::get('timeline', 'redis.ListDemo/timeline'); // 时间线示例
-        Route::get('latest-news', 'redis.ListDemo/latestNews'); // 最新动态示例
+        Route::post('simplequeue', 'redis.ListDemo/simpleQueue'); // 消息队列示例
+        Route::post('timeline', 'redis.ListDemo/timeline'); // 时间线示例
+        Route::get('slidingWindowRateLimiter', 'redis.ListDemo/slidingWindowRateLimiter'); // 滑动窗口限流示例
+        Route::post('blockingqueue', 'redis.ListDemo/blockingQueue'); // 阻塞队列示例
     });
     
     // Set演示
