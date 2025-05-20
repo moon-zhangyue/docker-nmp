@@ -5,6 +5,7 @@ namespace app\service\redis;
 
 use app\service\RedisService;
 use Redis;
+use think\facade\Log;
 
 /**
  * Redis BitMap类型数据服务
@@ -35,7 +36,8 @@ class BitMapService
     public function __construct(?RedisService $redisService = null)
     {
         $this->redisService = $redisService ?? new RedisService();
-        $this->redis = $this->redisService->getRedis();
+        $this->redis        = $this->redisService->getRedis();
+        Log::info('BitMapService实例化完成');
     }
 
     /**
@@ -49,8 +51,25 @@ class BitMapService
     public function setBit(string $key, int $offset, $value): int
     {
         // 确保值为布尔类型
-        $boolValue = (bool)$value;
-        return $this->redis->setBit($key, $offset, $boolValue);
+        $boolValue = (bool) $value;
+        try {
+            $result = $this->redis->setBit($key, $offset, $boolValue);
+            Log::debug('setBit操作，key: {key}, offset: {offset}, value: {value}, result: {result}', [
+                'key'    => $key,
+                'offset' => $offset,
+                'value'  => $value,
+                'result' => $result
+            ]);
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('setBit操作失败，key: {key}, offset: {offset}, value: {value}, error: {error}', [
+                'key'    => $key,
+                'offset' => $offset,
+                'value'  => $value,
+                'error'  => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -62,7 +81,22 @@ class BitMapService
      */
     public function getBit(string $key, int $offset): int
     {
-        return $this->redis->getBit($key, $offset);
+        try {
+            $result = $this->redis->getBit($key, $offset);
+            Log::debug('getBit操作，key: {key}, offset: {offset}, result: {result}', [
+                'key'    => $key,
+                'offset' => $offset,
+                'result' => $result
+            ]);
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('getBit操作失败，key: {key}, offset: {offset}, error: {error}', [
+                'key'    => $key,
+                'offset' => $offset,
+                'error'  => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -75,7 +109,24 @@ class BitMapService
      */
     public function bitCount(string $key, int $start = 0, ?int $end = -1): int
     {
-        return $this->redis->bitCount($key, $start, $end);
+        try {
+            $result = $this->redis->bitCount($key, $start, $end);
+            Log::debug('bitCount操作，key: {key}, start: {start}, end: {end}, result: {result}', [
+                'key'    => $key,
+                'start'  => $start,
+                'end'    => $end,
+                'result' => $result
+            ]);
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('bitCount操作失败，key: {key}, start: {start}, end: {end}, error: {error}', [
+                'key'   => $key,
+                'start' => $start,
+                'end'   => $end,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -89,11 +140,29 @@ class BitMapService
     public function bitOp(string $operation, string $destKey, $keys): int
     {
         $operation = strtoupper($operation);
-
-        if (is_array($keys)) {
-            return $this->redis->bitOp($operation, $destKey, ...$keys);
-        } else {
-            return $this->redis->bitOp($operation, $destKey, $keys);
+        // 在方法开始时就处理keys描述，确保在try和catch中都可用
+        $keysDescription = is_array($keys) ? implode(',', $keys) : $keys;
+        
+        try {
+            $result = is_array($keys) 
+                ? $this->redis->bitOp($operation, $destKey, ...$keys)
+                : $this->redis->bitOp($operation, $destKey, $keys);
+                
+            Log::debug('bitOp操作，operation: {operation}, destKey: {destKey}, keys: {keys}, result: {result}', [
+                'operation' => $operation,
+                'destKey'   => $destKey,
+                'keys'      => $keysDescription,
+                'result'    => $result
+            ]);
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('bitOp操作失败，operation: {operation}, destKey: {destKey}, keys: {keys}, error: {error}', [
+                'operation' => $operation,
+                'destKey'   => $destKey,
+                'keys'      => $keysDescription,
+                'error'     => $e->getMessage()
+            ]);
+            throw $e;
         }
     }
 
@@ -109,8 +178,27 @@ class BitMapService
     public function bitPos(string $key, $bit, int $start = 0, ?int $end = -1): int
     {
         // 确保值为布尔类型
-        $boolValue = (bool)$bit;
-        return $this->redis->bitPos($key, $boolValue, $start, $end);
+        $boolValue = (bool) $bit;
+        try {
+            $result = $this->redis->bitPos($key, $boolValue, $start, $end);
+            Log::debug('bitPos操作，key: {key}, bit: {bit}, start: {start}, end: {end}, result: {result}', [
+                'key'    => $key,
+                'bit'    => $bit,
+                'start'  => $start,
+                'end'    => $end,
+                'result' => $result
+            ]);
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('bitPos操作失败，key: {key}, bit: {bit}, start: {start}, end: {end}, error: {error}', [
+                'key'   => $key,
+                'bit'   => $bit,
+                'start' => $start,
+                'end'   => $end,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -124,11 +212,36 @@ class BitMapService
      */
     public function setDailyActive(string $key, int $userId, string $date, $status = 1): int
     {
-        $datetime = new \DateTime($date);
-        $offset = (int)$datetime->format('z'); // 获取一年中的第几天（0-365）
-        $yearKey = "{$key}{$userId}:{$datetime->format('Y')}";
+        Log::info('设置用户日活状态，userId: {userId}, date: {date}, status: {status}', [
+            'userId' => $userId,
+            'date'   => $date,
+            'status' => $status
+        ]);
 
-        return $this->setBit($yearKey, $offset, $status);
+        try {
+            $datetime = new \DateTime($date);
+            $offset   = (int) $datetime->format('z'); // 获取一年中的第几天（0-365）
+            $yearKey  = "{$key}{$userId}:{$datetime->format('Y')}";
+
+            $result = $this->setBit($yearKey, $offset, $status);
+
+            Log::info('用户日活状态设置完成，userId: {userId}, date: {date}, yearKey: {yearKey}, offset: {offset}, result: {result}', [
+                'userId'  => $userId,
+                'date'    => $date,
+                'yearKey' => $yearKey,
+                'offset'  => $offset,
+                'result'  => $result
+            ]);
+
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('设置用户日活状态失败，userId: {userId}, date: {date}, error: {error}', [
+                'userId' => $userId,
+                'date'   => $date,
+                'error'  => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -141,11 +254,30 @@ class BitMapService
      */
     public function checkDailyActive(string $key, int $userId, string $date): bool
     {
-        $datetime = new \DateTime($date);
-        $offset = (int)$datetime->format('z'); // 获取一年中的第几天（0-365）
-        $yearKey = "{$key}{$userId}:{$datetime->format('Y')}";
+        try {
+            $datetime = new \DateTime($date);
+            $offset   = (int) $datetime->format('z'); // 获取一年中的第几天（0-365）
+            $yearKey  = "{$key}{$userId}:{$datetime->format('Y')}";
 
-        return (bool)$this->getBit($yearKey, $offset);
+            $result = (bool) $this->getBit($yearKey, $offset);
+
+            Log::debug('检查用户日活状态，userId: {userId}, date: {date}, yearKey: {yearKey}, offset: {offset}, result: {result}', [
+                'userId'  => $userId,
+                'date'    => $date,
+                'yearKey' => $yearKey,
+                'offset'  => $offset,
+                'result'  => $result
+            ]);
+
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('检查用户日活状态失败，userId: {userId}, date: {date}, error: {error}', [
+                'userId' => $userId,
+                'date'   => $date,
+                'error'  => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -158,9 +290,26 @@ class BitMapService
      */
     public function getYearlyActiveDays(string $key, int $userId, string $year): int
     {
-        $yearKey = "{$key}{$userId}:{$year}";
+        try {
+            $yearKey = "{$key}{$userId}:{$year}";
+            $result  = $this->bitCount($yearKey);
 
-        return $this->bitCount($yearKey);
+            Log::info('获取用户年度活跃天数，userId: {userId}, year: {year}, yearKey: {yearKey}, activeDays: {activeDays}', [
+                'userId'     => $userId,
+                'year'       => $year,
+                'yearKey'    => $yearKey,
+                'activeDays' => $result
+            ]);
+
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('获取用户年度活跃天数失败，userId: {userId}, year: {year}, error: {error}', [
+                'userId' => $userId,
+                'year'   => $year,
+                'error'  => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -173,23 +322,43 @@ class BitMapService
      */
     public function getMonthlyActiveDays(string $key, int $userId, string $yearMonth): int
     {
-        $datetime = new \DateTime("{$yearMonth}-01");
-        $year = $datetime->format('Y');
-        $month = (int)$datetime->format('m');
+        try {
+            $datetime = new \DateTime("{$yearMonth}-01");
+            $year     = $datetime->format('Y');
+            $month    = (int) $datetime->format('m');
 
-        $yearKey = "{$key}{$userId}:{$year}";
+            $yearKey = "{$key}{$userId}:{$year}";
 
-        // 获取这个月第一天是一年中的第几天
-        $firstDay = new \DateTime("{$year}-{$month}-01");
-        $firstDayOffset = (int)$firstDay->format('z');
+            // 获取这个月第一天是一年中的第几天
+            $firstDay       = new \DateTime("{$year}-{$month}-01");
+            $firstDayOffset = (int) $firstDay->format('z');
 
-        // 获取这个月最后一天是一年中的第几天
-        $lastDay = clone $firstDay;
-        $lastDay->modify('last day of this month');
-        $lastDayOffset = (int)$lastDay->format('z');
+            // 获取这个月最后一天是一年中的第几天
+            $lastDay = clone $firstDay;
+            $lastDay->modify('last day of this month');
+            $lastDayOffset = (int) $lastDay->format('z');
 
-        // 计算这个月的天数
-        return $this->bitCount($yearKey, $firstDayOffset, $lastDayOffset);
+            // 计算这个月的天数
+            $result = $this->bitCount($yearKey, $firstDayOffset, $lastDayOffset);
+
+            Log::info('获取用户月度活跃天数，userId: {userId}, yearMonth: {yearMonth}, yearKey: {yearKey}, firstDayOffset: {firstDayOffset}, lastDayOffset: {lastDayOffset}, activeDays: {activeDays}', [
+                'userId'         => $userId,
+                'yearMonth'      => $yearMonth,
+                'yearKey'        => $yearKey,
+                'firstDayOffset' => $firstDayOffset,
+                'lastDayOffset'  => $lastDayOffset,
+                'activeDays'     => $result
+            ]);
+
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('获取用户月度活跃天数失败，userId: {userId}, yearMonth: {yearMonth}, error: {error}', [
+                'userId'    => $userId,
+                'yearMonth' => $yearMonth,
+                'error'     => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -202,20 +371,40 @@ class BitMapService
      */
     public function getRecentActiveDays(string $key, int $userId, int $days = 7): array
     {
-        $result = [];
-        $today = new \DateTime();
+        Log::info('获取用户最近活跃状态，userId: {userId}, days: {days}', [
+            'userId' => $userId,
+            'days'   => $days
+        ]);
+        
+        try {
+            $result = [];
+            $today = new \DateTime();
 
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $date = clone $today;
-            $date->modify("-{$i} days");
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $date = clone $today;
+                $date->modify("-{$i} days");
 
-            $dateStr = $date->format('Y-m-d');
-            $isActive = $this->checkDailyActive($key, $userId, $dateStr);
+                $dateStr = $date->format('Y-m-d');
+                $isActive = $this->checkDailyActive($key, $userId, $dateStr);
 
-            $result[$dateStr] = $isActive ? 1 : 0;
+                $result[$dateStr] = $isActive ? 1 : 0;
+            }
+            
+            Log::debug('用户最近活跃状态结果，userId: {userId}, days: {days}, 活跃天数: {activeDays}', [
+                'userId' => $userId,
+                'days'   => $days,
+                'activeDays' => count(array_filter($result, function($v) { return $v == 1; }))
+            ]);
+            
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('获取用户最近活跃状态失败，userId: {userId}, days: {days}, error: {error}', [
+                'userId' => $userId,
+                'days'   => $days,
+                'error'  => $e->getMessage()
+            ]);
+            throw $e;
         }
-
-        return $result;
     }
 
     /**
@@ -226,6 +415,21 @@ class BitMapService
      */
     public function delete($keys): int
     {
-        return $this->redis->del($keys);
+        try {
+            $keysDescription = is_array($keys) ? implode(',', $keys) : $keys;
+            $result = $this->redis->del($keys);
+            Log::info('删除Redis位图键，keys: {keys}, deletedCount: {deletedCount}', [
+                'keys'         => $keysDescription,
+                'deletedCount' => $result
+            ]);
+            return $result;
+        } catch (\Throwable $e) {
+            $keysDescription = is_array($keys) ? implode(',', $keys) : $keys;
+            Log::error('删除Redis位图键失败，keys: {keys}, error: {error}', [
+                'keys'  => $keysDescription,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 }
