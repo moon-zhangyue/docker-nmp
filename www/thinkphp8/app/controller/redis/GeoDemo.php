@@ -796,7 +796,7 @@ class GeoDemo extends RedisDemo
             'count'    => $count,
             'asc'      => true,  // 按距离升序排序
         ];
-        
+
         $nearbyStores = $redis->geoRadius(
             $key,
             $longitude,
@@ -805,7 +805,7 @@ class GeoDemo extends RedisDemo
             $unit,
             $options
         );
-        
+
         Log::debug('获取附近店铺列表，原始结果数量: {count}，结果: {result}', [
             'count'  => count($nearbyStores),
             'result' => json_encode($nearbyStores)
@@ -813,52 +813,52 @@ class GeoDemo extends RedisDemo
 
         // 格式化结果
         $formattedStores = [];
-        
+
         // 如果 geoRadius 返回的不是预期的格式，则手动计算距离
         if (!empty($nearbyStores)) {
             foreach ($nearbyStores as $item) {
                 // 处理不同的返回格式
                 if (is_array($item) && count($item) >= 2) {
                     // 标准格式：[member, distance]
-                    $member = $item[0];
+                    $member   = $item[0];
                     $distance = $item[1];
                 } else {
                     // 只返回了 member，需要手动计算距离
-                    $member = $item;
+                    $member   = $item;
                     $distance = null;
                 }
-                
+
                 if (empty($member)) {
                     Log::warning('店铺标识为空，跳过处理');
                     continue;
                 }
-                
-                $storeId = str_replace('store:', '', $member);
+
+                $storeId   = str_replace('store:', '', $member);
                 $storeInfo = Redis::hash()->hGetAll("store:{$storeId}");
-                
+
                 if ($storeInfo && !empty($storeInfo)) {
                     // 如果没有距离信息，手动计算
                     if ($distance === null && isset($storeInfo['longitude']) && isset($storeInfo['latitude'])) {
-                        $storeLon = (float)$storeInfo['longitude'];
-                        $storeLat = (float)$storeInfo['latitude'];
+                        $storeLon = (float) $storeInfo['longitude'];
+                        $storeLat = (float) $storeInfo['latitude'];
                         $distance = $this->calculateDistance($longitude, $latitude, $storeLon, $storeLat);
-                        
+
                         // 如果单位是米，转换一下
                         if ($unit === 'm') {
                             $distance = $distance * 1000;
                         }
-                        
+
                         Log::debug('手动计算店铺距离，storeId: {storeId}, distance: {distance} {unit}', [
                             'storeId'  => $storeId,
                             'distance' => $distance,
                             'unit'     => $unit
                         ]);
                     }
-                    
+
                     $storeInfo['distance'] = $distance;
-                    $storeInfo['unit'] = $unit;
-                    $formattedStores[] = $storeInfo;
-                    
+                    $storeInfo['unit']     = $unit;
+                    $formattedStores[]     = $storeInfo;
+
                     Log::debug('获取店铺信息，storeId: {storeId}, name: {name}, distance: {distance} {unit}', [
                         'storeId'  => $storeId,
                         'name'     => $storeInfo['name'] ?? '',
@@ -870,9 +870,9 @@ class GeoDemo extends RedisDemo
                 }
             }
         }
-        
+
         // 按距离排序
-        usort($formattedStores, function($a, $b) {
+        usort($formattedStores, function ($a, $b) {
             return $a['distance'] <=> $b['distance'];
         });
 
@@ -1356,9 +1356,9 @@ class GeoDemo extends RedisDemo
             'end'            => ['longitude' => $endLon, 'latitude' => $endLat],
             'route_distance' => round($distance, 2) . ' km',
             'radius'         => $radius,
-            'route_points'   => $points,
-            'route_pois'     => $routePOIs,
-            'poi_count'      => count($routePOIs),
+            'route_points'   => $points,//路径点
+            'route_pois'     => $routePOIs,//路径上的POI
+            'poi_count'      => count($routePOIs),//路径上的POI数量
         ];
     }
 
@@ -1383,10 +1383,10 @@ class GeoDemo extends RedisDemo
             switch ($action) {
                 case 'add_poi':
                     // 添加兴趣点
-                    $poiId = $this->request->param('poi_id', '', 'trim');
-                    $poiName = $this->request->param('poi_name', '', 'trim');
-                    $longitude = $this->request->param('longitude', 0, 'floatval');
-                    $latitude = $this->request->param('latitude', 0, 'floatval');
+                    $poiId = $this->request->param('poi_id', '', 'trim');//兴趣点ID
+                    $poiName = $this->request->param('poi_name', '', 'trim');//兴趣点名称
+                    $longitude = $this->request->param('longitude', 0, 'floatval');//经度
+                    $latitude = $this->request->param('latitude', 0, 'floatval');//纬度
 
                     Log::debug('添加兴趣点请求，poiId: {poiId}, poiName: {poiName}, longitude: {longitude}, latitude: {latitude}', [
                         'poiId'     => $poiId,

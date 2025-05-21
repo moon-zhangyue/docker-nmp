@@ -35,31 +35,19 @@ class HyperLogLogService
     public function __construct(?RedisService $redisService = null)
     {
         $this->redisService = $redisService ?? new RedisService();
-        $this->redis = $this->redisService->getRedis();
+        $this->redis        = $this->redisService->getRedis();
     }
 
     /**
      * 添加元素到HyperLogLog
      *
      * @param string $key 键名
-     * @param mixed $element 元素或元素数组
+     * @param array $element 元素数组
      * @return int 如果至少有一个元素被添加，返回1，否则返回0
      */
-    public function pfAdd(string $key, $element): int
+    public function pfAdd(string $key, array $element): int
     {
-        if (is_array($element)) {
-            foreach ($element as &$item) {
-                if (is_array($item) || is_object($item)) {
-                    $item = json_encode($item, JSON_UNESCAPED_UNICODE);
-                }
-            }
-            return $this->redis->pfAdd($key, ...$element);
-        } else {
-            if (is_array($element) || is_object($element)) {
-                $element = json_encode($element, JSON_UNESCAPED_UNICODE);
-            }
-            return $this->redis->pfAdd($key, $element);
-        }
+        return $this->redis->pfAdd($key, $element);
     }
 
     /**
@@ -81,7 +69,17 @@ class HyperLogLogService
      */
     public function pfMergeCount(array $keys): int
     {
-        return $this->redis->pfCount(...$keys);
+        if (count($keys) === 1) {
+            return $this->redis->pfCount($keys[0]);
+        }
+        
+        // 先合并到临时键，然后统计后删除
+        $tempKey = 'temp_pfmerge_' . uniqid();
+        $this->pfMerge($tempKey, $keys);
+        $count = $this->redis->pfCount($tempKey);
+        $this->redis->del($tempKey);
+        
+        return $count;
     }
 
     /**
@@ -93,7 +91,7 @@ class HyperLogLogService
      */
     public function pfMerge(string $destKey, array $sourceKeys): bool
     {
-        return $this->redis->pfMerge($destKey, ...$sourceKeys);
+        return $this->redis->pfMerge($destKey, $sourceKeys);
     }
 
     /**
@@ -102,7 +100,7 @@ class HyperLogLogService
      * @param string|array $keys 键名或键名数组
      * @return int 删除的键数量
      */
-    public function delete($keys): int
+    public function del($keys): int
     {
         return $this->redis->del($keys);
     }

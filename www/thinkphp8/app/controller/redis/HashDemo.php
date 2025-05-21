@@ -7,6 +7,7 @@ use app\controller\RedisDemo;
 use app\facade\Redis;
 use think\facade\Db;
 use think\facade\View;
+use think\facade\Log;
 
 /**
  * Redis Hash类型演示控制器
@@ -20,6 +21,7 @@ class HashDemo extends RedisDemo
      */
     public function index()
     {
+        Log::info('访问Redis Hash演示页面');
         return View::fetch('redis/hash/index');
     }
 
@@ -29,6 +31,7 @@ class HashDemo extends RedisDemo
     public function basic()
     {
         try {
+            Log::info('开始执行Redis Hash基本用法示例');
             $redis = Redis::hash();
             $key   = 'hash_demo_basic';
 
@@ -69,9 +72,10 @@ class HashDemo extends RedisDemo
             $afterDelete = $redis->hGetAll($key);
 
             // 递增操作
-            $redis->hSet($key, 'counter', 10);
+            $redis->hSet($key, 'counter', value: 10);
             $incrValue = $redis->hIncrBy($key, 'counter', 5);
 
+            Log::info('Redis Hash基本用法演示完成，键名：{key}，字段数量：{field_count}', ['key' => $key, 'field_count' => $count]);
             return $this->success('Hash基本用法演示', [
                 'single_values'    => [
                     'field1' => $value1,
@@ -87,6 +91,7 @@ class HashDemo extends RedisDemo
                 'increment_result' => $incrValue,
             ]);
         } catch (\Throwable $e) {
+            Log::error('Redis Hash基本用法演示失败：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('Hash基本用法演示失败：' . $e->getMessage());
         }
     }
@@ -97,19 +102,23 @@ class HashDemo extends RedisDemo
     public function cacheUser()
     {
         try {
-            $redis  = Redis::hash();
             $userId = $this->request->param('id', 1, 'intval');
-            $key    = 'user:profile';
+            Log::info('开始执行Redis Hash缓存用户信息示例，用户ID：{user_id}', ['user_id' => $userId]);
+
+            $redis = Redis::hash();
+            $key   = 'user:profile';
 
             // 使用remember方法自动防止缓存穿透
             $user = $redis->hRemember($key, "user:{$userId}", function () use ($userId) {
                 // 模拟从数据库获取用户信息
                 // 注：这里只是演示，实际应用中应该使用User模型查询
+                Log::info('从数据库获取用户信息，用户ID：{user_id}', ['user_id' => $userId]);
                 $user = Db::name('user')->where('id', $userId)->find();
                 return $user;
             }, true);
 
-            if ($user) {
+            if (!$user) {
+                Log::info('获取用户信息成功，用户ID：{user_id}，来源：{from_cache}', ['user_id' => $userId, 'from_cache' => '缓存']);
                 return $this->success('获取用户信息成功', [
                     'user'       => $user,
                     'from_cache' => true
@@ -117,6 +126,7 @@ class HashDemo extends RedisDemo
             } else {
                 // 查看缓存中的所有用户信息
                 $allUsers = $redis->hGetAll($key);
+                Log::warning('用户不存在或缓存已过期，用户ID：{user_id}', ['user_id' => $userId]);
 
                 return $this->success('用户不存在', [
                     'message'          => '用户不存在或缓存已过期',
@@ -124,6 +134,7 @@ class HashDemo extends RedisDemo
                 ]);
             }
         } catch (\Throwable $e) {
+            Log::error('缓存用户信息示例失败：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('缓存用户信息示例失败：' . $e->getMessage());
         }
     }
@@ -140,6 +151,13 @@ class HashDemo extends RedisDemo
             $quantity  = $this->request->param('quantity', 0, 'intval');
             $action    = $this->request->param('action', ''); // add, remove, clear, list
 
+            Log::info('购物车操作，用户ID：{user_id}，商品ID：{product_id}，数量：{quantity}，操作：{action}', [
+                'user_id'    => $userId,
+                'product_id' => $productId,
+                'quantity'   => $quantity,
+                'action'     => $action
+            ]);
+
             $cartKey = "cart:{$userId}";
 
             // 执行购物车操作
@@ -151,8 +169,19 @@ class HashDemo extends RedisDemo
                         $newQty     = $currentQty + $quantity;
                         $redis->hSet($cartKey, (string) $productId, $newQty);
                         $message = "已添加 {$quantity} 个商品(ID: {$productId})到购物车";
+                        Log::info('添加商品到购物车，用户ID：{user_id}，商品ID：{product_id}，数量：{quantity}，新数量：{new_qty}', [
+                            'user_id'    => $userId,
+                            'product_id' => $productId,
+                            'quantity'   => $quantity,
+                            'new_qty'    => $newQty
+                        ]);
                     } else {
                         $message = "参数错误";
+                        Log::warning('添加商品参数错误，用户ID：{user_id}，商品ID：{product_id}，数量：{quantity}', [
+                            'user_id'    => $userId,
+                            'product_id' => $productId,
+                            'quantity'   => $quantity
+                        ]);
                     }
                     break;
 
@@ -161,12 +190,26 @@ class HashDemo extends RedisDemo
                         if ($quantity > 0) {
                             $redis->hSet($cartKey, (string) $productId, $quantity);
                             $message = "已更新商品(ID: {$productId})数量为 {$quantity}";
+                            Log::info('更新购物车商品数量，用户ID：{user_id}，商品ID：{product_id}，数量：{quantity}', [
+                                'user_id'    => $userId,
+                                'product_id' => $productId,
+                                'quantity'   => $quantity
+                            ]);
                         } else {
                             $redis->hDel($cartKey, (string) $productId);
                             $message = "已从购物车移除商品(ID: {$productId})";
+                            Log::info('从购物车移除商品(数量为0)，用户ID：{user_id}，商品ID：{product_id}', [
+                                'user_id'    => $userId,
+                                'product_id' => $productId
+                            ]);
                         }
                     } else {
                         $message = "参数错误";
+                        Log::warning('更新购物车参数错误，用户ID：{user_id}，商品ID：{product_id}，数量：{quantity}', [
+                            'user_id'    => $userId,
+                            'product_id' => $productId,
+                            'quantity'   => $quantity
+                        ]);
                     }
                     break;
 
@@ -174,8 +217,16 @@ class HashDemo extends RedisDemo
                     if ($productId > 0) {
                         $redis->hDel($cartKey, (string) $productId);
                         $message = "已从购物车移除商品(ID: {$productId})";
+                        Log::info('从购物车移除商品，用户ID：{user_id}，商品ID：{product_id}', [
+                            'user_id'    => $userId,
+                            'product_id' => $productId
+                        ]);
                     } else {
                         $message = "参数错误";
+                        Log::warning('移除商品参数错误，用户ID：{user_id}，商品ID：{product_id}', [
+                            'user_id'    => $userId,
+                            'product_id' => $productId
+                        ]);
                     }
                     break;
 
@@ -184,12 +235,17 @@ class HashDemo extends RedisDemo
                     $productIds = $redis->hKeys($cartKey);
                     if (!empty($productIds)) {
                         $redis->hDel($cartKey, $productIds);
+                        Log::info('清空购物车，用户ID：{user_id}，商品数量：{item_count}', [
+                            'user_id'    => $userId,
+                            'item_count' => count($productIds)
+                        ]);
                     }
                     $message = "已清空购物车";
                     break;
 
                 default:
                     $message = "查看购物车";
+                    Log::info('查看购物车，用户ID：{user_id}', ['user_id' => $userId]);
                     break;
             }
 
@@ -217,6 +273,7 @@ class HashDemo extends RedisDemo
                 'action_performed' => $action,
             ]);
         } catch (\Throwable $e) {
+            Log::error('购物车操作失败：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('购物车操作失败：' . $e->getMessage());
         }
     }
@@ -233,6 +290,13 @@ class HashDemo extends RedisDemo
             $value  = $this->request->param('value', '');
             $action = $this->request->param('action', 'get'); // get, set, delete
 
+            Log::info('用户配置操作，用户ID：{user_id}，键名：{key}，值：{value}，操作：{action}', [
+                'user_id' => $userId,
+                'key'     => $key,
+                'value'   => $value,
+                'action'  => $action
+            ]);
+
             $settingsKey = "user:settings:{$userId}";
 
             // 执行配置操作
@@ -241,8 +305,17 @@ class HashDemo extends RedisDemo
                     if (!empty($key)) {
                         $redis->hSet($settingsKey, $key, $value);
                         $message = "配置项 {$key} 已设置为 {$value}";
+                        Log::info('设置用户配置，用户ID：{user_id}，键名：{key}，值：{value}', [
+                            'user_id' => $userId,
+                            'key'     => $key,
+                            'value'   => $value
+                        ]);
                     } else {
                         $message = "参数错误";
+                        Log::warning('设置用户配置参数错误，用户ID：{user_id}，键名：{key}', [
+                            'user_id' => $userId,
+                            'key'     => $key
+                        ]);
                     }
                     break;
 
@@ -250,8 +323,16 @@ class HashDemo extends RedisDemo
                     if (!empty($key)) {
                         $redis->hDel($settingsKey, $key);
                         $message = "配置项 {$key} 已删除";
+                        Log::info('删除用户配置，用户ID：{user_id}，键名：{key}', [
+                            'user_id' => $userId,
+                            'key'     => $key
+                        ]);
                     } else {
                         $message = "参数错误";
+                        Log::warning('删除用户配置参数错误，用户ID：{user_id}，键名：{key}', [
+                            'user_id' => $userId,
+                            'key'     => $key
+                        ]);
                     }
                     break;
 
@@ -259,8 +340,14 @@ class HashDemo extends RedisDemo
                     if (!empty($key)) {
                         $value   = $redis->hGet($settingsKey, $key);
                         $message = "获取配置项 {$key}";
+                        Log::info('获取用户配置项，用户ID：{user_id}，键名：{key}，值：{value}', [
+                            'user_id' => $userId,
+                            'key'     => $key,
+                            'value'   => $value
+                        ]);
                     } else {
                         $message = "获取所有配置";
+                        Log::info('获取用户所有配置，用户ID：{user_id}', ['user_id' => $userId]);
                     }
                     break;
             }
@@ -279,6 +366,10 @@ class HashDemo extends RedisDemo
                 $redis->hMSet($settingsKey, $defaultSettings);
                 $allSettings = $defaultSettings;
                 $message     = "已设置默认配置";
+                Log::info('设置用户默认配置，用户ID：{user_id}', [
+                    'user_id'  => $userId,
+                    'settings' => $defaultSettings
+                ]);
             }
 
             return $this->success($message, [
@@ -289,6 +380,7 @@ class HashDemo extends RedisDemo
                 'all_settings' => $allSettings,
             ]);
         } catch (\Throwable $e) {
+            Log::error('用户配置操作失败：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('用户配置操作失败：' . $e->getMessage());
         }
     }
@@ -304,6 +396,12 @@ class HashDemo extends RedisDemo
             $quantity  = $this->request->param('quantity', 1, 'intval');
             $action    = $this->request->param('action', 'check'); // check, increment, decrement
 
+            Log::info('库存操作，商品ID：{product_id}，数量：{quantity}，操作：{action}', [
+                'product_id' => $productId,
+                'quantity'   => $quantity,
+                'action'     => $action
+            ]);
+
             $inventoryKey = "inventory:products";
 
             // 如果商品不存在，初始化库存
@@ -311,6 +409,10 @@ class HashDemo extends RedisDemo
                 $initialStock = rand(10, 100);
                 $redis->hSet($inventoryKey, (string) $productId, $initialStock);
                 $message = "商品 {$productId} 库存初始化为 {$initialStock}";
+                Log::info('商品库存初始化，商品ID：{product_id}，初始库存：{initial_stock}', [
+                    'product_id'    => $productId,
+                    'initial_stock' => $initialStock
+                ]);
             }
 
             // 执行库存操作
@@ -318,6 +420,11 @@ class HashDemo extends RedisDemo
                 case 'increment':
                     $newStock = $redis->hIncrBy($inventoryKey, (string) $productId, $quantity);
                     $message = "商品 {$productId} 库存增加 {$quantity}，当前库存为 {$newStock}";
+                    Log::info('增加商品库存，商品ID：{product_id}，增加数量：{increment}，新库存：{new_stock}', [
+                        'product_id' => $productId,
+                        'increment'  => $quantity,
+                        'new_stock'  => $newStock
+                    ]);
                     break;
 
                 case 'decrement':
@@ -327,14 +434,28 @@ class HashDemo extends RedisDemo
                     if ($currentStock >= $quantity) {
                         $newStock = $redis->hIncrBy($inventoryKey, (string) $productId, -$quantity);
                         $message  = "商品 {$productId} 库存减少 {$quantity}，当前库存为 {$newStock}";
+                        Log::info('减少商品库存，商品ID：{product_id}，减少数量：{decrement}，新库存：{new_stock}', [
+                            'product_id' => $productId,
+                            'decrement'  => $quantity,
+                            'new_stock'  => $newStock
+                        ]);
                     } else {
                         $message = "商品 {$productId} 库存不足，当前库存为 {$currentStock}，需要 {$quantity}";
+                        Log::warning('商品库存不足，商品ID：{product_id}，当前库存：{current_stock}，请求数量：{requested}', [
+                            'product_id'    => $productId,
+                            'current_stock' => $currentStock,
+                            'requested'     => $quantity
+                        ]);
                     }
                     break;
 
                 default: // check
                     $currentStock = (int) $redis->hGet($inventoryKey, (string) $productId);
                     $message = "商品 {$productId} 当前库存为 {$currentStock}";
+                    Log::info('查询商品库存，商品ID：{product_id}，当前库存：{current_stock}', [
+                        'product_id'    => $productId,
+                        'current_stock' => $currentStock
+                    ]);
                     break;
             }
 
@@ -349,6 +470,7 @@ class HashDemo extends RedisDemo
                 'all_inventory' => $allInventory,
             ]);
         } catch (\Throwable $e) {
+            Log::error('库存操作失败：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('库存操作失败：' . $e->getMessage());
         }
     }

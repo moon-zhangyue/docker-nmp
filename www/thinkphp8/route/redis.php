@@ -36,7 +36,7 @@ Route::group('redis', function () {
     Route::group('hyperloglog', function () {
         Route::get('', 'redis.HyperLogLogDemo/index'); // 演示页面
         Route::get('basic', 'redis.HyperLogLogDemo/basic'); // 基本用法示例
-        Route::get('uv-statistics', 'redis.HyperLogLogDemo/uvStatistics'); // UV统计示例
+        Route::get('uv-statistics', 'redis.HyperLogLogDemo/uvStats'); // UV统计示例
         Route::get('searchKeywords', 'redis.HyperLogLogDemo/searchKeywords'); // 搜索关键词统计示例
     });
     
