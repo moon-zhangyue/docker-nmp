@@ -67,22 +67,22 @@ class BitMapDemo extends RedisDemo
             $redis->setBit($key, 0, 1); // 设置第0位为1
             $redis->setBit($key, 3, 1); // 设置第3位为1
             $redis->setBit($key, 5, 1); // 设置第5位为1
-            Log::debug('设置bit位，positions: {positions}', ['positions' => [0, 3, 5]]);
+            Log::debug('设置bit位，positions: {positions}', ['positions' => '0,3,5']);
 
             // 获取bit位
             $bit0 = $redis->getBit($key, 0);
             $bit1 = $redis->getBit($key, 1);
             $bit3 = $redis->getBit($key, 3);
-            Log::debug('获取bit位，bit0: {bit0}, bit1: {bit1}, bit3: {bit3}', ['bit0' => $bit0, 'bit1' => $bit1, 'bit3' => $bit3]);
+            Log::debug('获取bit位，bit0: {bit0}, bit1: {bit1}, bit3: {bit3}', ['bit0' => (int)$bit0, 'bit1' => (int)$bit1, 'bit3' => (int)$bit3]);
 
             // 计数为1的位数
             $count = $redis->bitCount($key);
-            Log::debug('计数bit=1的位数，count: {count}', ['count' => $count]);
+            Log::debug('计数bit=1的位数，count: {count}', ['count' => (int)$count]);
 
             // 查找第一个为1或0的位置
             $firstBit1 = $redis->bitPos($key, 1);
             $firstBit0 = $redis->bitPos($key, 0);
-            Log::debug('查找首个bit位置，firstBit1: {firstBit1}, firstBit0: {firstBit0}', ['firstBit1' => $firstBit1, 'firstBit0' => $firstBit0]);
+            Log::debug('查找首个bit位置，firstBit1: {firstBit1}, firstBit0: {firstBit0}', ['firstBit1' => (int)$firstBit1, 'firstBit0' => (int)$firstBit0]);
 
             // 测试位运算
             $key1    = 'bitmap_demo_op1';
@@ -105,10 +105,10 @@ class BitMapDemo extends RedisDemo
             $xorResult = $redis->bitOp('XOR', "{$destKey}_xor", [$key1, $key2]);
             $notResult = $redis->bitOp('NOT', "{$destKey}_not", $key1);
             Log::debug('执行位运算，andResult: {andResult}, orResult: {orResult}, xorResult: {xorResult}, notResult: {notResult}', [
-                'andResult' => $andResult,
-                'orResult' => $orResult,
-                'xorResult' => $xorResult,
-                'notResult' => $notResult
+                'andResult' => (int)$andResult,
+                'orResult' => (int)$orResult,
+                'xorResult' => (int)$xorResult,
+                'notResult' => (int)$notResult
             ]);
 
             // 查看位运算的结果
@@ -117,10 +117,10 @@ class BitMapDemo extends RedisDemo
             $xorBitCount = $redis->bitCount("{$destKey}_xor");
             $notBitCount = $redis->bitCount("{$destKey}_not");
             Log::debug('位运算结果计数，andBitCount: {andBitCount}, orBitCount: {orBitCount}, xorBitCount: {xorBitCount}, notBitCount: {notBitCount}', [
-                'andBitCount' => $andBitCount,
-                'orBitCount' => $orBitCount,
-                'xorBitCount' => $xorBitCount,
-                'notBitCount' => $notBitCount
+                'andBitCount' => (int)$andBitCount,
+                'orBitCount' => (int)$orBitCount,
+                'xorBitCount' => (int)$xorBitCount,
+                'notBitCount' => (int)$notBitCount
             ]);
 
             $result = [
@@ -140,7 +140,7 @@ class BitMapDemo extends RedisDemo
                 ],
             ];
             
-            Log::info('BitMap基本用法演示成功，result: {result}', ['result' => $result]);
+            Log::info('BitMap基本用法演示成功');
             return $this->success('BitMap基本用法演示成功', $result);
         } catch (\Throwable $e) {
             Log::error('BitMap基本用法演示失败，error: {error}, trace: {trace}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);

@@ -141,7 +141,7 @@ class BitMapService
     {
         $operation = strtoupper($operation);
         // 在方法开始时就处理keys描述，确保在try和catch中都可用
-        $keysDescription = is_array($keys) ? implode(',', $keys) : $keys;
+        $keysDescription = is_array($keys) ? implode(',', $keys) : (string)$keys;
         
         try {
             $result = is_array($keys) 
@@ -152,9 +152,9 @@ class BitMapService
                 'operation' => $operation,
                 'destKey'   => $destKey,
                 'keys'      => $keysDescription,
-                'result'    => $result
+                'result'    => (int)$result
             ]);
-            return $result;
+            return (int)$result;
         } catch (\Throwable $e) {
             Log::error('bitOp操作失败，operation: {operation}, destKey: {destKey}, keys: {keys}, error: {error}', [
                 'operation' => $operation,

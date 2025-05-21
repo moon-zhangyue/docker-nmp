@@ -128,7 +128,8 @@ class GeoService
      */
     public function geoRadius(string $key, float $longitude, float $latitude, float $radius, string $unit = 'm', array $options = []): array
     {
-        return $this->redis->geoRadius($key, $longitude, $latitude, $radius, $unit, $options);
+        $result = $this->redis->geoRadius($key, $longitude, $latitude, $radius, $unit, $options);
+        return $result === false ? [] : $result;
     }
 
     /**
@@ -148,7 +149,8 @@ class GeoService
      */
     public function geoRadiusByMember(string $key, string $member, float $radius, string $unit = 'm', array $options = []): array
     {
-        return $this->redis->geoRadiusByMember($key, $member, $radius, $unit, $options);
+        $result = $this->redis->geoRadiusByMember($key, $member, $radius, $unit, $options);
+        return $result === false ? [] : $result;
     }
 
     /**
