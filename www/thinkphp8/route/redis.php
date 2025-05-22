@@ -46,7 +46,7 @@ Route::group('redis', function () {
         Route::get('basic', 'redis.ListDemo/basic'); // 基本用法示例
         Route::post('simplequeue', 'redis.ListDemo/simpleQueue'); // 消息队列示例
         Route::post('timeline', 'redis.ListDemo/timeline'); // 时间线示例
-        Route::get('slidingWindowRateLimiter', 'redis.ListDemo/slidingWindowRateLimiter'); // 滑动窗口限流示例
+        Route::get('slidingWindowRateLimit', 'redis.ListDemo/slidingWindowRateLimit'); // 滑动窗口限流示例
         Route::post('blockingqueue', 'redis.ListDemo/blockingQueue'); // 阻塞队列示例
     });
     
