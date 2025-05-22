@@ -50,3 +50,61 @@
 | 版本号 | 日期 | 描述 | 作者 |
 |--------|------|------|------|
 | v1.0.0 | 2024-05-15 | 初始版本 | 系统开发团队 |
+
+# ThinkPHP 8 项目文档
+
+本文档提供了 ThinkPHP 8 项目的详细说明和使用指南。
+
+## 系统概述
+
+- [系统概述](system-overview.md)
+- [数据库设计](database-design.md)
+- [API 文档](api-documentation.md)
+- [部署指南](deployment-guide.md)
+
+## 核心模块
+
+- [核心模块](core-modules.md)
+- [Swagger 指南](swagger-guide.md)
+- [秒杀活动指南](seckill-activity-guide.md)
+
+## 数据存储解决方案
+
+### 关系型数据库
+- [MySQL 使用指南](database-design.md)
+
+### NoSQL 数据库
+- [Redis 缓存解决方案](redis-cache-solution.md)
+- [Redis 缓存常见问题](redis-cache-problems.md)
+- [MongoDB 特性使用指南](mongodb-guide.md)
+- [MongoDB 使用示例](mongodb-usage-examples.md)
+- [MongoDB 索引和性能优化](mongodb-indexes.md)
+
+### 消息队列
+- [RabbitMQ 使用指南](rabbitmq.md)
+
+### 搜索引擎
+- [Elasticsearch 使用指南](elasticsearch-usage-guide.md)
+- [Elasticsearch 日志指南](elasticsearch-logging-guide.md)
+- [Elasticsearch API 文档](elasticsearch-api-documentation.md)
+- [Elasticsearch 自动补全 API](es-autocomplete-api.md)
+
+### 时序数据库
+- [InfluxDB 使用指南](influxdb-usage-guide.md)
+- [停车场 InfluxDB 指南](parking-influxdb-guide.md)
+
+## 项目地址
+
+- 代码仓库: `http://your-git-repo-url/thinkphp8.git`
+- 测试环境: `http://test.example.com`
+- 生产环境: `http://www.example.com`
+
+## 贡献指南
+
+如需修改此文档，请按照以下步骤操作:
+
+1. 克隆文档仓库
+2. 创建您的功能分支 (`git checkout -b feature/your-feature`)
+3. 提交您的更改 (`git commit -am 'Add some feature'`)
+4. 推送到分支 (`git push origin feature/your-feature`)
+5. 创建一个 Pull Request
