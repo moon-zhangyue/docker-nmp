@@ -23,24 +23,24 @@ class ProductService
             if (empty($data['name']) || empty($data['category'])) {
                 throw new \Exception('产品名称和分类不能为空');
             }
-            
+
             // 记录日志
             Log::info('创建产品: {name}, 分类: {category}', [
-                'name' => $data['name'],
+                'name'     => $data['name'],
                 'category' => $data['category'],
-                'data' => $data
+                'data'     => $data
             ]);
-            
+
             // 创建产品
             $product = Product::addProduct($data);
-            
+
             return $product->toArray();
         } catch (\Exception $e) {
             Log::error('创建产品失败: {message}', ['data' => $data, 'message' => $e->getMessage()]);
             throw $e;
         }
     }
-    
+
     /**
      * 更新产品
      * 
@@ -57,10 +57,10 @@ class ProductService
             if (!$product) {
                 throw new Exception('产品不存在');
             }
-            
+
             // 记录日志
             Log::info('更新产品', ['id' => $id, 'data' => $data]);
-            
+
             // 更新产品
             return Product::updateProduct($id, $data);
         } catch (\Exception $e) {
@@ -68,7 +68,7 @@ class ProductService
             throw $e;
         }
     }
-    
+
     /**
      * 根据动态条件查询产品
      * 
@@ -80,20 +80,20 @@ class ProductService
         try {
             // 构建查询条件
             $condition = [];
-            
+
             // 动态添加查询条件 - 支持任意字段查询
             foreach ($params as $key => $value) {
                 if (!empty($value)) {
                     $condition[$key] = $value;
                 }
             }
-            
+
             // 记录日志
             Log::info('查询产品: 条件数量 {condition_count}', [
-                'condition' => $condition,
+                'condition'       => $condition,
                 'condition_count' => count($condition)
             ]);
-            
+
             // 查询产品
             return Product::findProducts($condition);
         } catch (\Exception $e) {
@@ -101,4 +101,4 @@ class ProductService
             return [];
         }
     }
-} 
+}

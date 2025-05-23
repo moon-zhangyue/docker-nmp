@@ -163,3 +163,10 @@ Route::group('parking/metrics', function () {
 // Swagger文档路由
 Route::get('swagger', 'SwaggerController/index');
 Route::get('swagger/json', 'SwaggerController/json');
+
+
+// MongoDB演示路由
+Route::post('iot/receiveData', 'IoTController/receiveData');//接收设备数据
+Route::get('iot/batchReceiveData', 'IoTController/batchReceiveData');//批量接收设备数据
+Route::get('iot/getLatestData', 'IoTController/getLatestData');//获取设备最新数据
+Route::get('iot/getHistoryData', 'IoTController/getHistoryData');//获取设备历史数据

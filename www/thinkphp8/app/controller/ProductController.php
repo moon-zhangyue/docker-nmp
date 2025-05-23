@@ -5,6 +5,7 @@ namespace app\controller;
 
 use app\BaseController;
 use app\service\ProductService;
+use think\App;
 use think\facade\Log;
 use think\Response;
 use think\exception\ValidateException;
@@ -13,8 +14,9 @@ class ProductController extends BaseController
 {
     protected $productService;
     
-    public function __construct(ProductService $productService)
+    public function __construct(App $app, ProductService $productService)
     {
+        parent::__construct($app);
         $this->productService = $productService;
     }
     
@@ -83,4 +85,4 @@ class ProductController extends BaseController
             return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
     }
-} 
+}

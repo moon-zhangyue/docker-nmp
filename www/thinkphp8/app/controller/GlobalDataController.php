@@ -5,6 +5,7 @@ namespace app\controller;
 
 use app\BaseController;
 use app\service\GlobalDataService;
+use think\App;
 use think\facade\Log;
 use think\Response;
 use think\exception\ValidateException;
@@ -13,8 +14,9 @@ class GlobalDataController extends BaseController
 {
     protected $globalDataService;
     
-    public function __construct(GlobalDataService $globalDataService)
+    public function __construct(App $app, GlobalDataService $globalDataService)
     {
+        parent::__construct($app);
         $this->globalDataService = $globalDataService;
     }
     
@@ -187,4 +189,4 @@ class GlobalDataController extends BaseController
             return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
     }
-} 
+}

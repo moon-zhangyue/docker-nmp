@@ -2,7 +2,7 @@
 
 return [
     // 默认使用的数据库连接配置
-    'default'         => env('database.driver', 'mysql'),
+    'default'         => env('database.driver', 'mongo'),
 
     // 自定义时间查询规则
     'time_query_rule' => [],
@@ -61,15 +61,15 @@ return [
         // MongoDB副本集连接配置
         'mongo' => [
             // 数据库类型
-            'type'          => 'mongodb',
+            'type'          => 'mongo',
             // 连接dsn，支持副本集
-            'dsn'           => env('mongo.dsn', 'mongodb://username:password@rs1.example.com:27017,rs2.example.com:27017,rs3.example.com:27017/admin'),
+            'dsn'           => env('mongo.dsn', 'mongodb://username:password@localhost:27017/admin'),
             // 数据库名
-            'database'      => env('mongo.database', 'mongo_db'),
+            'database'      => env('mongo.database', 'thinkphp8'),
             // 用户名
-            'username'      => env('mongo.username', ''),
+            'username'      => env('mongo.username', 'root'),
             // 密码
-            'password'      => env('mongo.password', ''),
+            'password'      => env('mongo.password', '123456'),
             // 副本集设置
             'replica_set'   => env('mongo.replica_set', 'rs0'),
             // 是否开启读写分离
