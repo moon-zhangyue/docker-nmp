@@ -42,7 +42,8 @@
         "monolog/monolog": "^3.9",
         "elasticsearch/elasticsearch": "7.17.x-dev",
         "php-amqplib/php-amqplib": "^3.7",
-        "zircote/swagger-php": "^5.1"
+        "zircote/swagger-php": "^5.1",
+        "mongodb/mongodb": "^2.1"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",
