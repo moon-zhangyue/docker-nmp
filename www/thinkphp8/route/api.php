@@ -75,6 +75,42 @@ Route::group('api', function () {
         Route::get('status', 'api.Pool/getStatus')->middleware('jwt_auth', ['admin', 'operator']);
         Route::post('config', 'api.Pool/updateConfig')->middleware('jwt_auth', ['admin']);
     });
+
+    // MongoDB产品目录相关路由
+    Route::group('products', function () {
+        Route::post('create', 'ProductController/create')->middleware('jwt_auth', ['admin', 'operator']);
+        Route::put('update', 'ProductController/update')->middleware('jwt_auth', ['admin', 'operator']);
+        Route::get('search', 'ProductController/search');
+        Route::get('detail/:id', 'ProductController/detail');
+    });
+
+    // MongoDB IoT数据分片相关路由
+    Route::group('iot', function () {
+        Route::post('batch-data', 'IoTDataShardedController/receiveBatchData')->middleware('jwt_auth', ['admin', 'operator']);
+        Route::get('device-metrics/:device_id', 'IoTDataShardedController/getDeviceMetrics')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
+        Route::post('archive-data', 'IoTDataShardedController/archiveOldDeviceData')->middleware('jwt_auth', ['admin']);
+    });
+
+    // MongoDB地理位置相关路由
+    Route::group('locations', function () {
+        Route::post('add', 'LocationController/addLocation')->middleware('jwt_auth', ['admin', 'operator']);
+        Route::get('nearby', 'LocationController/findNearby');
+        Route::post('check-polygon', 'LocationController/checkPointInPolygon');
+    });
+
+    // MongoDB分析聚合相关路由
+    Route::group('analytics', function () {
+        Route::post('event', 'AnalyticsController/recordEvent')->middleware('jwt_auth', ['operator', 'admin']);
+        Route::get('user/:user_id', 'AnalyticsController/getUserAnalytics')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
+        Route::get('dashboard', 'AnalyticsController/getRealTimeDashboard')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
+    });
+
+    // MongoDB全球数据复制相关路由
+    Route::group('global-data', function () {
+        Route::post('create', 'GlobalDataController/createGlobalRecord')->middleware('jwt_auth', ['admin', 'operator']);
+        Route::get('regional/:region', 'GlobalDataController/getRegionalData')->middleware('jwt_auth', ['viewer', 'operator', 'admin']);
+        Route::post('replicate', 'GlobalDataController/replicateData')->middleware('jwt_auth', ['admin']);
+    });
 });
 
 // 注册中间件
