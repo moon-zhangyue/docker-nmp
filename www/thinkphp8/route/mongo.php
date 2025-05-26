@@ -27,10 +27,10 @@ Route::group('mongo', function () {
 
     // MongoDB分析聚合相关路由
     Route::group('analytics', function () {
-        Route::post('event', 'mongo/AnalyticsController/recordEvent');
-        Route::get('user/:user_id', 'mongo/AnalyticsController/getUserAnalytics');
-        Route::get('dashboard', 'mongo/AnalyticsController/getRealTimeDashboard');
-        Route::get('seedOrders', 'mongo/AnalyticsController/seedOrders');//生成订单数据
+        Route::post('record', 'mongo/AnalyticsController/record');//记录用户行为
+        Route::post('timeStats', 'mongo/AnalyticsController/timeStats');//按时间段统计用户行为
+        Route::get('activeUsers', 'mongo/AnalyticsController/activeUsers');//获取活跃用户数据
+        Route::post('seedOrders', 'mongo/AnalyticsController/seedOrders');//生成订单数据
         Route::get('productSales', 'mongo/AnalyticsController/productSales');//获取产品销售数据
     });
 
