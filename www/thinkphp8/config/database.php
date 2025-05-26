@@ -90,6 +90,16 @@ return [
             'slow_query_threshold' => 1000,
             // 慢查询日志
             'slow_query_log'       => true,
+            // 监听SQL
+            'trigger_sql'          => env('app_debug', true),
+            // 数据库部署方式:0 集中式(单一服务器),1 分布式(主从服务器)
+            'deploy'               => 0,
+            // 端口
+            'hostport'             => env('MONGO.MONGO_HOSTPORT', '27017'),
+            // 数据库编码默认采用utf8
+            'charset'              => env('MONGO.MONGO_CHARSET', 'utf8mb4'),
+            // 集合（表）前缀，MongoDB 通常不使用
+            'prefix'               => env('MONGO.PREFIX', ''),
             // 连接参数
             'options'              => [
                 // 连接超时时间（毫秒）

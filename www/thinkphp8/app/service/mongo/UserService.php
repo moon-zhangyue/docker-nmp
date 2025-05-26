@@ -76,10 +76,10 @@ class UserService
     {
         try {
             $users = Db::connect($this->connection)
-                        ->table($this->collection)
-                        ->limit($limit)
-                        ->order('created_at', 'desc')
-                        ->select();
+                ->table($this->collection)
+                ->limit($limit)
+                ->order('created_at', 'desc')
+                ->select();
             Log::info('[MongoUserService] Retrieved ' . count($users) . ' users.');
             return $users->all();
         } catch (\Exception $e) {

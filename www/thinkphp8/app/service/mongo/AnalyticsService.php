@@ -2,12 +2,12 @@
 
 namespace app\service\mongo;
 
-use think\facade\Db;
 use think\facade\Log;
+use think\facade\Db;
 
 class AnalyticsService
 {
-    private $connection = 'mongo';
+    private $connection       = 'mongo';
     private $ordersCollection = 'orders'; // Example collection for aggregation
 
     /**
@@ -19,25 +19,27 @@ class AnalyticsService
     public function seedSampleOrders(int $count = 50): bool
     {
         try {
-            $data = [];
+            $data       = [];
             $productIds = ['prod_A123', 'prod_B456', 'prod_C789', 'prod_D101'];
-            $userIds = [1001, 1002, 1003, 1004, 1005];
+            $userIds    = [1001, 1002, 1003, 1004, 1005];
 
             for ($i = 0; $i < $count; $i++) {
                 $data[] = [
                     'product_id' => $productIds[array_rand($productIds)],
                     'user_id'    => $userIds[array_rand($userIds)],
                     'quantity'   => rand(1, 5),
-                    'price'      => (float)rand(10, 200) + (rand(0, 99) / 100), // Price between 10.00 and 200.99
-                    'order_date' => new \MongoDB\BSON\UTCDateTime((new \DateTime('-' . rand(0, 30) . ' days'))->getTimestamp() * 1000),
+                    'price'      => (float) rand(10, 200) + rand(0, 99) / 100, // Price between 10.00 and 200.99
+                    'order_date' => (new \DateTime('-' . rand(0, 30) . ' days'))->getTimestamp(),
                     'status'     => ['pending', 'completed', 'shipped'][array_rand(['pending', 'completed', 'shipped'])]
                 ];
             }
+
+
             Db::connect($this->connection)->table($this->ordersCollection)->insertAll($data);
             Log::info('[MongoAnalyticsService] Seeded ' . $count . ' sample orders.');
             return true;
         } catch (\Exception $e) {
-            Log::error('[MongoAnalyticsService] Error seeding sample orders: ' . $e->getMessage());
+            Log::error('[MongoAnalyticsService] Error seeding sample orders: {message}', ['message' => $e->getMessage()]);
             return false;
         }
     }
@@ -53,47 +55,87 @@ class AnalyticsService
         try {
             $pipeline = [
                 [
-                    '$match' => [ // Optional: Filter documents, e.g., only completed orders
-                        'status' => 'completed'
+                    '$match' => [
+                        'status' => 'completed'// 匹配状态为completed的文档
                     ]
                 ],
                 [
                     '$group' => [
-                        '_id'          => '$product_id', // Group by product_id
+                        '_id'                 => '$product_id', // Group by product_id
                         'total_quantity_sold' => ['$sum' => '$quantity'],
                         'total_revenue'       => ['$sum' => ['$multiply' => ['$quantity', '$price']]],
                         'order_count'         => ['$sum' => 1]
                     ],
                 ],
                 [
-                    '$sort' => ['total_revenue' => -1], // Sort by total revenue descending
+                    '$sort' => ['total_revenue' => -1], // 按照total_revenue字段降序排序
                 ],
                 [
-                    '$project' => [ // Optional: Reshape the output documents
-                        '_id' => 0, // Exclude the default _id field from the group stage
-                        'product_id' => '$_id', // Rename _id to product_id
-                        'total_quantity_sold' => 1,
-                        'total_revenue' => ['$round' => ['$total_revenue', 2]], // Round revenue to 2 decimal places
+                    '$project' => [
+                        '_id'                       => 0, // 不显示_id字段
+                        'product_id'                => '$_id', // 将_id字段重命名为product_id
+                        'total_quantity_sold'       => 1, // 显示total_quantity_sold字段
+                        'total_revenue'             => ['$round' => ['$total_revenue', 2]], // 将total_revenue字段四舍五入到小数点后两位
+                        // 计算平均每单收入，如果order_count大于0，则计算total_revenue除以order_count，否则返回0
                         'average_revenue_per_order' => [
                             '$cond' => [
-                                'if' => ['$gt' => ['$order_count', 0]],
+                                'if'   => ['$gt' => ['$order_count', 0]],
                                 'then' => ['$round' => [['$divide' => ['$total_revenue', '$order_count']], 2]],
                                 'else' => 0
                             ]
                         ],
-                        'order_count' => 1
+                        'order_count'               => 1// 显示order_count字段
                     ]
                 ]
             ];
 
-            $results = Db::connect($this->connection)
-                           ->table($this->ordersCollection)
-                           ->aggregate($pipeline);
+            // 使用自定义的mongoAggregate方法进行聚合查询
+            $results = $this->mongoAggregate($pipeline);
 
             Log::info('[MongoAnalyticsService] Product sales analytics generated successfully. Result count: ' . count($results));
             return $results; // This will be an array of documents
         } catch (\Exception $e) {
-            Log::error('[MongoAnalyticsService] Error performing product sales aggregation: ' . $e->getMessage());
+            Log::error('[MongoAnalyticsService] Error performing product sales aggregation: {message}', ['message' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * 执行MongoDB聚合查询
+     * 使用MongoDB原生客户端进行聚合查询
+     *
+     * @param array $pipeline 聚合管道
+     * @return array
+     */
+    protected function mongoAggregate(array $pipeline): array
+    {
+        try {
+            // 获取MongoDB配置
+            $mongoConfig = config('database.connections.mongo');
+
+            // 构建MongoDB连接URI
+            $uri = $mongoConfig['dsn'] ?? sprintf(
+                'mongodb://%s:%s@%s/%s?authSource=admin',
+                $mongoConfig['username'],
+                $mongoConfig['password'],
+                $mongoConfig['hostname'],
+                $mongoConfig['database']
+            );
+
+            // 创建MongoDB原生客户端
+            $client     = new \MongoDB\Client($uri);
+            $database   = $client->selectDatabase($mongoConfig['database']);
+            $collection = $database->selectCollection($this->ordersCollection);
+
+            // 执行聚合查询
+            $result = $collection->aggregate($pipeline)->toArray();
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('[MongoAnalyticsService] MongoDB聚合查询失败: {message}', [
+                'message'  => $e->getMessage(),
+                'pipeline' => json_encode($pipeline)
+            ]);
             return [];
         }
     }
@@ -110,9 +152,9 @@ class AnalyticsService
  *   - Verify `Db::connect()->table()->insertAll()` is called with an array of the correct count.
  *   - With DB exception: Verify it catches, logs, and returns false.
  * - Test `getProductSalesAnalytics()`:
- *   - Verify `Db::connect()->table()->aggregate()` is called with the correct pipeline structure.
+ *   - Verify `mongoAggregate()` is called with the correct pipeline structure.
  *     Key stages to check in pipeline: `$match`, `$group` (correct fields and accumulators), `$sort`, `$project`.
- *   - Mock `aggregate()` to return a sample result set (array of documents).
+ *   - Mock `mongoAggregate()` to return a sample result set (array of documents).
  *   - With DB exception: Verify it catches, logs, and returns an empty array.
  *
  * **Integration Tests (Requires MongoDB with `orders` collection):**

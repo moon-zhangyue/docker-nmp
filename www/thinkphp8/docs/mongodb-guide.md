@@ -29,22 +29,22 @@ use think\model\concern\SoftDelete;
 class Product extends Model
 {
     use SoftDelete;
-    
+
     // 设置MongoDB连接
     protected $connection = 'mongo';
-    
+
     // 设置集合名称
     protected $table = 'products';
-    
+
     // 设置主键
     protected $pk = '_id';
-    
+
     // 自动时间戳
     protected $autoWriteTimestamp = true;
-    
+
     // 允许写入的字段（动态模式下，可以不严格限制字段）
     protected $field = true;
-    
+
     /**
      * 添加产品（支持动态字段）
      */
@@ -52,7 +52,7 @@ class Product extends Model
     {
         return self::create($data);
     }
-    
+
     /**
      * 更新产品（支持动态字段）
      */
@@ -60,7 +60,7 @@ class Product extends Model
     {
         return self::find($id)->save($data);
     }
-    
+
     /**
      * 查询产品（支持动态字段查询）
      */
@@ -128,10 +128,10 @@ class IoTData extends Model
 {
     // 设置MongoDB连接
     protected $connection = 'mongo';
-    
+
     // 设置集合名称
     protected $table = 'iot_data';
-    
+
     /**
      * 批量保存IoT设备数据
      */
@@ -150,15 +150,15 @@ class IoTData extends Model
             return false;
         }
     }
-    
+
     /**
      * 根据时间范围分页查询数据
      */
     public static function getDataByTimeRange(
-        string $deviceId, 
-        string $startTime, 
-        string $endTime, 
-        int $page = 1, 
+        string $deviceId,
+        string $startTime,
+        string $endTime,
+        int $page = 1,
         int $limit = 20
     ): array
     {
@@ -210,8 +210,8 @@ IoTData::batchSave($dataList);
 
 // 时间范围查询
 $historyData = IoTData::getDataByTimeRange(
-    'device001', 
-    '2023-10-01 00:00:00', 
+    'device001',
+    '2023-10-01 00:00:00',
     '2023-10-31 23:59:59',
     1,
     100
@@ -230,7 +230,7 @@ class Location extends Model
 {
     // MongoDB连接
     protected $connection = 'mongo';
-    
+
     /**
      * 创建位置信息
      */
@@ -247,22 +247,22 @@ class Location extends Model
                     ]
                 ];
             }
-            
+
             return self::create($data);
         } catch (\Exception $e) {
             Log::error('创建位置信息失败', ['data' => $data, 'message' => $e->getMessage()]);
             return null;
         }
     }
-    
+
     /**
      * 根据距离查询附近的位置
      */
     public static function findNearby(
-        float $longitude, 
-        float $latitude, 
-        int $distance = 1000, 
-        array $filter = [], 
+        float $longitude,
+        float $latitude,
+        int $distance = 1000,
+        array $filter = [],
         int $limit = 20
     ): array
     {
@@ -271,7 +271,7 @@ class Location extends Model
             $geoNear = [
                 '$geoNear' => [
                     'near' => [
-                        'type' => 'Point', 
+                        'type' => 'Point',
                         'coordinates' => [$longitude, $latitude]
                     ],
                     'distanceField' => 'distance',
@@ -280,13 +280,13 @@ class Location extends Model
                     'query' => $filter
                 ]
             ];
-            
+
             // 限制数量
             $limit = ['$limit' => $limit];
-            
+
             // 执行聚合查询
             $result = self::mongoAggregate([$geoNear, $limit]);
-            
+
             return $result ?: [];
         } catch (\Exception $e) {
             Log::error('查询附近位置失败', [
@@ -297,7 +297,7 @@ class Location extends Model
             return [];
         }
     }
-    
+
     /**
      * 根据多边形区域查询位置
      */
@@ -308,7 +308,7 @@ class Location extends Model
             if ($polygon[0] !== end($polygon)) {
                 $polygon[] = $polygon[0];
             }
-            
+
             // 构建地理空间查询条件
             $condition = array_merge($filter, [
                 'location' => [
@@ -320,9 +320,9 @@ class Location extends Model
                     ]
                 ]
             ]);
-            
+
             $result = self::where($condition)->select()->toArray();
-            
+
             return $result ?: [];
         } catch (\Exception $e) {
             Log::error('根据多边形区域查询位置失败', [
@@ -380,14 +380,14 @@ class Analytics extends Model
 {
     // MongoDB连接
     protected $connection = 'mongo';
-    
+
     /**
      * 按时间段统计用户行为
      */
     public static function aggregateByTime(
-        string $actionType, 
-        string $startTime, 
-        string $endTime, 
+        string $actionType,
+        string $startTime,
+        string $endTime,
         string $timeUnit = 'day'
     ): array
     {
@@ -400,7 +400,7 @@ class Analytics extends Model
                 'month' => '%Y-%m',
                 default => '%Y-%m-%d'
             };
-            
+
             // 构建聚合管道
             $pipeline = [
                 [
@@ -429,7 +429,7 @@ class Analytics extends Model
                     '$sort' => ['_id.time_unit' => 1]
                 ]
             ];
-            
+
             // 执行聚合查询
             return self::mongoAggregate($pipeline);
         } catch (\Exception $e) {
@@ -441,7 +441,7 @@ class Analytics extends Model
             return [];
         }
     }
-    
+
     /**
      * 统计不同行为类型的占比
      */
@@ -468,20 +468,20 @@ class Analytics extends Model
                     '$sort' => ['count' => -1]
                 ]
             ];
-            
+
             // 执行聚合查询
             $result = self::mongoAggregate($pipeline);
-            
+
             // 计算总数
             $total = array_sum(array_column($result, 'count'));
-            
+
             // 计算占比
             if ($total > 0) {
                 foreach ($result as &$item) {
                     $item['percentage'] = round($item['count'] / $total * 100, 2);
                 }
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('统计不同行为类型的占比失败', [
@@ -526,6 +526,69 @@ $actionDistribution = Analytics::aggregateActionTypes(
 );
 ```
 
+## 聚合查询常见问题与解决方案
+
+### 1. ThinkPHP MongoDB驱动聚合方法错误
+
+**错误信息**: `think\db\Mongo::aggregate(): Argument #1 ($aggregate) must be of type string, array given`
+
+**原因**: ThinkPHP的MongoDB驱动中，`aggregate`方法的第一个参数应该是字符串（集合名称），而不是数组（管道）。
+
+**错误用法**:
+```php
+// ❌ 错误：直接使用ThinkPHP的aggregate方法
+$results = Db::connect('mongo')
+    ->name('orders')
+    ->aggregate($pipeline); // 这里会报错
+```
+
+**正确用法**:
+```php
+// ✅ 正确：使用MongoDB原生客户端
+protected function mongoAggregate(array $pipeline): array
+{
+    try {
+        // 使用 MongoDB 原生客户端进行聚合
+        $mongoConfig = config('mongodb.default');
+        $client      = new \MongoDB\Client($mongoConfig['uri'], $mongoConfig['options'], $mongoConfig['driverOptions']);
+        $database    = $client->selectDatabase($mongoConfig['database']);
+        $collection  = $database->selectCollection($this->ordersCollection);
+
+        // 获取聚合配置选项
+        $aggregationConfig = config('mongodb.aggregation.pipeline_options', []);
+
+        $result = $collection->aggregate($pipeline, $aggregationConfig)->toArray();
+
+        return $result;
+    } catch (\Exception $e) {
+        Log::error('MongoDB聚合查询失败: {message}, 管道: {pipeline}', [
+            'pipeline' => $pipeline,
+            'message' => $e->getMessage()
+        ]);
+        return [];
+    }
+}
+```
+
+### 2. 聚合管道性能优化
+
+**建议**:
+- 在管道早期使用`$match`过滤数据
+- 合理使用索引支持聚合操作
+- 对于大数据集，启用`allowDiskUse`选项
+- 设置合适的`maxTimeMS`避免长时间运行
+
+```php
+// 聚合配置优化
+'aggregation' => [
+    'pipeline_options' => [
+        'allowDiskUse' => true,     // 允许使用磁盘
+        'batchSize' => 1000,        // 批次大小
+        'maxTimeMS' => 300000,      // 最大执行时间
+    ],
+],
+```
+
 ## 副本集与分片 - 高可用性
 
 MongoDB 的副本集与分片特性实现高可用性和水平扩展，适合全球化分布式应用。
@@ -547,8 +610,8 @@ MongoDB 的副本集与分片特性实现高可用性和水平扩展，适合全
             'readConcern'      => 'majority', // 确保从大多数节点读取最新数据
         ],
     ],
-    
-    // MongoDB分片集群连接配置 
+
+    // MongoDB分片集群连接配置
     'mongo_sharded' => [
         'type'          => 'mongodb',
         'dsn'           => env('mongo_sharded.dsn', 'mongodb://mongos1.example.com:27017,mongos2.example.com:27017/admin'),
@@ -569,7 +632,7 @@ class GlobalData extends Model
 {
     // 设置MongoDB连接（使用分片集群配置）
     protected $connection = 'mongo_sharded';
-    
+
     /**
      * 保存全球数据
      */
@@ -580,10 +643,10 @@ class GlobalData extends Model
             if (!isset($data['region'])) {
                 throw new \Exception('区域信息不能为空，用于数据分片');
             }
-            
+
             // 记录日志
             Log::info('保存全球数据', ['region' => $data['region']]);
-            
+
             // 创建数据
             return self::create($data);
         } catch (\Exception $e) {
@@ -591,7 +654,7 @@ class GlobalData extends Model
             return null;
         }
     }
-    
+
     /**
      * 多区域数据对比
      */
@@ -600,7 +663,7 @@ class GlobalData extends Model
         try {
             // 结果集
             $result = [];
-            
+
             // 遍历区域
             foreach ($regions as $region) {
                 // 构建聚合管道
@@ -619,10 +682,10 @@ class GlobalData extends Model
                         ]
                     ]
                 ];
-                
+
                 // 执行聚合查询
                 $regionResult = self::mongoAggregate($pipeline);
-                
+
                 // 提取结果
                 if (!empty($regionResult)) {
                     $result[] = [
@@ -644,7 +707,7 @@ class GlobalData extends Model
                     ];
                 }
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('多区域数据对比失败', [
@@ -758,4 +821,4 @@ db.products.createIndex({ name: "text", description: "text" });
 4. **使用投影**：只返回需要的字段，减少网络传输
 5. **批量操作**：使用批量插入和更新，提高性能
 6. **注意内存使用**：聚合操作可能消耗大量内存，设置合理的限制
-7. **使用缓存**：对频繁查询的数据进行缓存 
+7. **使用缓存**：对频繁查询的数据进行缓存
