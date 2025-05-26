@@ -63,10 +63,10 @@ function getMongoVersion()
 {
     if (extension_loaded('mongodb')) {
         try {
-            $manager = new MongoDB\Driver\Manager('mongodb://xhgui-mongo:27017');
+            $manager = new MongoDB\Driver\Manager('mongodb://root:123456@mongodb:27017/thinkphp8?authSource=admin');
             $command = new MongoDB\Driver\Command(array('serverStatus' => true));
 
-            $cursor = $manager->executeCommand('admin', $command);
+            $cursor = $manager->executeCommand('thinkphp8', $command);
 
             return $cursor->toArray()[0]->version;
         } catch (Exception $e) {
