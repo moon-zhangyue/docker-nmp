@@ -193,16 +193,6 @@ services:
     networks:
       - default
 
-  # mongodb:
-  #   image: mongo:4.4
-  #   container_name: mongodb
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - ${DATA_DIR}/mongo:/data/db:rw
-  #   networks:
-  #     - default
-
 
   #  memcached:
   #    image: memcached:${MEMCACHED_VERSION}
