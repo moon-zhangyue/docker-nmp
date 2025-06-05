@@ -8,7 +8,6 @@ use app\service\IoTService;
 use think\App;
 use think\facade\Log;
 use think\Response;
-use think\exception\ValidateException;
 use think\facade\Db;
 
 class IoTController extends BaseController

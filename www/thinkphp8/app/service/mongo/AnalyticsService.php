@@ -92,7 +92,7 @@ class AnalyticsService
                 ]
             ];
 
-            $results = Analytics::analyzeProductSale($pipeline ,'orders');
+            $results = Analytics::analyzeProductSale($pipeline, 'orders');
 
             Log::info('[MongoAnalyticsService] 产品销售分析生成成功，结果数量: {count}', ['count' => count($results)]);
             return $results; // This will be an array of documents
@@ -228,7 +228,7 @@ class AnalyticsService
             // 记录日志
             Log::info('获取活跃用户排行: 行为类型 {action_type}, 时间范围 {time_range}, 限制数量 {limit}', [
                 'action_type' => $actionType,
-                'time_range'  => [$startTime, $endTime],
+                'time_range'  => json_encode([$startTime, $endTime]),
                 'limit'       => $limit
             ]);
 
@@ -241,7 +241,7 @@ class AnalyticsService
                 $formattedResult[] = [
                     'user_id'   => $item['_id'],
                     'count'     => $item['count'],
-                    'last_time' => date('Y-m-d H:i:s', $item['last_time'])
+                    'last_time' => $item['last_time']
                 ];
             }
 
@@ -253,7 +253,7 @@ class AnalyticsService
             Log::error('获取活跃用户排行失败: {message}, 行为类型: {action_type}, 时间范围: {time_range}', [
                 'message'     => $e->getMessage(),
                 'action_type' => $actionType,
-                'time_range'  => [$startTime, $endTime]
+                'time_range'  => json_encode([$startTime, $endTime])
             ]);
             return [];
         }
@@ -288,7 +288,7 @@ class AnalyticsService
 
             // 记录日志
             Log::info('获取行为类型占比: 时间范围 {time_range}', [
-                'time_range' => [$startTime, $endTime]
+                'time_range' => json_encode([$startTime, $endTime])
             ]);
 
             // 查询统计数据
@@ -311,7 +311,7 @@ class AnalyticsService
         } catch (\Exception $e) {
             Log::error('获取行为类型占比失败: {message}, 时间范围: {time_range}', [
                 'message'    => $e->getMessage(),
-                'time_range' => [$startTime, $endTime]
+                'time_range' => json_encode([$startTime, $endTime])
             ]);
             return [];
         }
@@ -326,12 +326,8 @@ class AnalyticsService
      * @param int $limit 路径长度限制
      * @return array
      */
-    public function getUserActionPath(
-        string $userId,
-        string $startTime = '',
-        string $endTime = '',
-        int $limit = 10
-    ): array {
+    public function getUserActionPath(string $userId, string $startTime = '', string $endTime = '', int $limit = 10): array
+    {
         try {
             // 设置默认时间范围
             if (empty($startTime)) {
@@ -353,7 +349,7 @@ class AnalyticsService
             // 记录日志
             Log::info('获取用户行为路径: 用户ID {user_id}, 时间范围 {time_range}, 限制数量 {limit}', [
                 'user_id'    => $userId,
-                'time_range' => [$startTime, $endTime],
+                'time_range' => json_encode([$startTime, $endTime]),
                 'limit'      => $limit
             ]);
 
@@ -368,7 +364,7 @@ class AnalyticsService
             Log::error('获取用户行为路径失败: {message}, 用户ID: {user_id}, 时间范围: {time_range}', [
                 'message'    => $e->getMessage(),
                 'user_id'    => $userId,
-                'time_range' => [$startTime, $endTime]
+                'time_range' => json_encode([$startTime, $endTime])
             ]);
             return [];
         }

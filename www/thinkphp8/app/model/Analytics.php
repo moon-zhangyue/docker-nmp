@@ -96,7 +96,7 @@ class Analytics extends Model
         } catch (\Exception $e) {
             Log::error('按时间段统计用户行为失败: {message}, 行为类型: {action_type}, 时间范围: {time_range}', [
                 'action_type' => $actionType,
-                'time_range'  => [$startTime, $endTime],
+                'time_range'  => json_encode([$startTime, $endTime]),
                 'message'     => $e->getMessage()
             ]);
             return [];
@@ -112,12 +112,8 @@ class Analytics extends Model
      * @param int $limit 返回数量限制
      * @return array
      */
-    public static function aggregateByUser(
-        string $actionType,
-        string $startTime,
-        string $endTime,
-        int $limit = 10
-    ): array {
+    public static function aggregateByUser(string $actionType, string $startTime, string $endTime, int $limit = 10): array
+    {
         try {
             // 构建聚合管道
             $pipeline = [
@@ -151,7 +147,7 @@ class Analytics extends Model
             Log::error('按用户分组统计行为数据失败: {message}, 行为类型: {action_type}, 时间范围: {time_range}', [
                 'message'     => $e->getMessage(),
                 'action_type' => $actionType,
-                'time_range'  => [$startTime, $endTime]
+                'time_range'  => json_encode([$startTime, $endTime])
             ]);
             return [];
         }
@@ -204,7 +200,7 @@ class Analytics extends Model
             return $result;
         } catch (\Exception $e) {
             Log::error('统计不同行为类型的占比失败: {message}, 时间范围: {time_range}', [
-                'time_range' => [$startTime, $endTime],
+                'time_range' => json_encode([$startTime, $endTime]),
                 'message'    => $e->getMessage()
             ]);
             return [];
@@ -261,7 +257,7 @@ class Analytics extends Model
             Log::error('用户行为路径分析失败: {message}, 用户ID: {user_id}, 时间范围: {time_range}', [
                 'message'    => $e->getMessage(),
                 'user_id'    => $userId,
-                'time_range' => [$startTime, $endTime]
+                'time_range' => json_encode([$startTime, $endTime])
             ]);
             return [];
         }

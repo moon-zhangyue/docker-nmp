@@ -180,18 +180,19 @@ class AnalyticsController extends BaseController
      * @param string $userId 用户ID
      * @return Response
      */
-    public function userPath(string $userId): Response
+    public function userPath(Request $request): Response
     {
         try {
+            // 获取请求参数
+            $userId    = $request->param('user_id', '');
+            $startTime = $request->param('start_time', '');
+            $endTime   = $request->param('end_time', '');
+            $limit     = intval($request->param('limit', 10));
+
             // 参数验证
             if (empty($userId)) {
                 return json(['code' => 400, 'message' => '用户ID不能为空']);
             }
-
-            // 获取请求参数
-            $startTime = $this->request->param('start_time', '');
-            $endTime   = $this->request->param('end_time', '');
-            $limit     = intval($this->request->param('limit', 10));
 
             // 查询用户行为路径
             $data = $this->analyticsService->getUserActionPath(

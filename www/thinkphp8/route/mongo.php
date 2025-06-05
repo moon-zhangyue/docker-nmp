@@ -32,6 +32,8 @@ Route::group('mongo', function () {
         Route::get('activeUsers', 'mongo/AnalyticsController/activeUsers');//获取活跃用户数据
         Route::post('seedOrders', 'mongo/AnalyticsController/seedOrders');//生成订单数据
         Route::get('productSales', 'mongo/AnalyticsController/productSales');//获取产品销售数据
+        Route::get('typeDistribution', 'mongo/AnalyticsController/typeDistribution');//获取行为类型占比
+        Route::get('userPath', 'mongo/AnalyticsController/userPath');//获取用户行为路径
     });
 
     // MongoDB全球数据复制相关路由
