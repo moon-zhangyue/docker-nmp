@@ -6,17 +6,19 @@ use think\facade\Route;
 Route::group('mongo', function () {
     // MongoDB产品目录相关路由
     Route::group('products', function () {
-        Route::post('create', 'mongo/ProductController/create');
-        Route::put('update', 'mongo/ProductController/update');
-        Route::get('search', 'mongo/ProductController/search');
-        Route::get('detail/:id', 'mongo/ProductController/detail');
+        Route::post('create', 'mongo/ProductController/create');//创建产品  
+        Route::put('update', 'mongo/ProductController/update');//更新产品   
+        Route::get('search', 'mongo/ProductController/search');//搜索产品   
+        Route::get('detail/:id', 'mongo/ProductController/detail');//获取产品详情
+        Route::get('list', 'mongo/ProductController/list');//获取产品列表
     });
 
     // MongoDB IoT数据分片相关路由
     Route::group('iot', function () {
-        Route::post('batch-data', 'IoTDataShardedController/receiveBatchData');
-        Route::get('device-metrics/:device_id', 'IoTDataShardedController/getDeviceMetrics');
-        Route::post('archive-data', 'IoTDataShardedController/archiveOldDeviceData');
+        Route::post('batch-data', 'mongo/IoTController/receiveBatchData');
+        Route::get('device-metrics/:device_id', 'mongo/IoTController/getDeviceMetrics');
+        Route::post('archive-data', 'mongo/IoTController/archiveOldDeviceData');
+        Route::post('receive-data', 'mongo/IoTController/receiveData');//接收设备数据
     });
     // MongoDB地理位置相关路由
     Route::group('locations', function () {

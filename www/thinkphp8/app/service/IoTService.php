@@ -22,18 +22,18 @@ class IoTService
             if (empty($data['device_id'])) {
                 throw new \Exception('设备ID不能为空');
             }
-            
+
             // 记录日志
-            Log::info('保存IoT设备数据', ['device_id' => $data['device_id']]);
-            
+            Log::info('保存IoT设备数据: {device_id}', ['device_id' => $data['device_id']]);
+
             // 保存数据
             return IoTData::create($data) ? true : false;
         } catch (\Exception $e) {
-            Log::error('保存IoT设备数据失败', ['data' => $data, 'message' => $e->getMessage()]);
+            Log::error('保存IoT设备数据失败: {message}, 数据: {data}', ['data' => $data, 'message' => $e->getMessage()]);
             return false;
         }
     }
-    
+
     /**
      * 批量保存设备数据
      * 
@@ -45,7 +45,7 @@ class IoTService
         try {
             // 记录日志
             Log::info('批量保存IoT设备数据: {count}条数据', ['count' => count($dataList)]);
-            
+
             // 批量保存数据
             return IoTData::batchSave($dataList);
         } catch (\Exception $e) {
@@ -53,7 +53,7 @@ class IoTService
             return false;
         }
     }
-    
+
     /**
      * 获取设备历史数据
      * 
@@ -64,31 +64,25 @@ class IoTService
      * @param int $limit 每页条数
      * @return array
      */
-    public function getHistoryData(
-        string $deviceId, 
-        string $startTime, 
-        string $endTime, 
-        int $page = 1, 
-        int $limit = 20
-    ): array
+    public function getHistoryData(string $deviceId, string $startTime, string $endTime, int $page = 1, int $limit = 20): array
     {
         try {
             // 缓存键
             $cacheKey = "iot:history:{$deviceId}:{$startTime}:{$endTime}:{$page}:{$limit}";
-            
+
             // 优先从缓存获取
             if (Cache::has($cacheKey)) {
                 return Cache::get($cacheKey);
             }
-            
+
             // 记录日志
-            Log::info('查询设备历史数据: {device_id}, 时间范围: {time_range}', [
-                'device_id' => $deviceId,
-                'time_range' => [$startTime, $endTime],
-                'page' => $page,
-                'limit' => $limit
+            Log::info('查询设备历史数据: {device_id}, 时间范围: {time_range}, 页码: {page}, 每页条数: {limit}', [
+                'device_id'  => $deviceId,
+                'time_range' => json_encode([$startTime, $endTime]),
+                'page'       => $page,
+                'limit'      => $limit
             ]);
-            
+
             // 查询数据
             $data = IoTData::getDataByTimeRange(
                 $deviceId,
@@ -97,20 +91,20 @@ class IoTService
                 $page,
                 $limit
             );
-            
+
             // 缓存结果，5分钟过期
             Cache::set($cacheKey, $data, 300);
-            
+
             return $data;
         } catch (\Exception $e) {
             Log::error('查询设备历史数据失败: {message}, 设备ID: {device_id}', [
                 'device_id' => $deviceId,
-                'message' => $e->getMessage()
+                'message'   => $e->getMessage()
             ]);
             return [];
         }
     }
-    
+
     /**
      * 获取设备最新数据
      * 
@@ -122,30 +116,30 @@ class IoTService
         try {
             // 缓存键
             $cacheKey = "iot:latest:{$deviceId}";
-            
+
             // 优先从缓存获取
             if (Cache::has($cacheKey)) {
                 return Cache::get($cacheKey);
             }
-            
+
             // 记录日志
-            Log::info('获取设备最新数据', ['device_id' => $deviceId]);
-            
+            Log::info('获取设备最新数据: {device_id}', ['device_id' => $deviceId]);
+
             // 查询数据
             $data = IoTData::getLatestData($deviceId);
-            
+
             // 缓存结果，30秒过期
             if ($data) {
                 Cache::set($cacheKey, $data, 30);
             }
-            
+
             return $data;
         } catch (\Exception $e) {
-            Log::error('获取设备最新数据失败', [
+            Log::error('获取设备最新数据失败: {message}, 设备ID: {device_id}', [
                 'device_id' => $deviceId,
-                'message' => $e->getMessage()
+                'message'   => $e->getMessage()
             ]);
             return null;
         }
     }
-} 
+}

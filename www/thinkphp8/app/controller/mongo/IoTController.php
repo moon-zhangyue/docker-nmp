@@ -1,14 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace app\controller;
+namespace app\controller\mongo;
 
 use app\BaseController;
 use app\service\IoTService;
 use think\App;
 use think\facade\Log;
 use think\Response;
-use think\facade\Db;
 
 class IoTController extends BaseController
 {
@@ -27,29 +26,19 @@ class IoTController extends BaseController
      */
     public function receiveData(): Response
     {
-        // 方式二：使用 data 方法后调用 insert，同样返回影响数量
-        $result = Db::name('users')->data(['username' => '李四1', 'email' => 'lisi@example.com', 'age' => 30, 'sex' => 1])->insert();
 
-        if ($result) {
-            return json(['code' => 200, 'message' => '数据保存成功']);
-        } else {
-            return json(['code' => 500, 'message' => '数据保存失败']);
+        try {
+            // 获取POST数据
+            $data = $this->request->post();
 
+            // 保存设备数据
+            $result = $this->iotService->saveData($data);
+
+            return json(['code' => 200, 'message' => $result ? '数据保存成功' : '数据保存失败']);
+        } catch (\Exception $e) {
+            Log::error('接收设备数据异常', ['message' => $e->getMessage()]);
+            return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
-        // try {
-        //     // 获取POST数据
-        //     $data = $this->request->post();
-
-        //     // 保存设备数据
-        //     $result = $this->iotService->saveData($data);
-
-        //     return json(['code' => 200, 'message' => $result ? '数据保存成功' : '数据保存失败']);
-        // } catch (ValidateException $e) {
-        //     return json(['code' => 400, 'message' => $e->getMessage()]);
-        // } catch (\Exception $e) {
-        //     Log::error('接收设备数据异常', ['message' => $e->getMessage()]);
-        //     return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
-        // }
     }
 
     /**

@@ -29,13 +29,6 @@ class IoTData extends Model
     public static function batchSave(array $dataList): bool
     {
         try {
-            // MongoDB 4.0+ 事务需要在副本集环境中使用
-            // 不使用事务直接批量插入数据
-            // foreach ($dataList as $data) {
-            //     self::create($data);
-            // }
-            // return true;
-
             // 注意：如果需要使用MongoDB事务，请确保MongoDB版本在4.0以上且为副本集环境
             // 事务示例代码（需要副本集环境）：
 
@@ -80,7 +73,7 @@ class IoTData extends Model
         } catch (\Exception $e) {
             Log::error('查询IoT数据失败: {message}, 设备ID: {device_id}, 时间范围: {time_range}', [
                 'device_id'  => $deviceId,
-                'time_range' => [$startTime, $endTime],
+                'time_range' => json_encode([$startTime, $endTime]),
                 'message'    => $e->getMessage()
             ]);
             return [];
