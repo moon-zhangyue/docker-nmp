@@ -5,21 +5,53 @@ namespace app\model;
 
 use think\Model;
 use think\facade\Log;
+use think\facade\Db;
+use MongoDB\Driver\Command;
 
 class Location extends Model
 {
     // 设置MongoDB连接
     protected $connection = 'mongo';
-    
+
     // 设置集合名称
     protected $table = 'locations';
-    
+
     // 设置主键
     protected $pk = '_id';
-    
+
     // 自动时间戳
     protected $autoWriteTimestamp = true;
-    
+
+    /**
+     * 确保地理空间索引存在
+     */
+    protected static function ensureGeoIndex()
+    {
+        try {
+            // 获取MongoDB配置
+            $config = config('database.connections.mongo');
+            $model = new self();
+            $collection = $model->getTable();
+            
+            // 创建MongoDB客户端
+            $uri = "mongodb://{$config['hostname']}:{$config['hostport']}";
+            $options = [];
+            
+            if (!empty($config['username']) && !empty($config['password'])) {
+                $options['username'] = $config['username'];
+                $options['password'] = $config['password'];
+            }
+            
+            // 创建索引
+            $client = new \MongoDB\Client($uri, $options);
+            $client->selectDatabase($config['database'])
+                   ->selectCollection($collection)
+                   ->createIndex(['location' => '2dsphere']);
+        } catch (\Exception $e) {
+            Log::error('创建地理空间索引失败: {message}', ['message' => $e->getMessage()]);
+        }
+    }
+
     /**
      * 创建位置信息
      * 
@@ -32,21 +64,21 @@ class Location extends Model
             // 构建地理位置点数据
             if (isset($data['longitude']) && isset($data['latitude'])) {
                 $data['location'] = [
-                    'type' => 'Point',
+                    'type'        => 'Point',
                     'coordinates' => [
                         floatval($data['longitude']),
                         floatval($data['latitude'])
                     ]
                 ];
             }
-            
+
             return self::create($data);
         } catch (\Exception $e) {
             Log::error('创建位置信息失败: {message}', ['data' => $data, 'message' => $e->getMessage()]);
             return null;
         }
     }
-    
+
     /**
      * 更新位置信息
      * 
@@ -60,21 +92,21 @@ class Location extends Model
             // 构建地理位置点数据
             if (isset($data['longitude']) && isset($data['latitude'])) {
                 $data['location'] = [
-                    'type' => 'Point',
+                    'type'        => 'Point',
                     'coordinates' => [
                         floatval($data['longitude']),
                         floatval($data['latitude'])
                     ]
                 ];
             }
-            
+
             return self::find($id)->save($data);
         } catch (\Exception $e) {
-            Log::error('更新位置信息失败', ['id' => $id, 'data' => $data, 'message' => $e->getMessage()]);
+            Log::error('更新位置信息失败: {message}', ['id' => $id, 'data' => json_encode($data), 'message' => $e->getMessage()]);
             return false;
         }
     }
-    
+
     /**
      * 根据距离查询附近的位置
      * 
@@ -85,46 +117,43 @@ class Location extends Model
      * @param int $limit 限制数量
      * @return array
      */
-    public static function findNearby(
-        float $longitude, 
-        float $latitude, 
-        int $distance = 1000, 
-        array $filter = [], 
-        int $limit = 20
-    ): array
+    public static function findNearby(float $longitude, float $latitude, int $distance = 1000, array $filter = [], int $limit = 20): array
     {
         try {
+            // 确保地理空间索引存在
+            self::ensureGeoIndex();
+            
             // 构建地理空间查询
             $geoNear = [
                 '$geoNear' => [
-                    'near' => [
-                        'type' => 'Point', 
+                    'near'          => [
+                        'type'        => 'Point',
                         'coordinates' => [$longitude, $latitude]
                     ],
                     'distanceField' => 'distance',
-                    'maxDistance' => $distance,
-                    'spherical' => true,
-                    'query' => $filter
+                    'maxDistance'   => $distance,
+                    'spherical'     => true,
+                    'query'         => $filter
                 ]
             ];
-            
+
             // 限制数量
             $limit = ['$limit' => $limit];
-            
+
             // 执行聚合查询
             $result = self::mongoAggregate([$geoNear, $limit]);
-            
+
             return $result ?: [];
         } catch (\Exception $e) {
             Log::error('查询附近位置失败: {message}, 坐标: {coordinates}, 距离: {distance}', [
-                'coordinates' => [$longitude, $latitude],
-                'distance' => $distance,
-                'message' => $e->getMessage()
+                'coordinates' => json_encode([$longitude, $latitude]),
+                'distance'    => $distance,
+                'message'     => $e->getMessage()
             ]);
             return [];
         }
     }
-    
+
     /**
      * 根据多边形区域查询位置
      * 
@@ -139,21 +168,21 @@ class Location extends Model
             if ($polygon[0] !== end($polygon)) {
                 $polygon[] = $polygon[0];
             }
-            
+
             // 构建地理空间查询条件
             $condition = array_merge($filter, [
                 'location' => [
                     '$geoWithin' => [
                         '$geometry' => [
-                            'type' => 'Polygon',
+                            'type'        => 'Polygon',
                             'coordinates' => [$polygon]
                         ]
                     ]
                 ]
             ]);
-            
+
             $result = self::where($condition)->select()->toArray();
-            
+
             return $result ?: [];
         } catch (\Exception $e) {
             Log::error('根据多边形区域查询位置失败: {message}, 多边形: {polygon}', [
@@ -163,7 +192,7 @@ class Location extends Model
             return [];
         }
     }
-    
+
     /**
      * 执行MongoDB聚合查询
      * 
@@ -173,16 +202,38 @@ class Location extends Model
     protected static function mongoAggregate(array $pipeline): array
     {
         try {
+            // 获取MongoDB配置
+            $config = config('database.connections.mongo');
             $model = new self();
-            $connection = $model->getConnection();
-            $collection = $connection->getCollection($model->getTable());
+            $collection = $model->getTable();
             
-            $result = $collection->aggregate($pipeline)->toArray();
+            // 创建MongoDB客户端
+            $uri = "mongodb://{$config['hostname']}:{$config['hostport']}";
+            $options = [];
             
-            return $result;
+            if (!empty($config['username']) && !empty($config['password'])) {
+                $options['username'] = $config['username'];
+                $options['password'] = $config['password'];
+            }
+            
+            // 创建MongoDB客户端
+            $client = new \MongoDB\Client($uri, $options);
+            
+            // 执行聚合查询
+            $result = $client->selectDatabase($config['database'])
+                ->selectCollection($collection)
+                ->aggregate($pipeline, ['typeMap' => ['root' => 'array']]);
+            
+            // 转换结果为数组
+            $data = [];
+            foreach ($result as $document) {
+                $data[] = $document;
+            }
+            
+            return $data;
         } catch (\Exception $e) {
-            Log::error('MongoDB聚合查询失败', ['pipeline' => $pipeline, 'message' => $e->getMessage()]);
+            Log::error('MongoDB聚合查询失败: {message}', ['pipeline' => json_encode($pipeline), 'message' => $e->getMessage()]);
             return [];
         }
     }
-} 
+}

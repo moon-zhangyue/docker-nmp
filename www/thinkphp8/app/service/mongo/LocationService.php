@@ -4,6 +4,7 @@ namespace app\service\mongo;
 
 use think\facade\Db;
 use think\facade\Log;
+use MongoDB\Driver\Command;
 
 class LocationService
 {
@@ -26,28 +27,34 @@ class LocationService
      */
     public function addLocation(array $locationData)
     {
-        if (empty($locationData) || !isset($locationData['location']) || !isset($locationData['location']['coordinates'])) {
-            Log::warning('[MongoLocationService] Attempted to add location with invalid or missing geospatial data.');
-            return false;
-        }
-        // Basic validation for coordinate structure
-        if (!is_array($locationData['location']['coordinates']) || count($locationData['location']['coordinates']) !== 2) {
-            Log::warning('[MongoLocationService] Invalid coordinates format. Must be [longitude, latitude]. Data: ' . json_encode($locationData));
+        if (empty($locationData) || !isset($locationData['location'])) {
+            Log::warning('[MongoLocationService] Attempted to add location with invalid or missing geospatial data.', []);
             return false;
         }
 
+        $location = json_decode($locationData['location'], true);
+        if (!isset($location)) {
+            Log::warning('[MongoLocationService] Attempted to add location with invalid or missing geospatial data.', []);
+            return false;
+        }
+
+        // Basic validation for coordinate structure
+        if (!is_array($location['coordinates']) || count($location['coordinates']) !== 2) {
+            Log::warning('[MongoLocationService] Invalid coordinates format. Must be [longitude, latitude]. Data: {data}', ['data' => json_encode($locationData)]);
+            return false;
+        }
 
         try {
             $insertedId = Db::connect($this->connection)->table($this->collection)->insertGetId($locationData);
             if ($insertedId) {
-                Log::info('[MongoLocationService] Location added. ID: ' . $insertedId . ', Data: ' . json_encode($locationData));
+                Log::info('[MongoLocationService] Location added. ID: {id}, Data: {data}', ['id' => $insertedId, 'data' => json_encode($locationData)]);
                 return $insertedId;
             } else {
-                Log::error('[MongoLocationService] Failed to add location. Data: ' . json_encode($locationData));
+                Log::error('[MongoLocationService] Failed to add location. Data: {data}', ['data' => json_encode($locationData)]);
                 return false;
             }
         } catch (\Exception $e) {
-            Log::error('[MongoLocationService] Error adding location: ' . $e->getMessage() . ', Data: ' . json_encode($locationData));
+            Log::error('[MongoLocationService] Error adding location: {message}, Data: {data}', ['message' => $e->getMessage(), 'data' => json_encode($locationData)]);
             return false;
         }
     }
@@ -66,31 +73,84 @@ class LocationService
     public function findNearbyLocations(float $longitude, float $latitude, int $maxDistanceMeters = 5000, int $limit = 10): array
     {
         try {
-            // MongoDB's $near or $geoNear typically requires coordinates in [longitude, latitude] order.
-            $query = [
-                'location' => [
-                    '$near' => [
-                        '$geometry' => [
-                            'type'        => 'Point',
-                            'coordinates' => [$longitude, $latitude],
-                        ],
-                        '$maxDistance' => $maxDistanceMeters,
-                    ],
-                ],
-            ];
-
-            $locations = Db::connect($this->connection)
-                            ->table($this->collection)
-                            ->where($query) // Using where() with the geospatial query structure
-                            ->limit($limit)
-                            ->select();
-
-            Log::info('[MongoLocationService] Found ' . count($locations) . ' nearby locations. Point: [' . $longitude . ', ' . $latitude . '], MaxDistance: ' . $maxDistanceMeters . 'm');
-            return $locations->all();
+            // 获取所有位置
+            $allLocations = Db::connect($this->connection)
+                ->table($this->collection)
+                ->select()
+                ->toArray();
+            
+            // 手动计算距离并筛选结果
+            $result = [];
+            foreach ($allLocations as $location) {
+                if (isset($location['location']) && isset($location['location']['coordinates'])) {
+                    $locCoords = $location['location']['coordinates'];
+                    
+                    // 确保坐标是数组并且有两个元素
+                    if (is_array($locCoords) && count($locCoords) === 2) {
+                        $locLng = $locCoords[0];
+                        $locLat = $locCoords[1];
+                        
+                        // 计算距离（使用球面余弦定理计算大圆距离）
+                        $distance = $this->calculateDistance($latitude, $longitude, $locLat, $locLng);
+                        
+                        // 如果距离小于最大距离，添加到结果中
+                        if ($distance <= $maxDistanceMeters) {
+                            $location['distance'] = $distance;
+                            $result[] = $location;
+                        }
+                    }
+                }
+            }
+            
+            // 按距离排序
+            usort($result, function($a, $b) {
+                return $a['distance'] - $b['distance'];
+            });
+            
+            // 限制结果数量
+            $result = array_slice($result, 0, $limit);
+            
+            Log::info('[MongoLocationService] Found {count} nearby locations. Point: [{lng}, {lat}], MaxDistance: {distance}m', 
+                ['count' => count($result), 'lng' => $longitude, 'lat' => $latitude, 'distance' => $maxDistanceMeters]);
+            return $result;
         } catch (\Exception $e) {
-            Log::error('[MongoLocationService] Error finding nearby locations: ' . $e->getMessage() . ' Point: [' . $longitude . ', ' . $latitude . ']');
+            Log::error('[MongoLocationService] Error finding nearby locations: {message} Point: [{lng}, {lat}]', 
+                ['message' => $e->getMessage(), 'lng' => $longitude, 'lat' => $latitude]);
             return [];
         }
+    }
+    
+    /**
+     * 计算两个坐标点之间的距离（米）
+     *
+     * @param float $lat1 第一点纬度
+     * @param float $lng1 第一点经度
+     * @param float $lat2 第二点纬度
+     * @param float $lng2 第二点经度
+     * @return float 距离（米）
+     */
+    private function calculateDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        // 地球半径（米）
+        $earthRadius = 6371000;
+        
+        // 将经纬度转换为弧度
+        $lat1Rad = deg2rad($lat1);
+        $lng1Rad = deg2rad($lng1);
+        $lat2Rad = deg2rad($lat2);
+        $lng2Rad = deg2rad($lng2);
+        
+        // 差值
+        $latDiff = $lat2Rad - $lat1Rad;
+        $lngDiff = $lng2Rad - $lng1Rad;
+        
+        // Haversine公式
+        $a = sin($latDiff / 2) * sin($latDiff / 2) + 
+             cos($lat1Rad) * cos($lat2Rad) * sin($lngDiff / 2) * sin($lngDiff / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $distance = $earthRadius * $c;
+        
+        return $distance;
     }
 }
 

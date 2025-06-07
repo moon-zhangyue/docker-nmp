@@ -20,11 +20,15 @@ Route::group('mongo', function () {
         Route::post('archive-data', 'mongo/IoTController/archiveOldDeviceData');
         Route::post('receive-data', 'mongo/IoTController/receiveData');//接收设备数据
     });
+    
     // MongoDB地理位置相关路由
-    Route::group('locations', function () {
-        Route::post('add', 'mongo/LocationController/addLocation');
-        Route::get('nearby', 'mongo/LocationController/findNearby');
-        Route::post('check-polygon', 'mongo/LocationController/checkPointInPolygon');
+    Route::group('location', function () {
+        Route::post('add', 'mongo/LocationController/add');//添加位置
+        Route::get('nearby', 'mongo/LocationController/nearby');//查找附近位置
+        Route::post('check-polygon', 'mongo/LocationController/checkPointInPolygon');//检查点是否在多边形内
+        Route::post('save', 'mongo/LocationController/save');//保存位置信息
+        Route::put('update', 'mongo/LocationController/update');//更新位置信息
+        Route::get('nearbyLocation', 'mongo/LocationController/nearbyLocation');//查找附近位置
     });
 
     // MongoDB分析聚合相关路由

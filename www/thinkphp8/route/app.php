@@ -165,40 +165,4 @@ Route::get('swagger', 'SwaggerController/index');
 Route::get('swagger/json', 'SwaggerController/json');
 
 
-// MongoDB演示路由
-Route::post('iot/receiveData', 'IoTController/receiveData');//接收设备数据
-Route::get('iot/batchReceiveData', 'IoTController/batchReceiveData');//批量接收设备数据
-Route::get('iot/getLatestData', 'IoTController/getLatestData');//获取设备最新数据
-Route::get('iot/getHistoryData', 'IoTController/getHistoryData');//获取设备历史数据
 
-// MongoDB Dynamic Schema Examples
-Route::group('mongo/product', function () {
-    Route::post('add', 'mongo.Product/add');
-    Route::get('list', 'mongo.Product/list');
-    Route::get('get/:id', 'mongo.Product/get');
-});
-
-// MongoDB Sharding Conceptual Example Routes
-Route::group('mongo/log', function () {
-    Route::post('add', 'mongo.Log/add');
-    Route::get('recent', 'mongo.Log/recent');
-});
-
-// MongoDB Geospatial Example Routes
-Route::group('mongo/location', function () {
-    Route::post('add', 'mongo.Location/add');
-    Route::get('nearby', 'mongo.Location/nearby'); // e.g., /mongo/location/nearby?longitude=X&latitude=Y
-});
-
-// MongoDB Aggregation Framework Example Routes
-Route::group('mongo/analytics', function () {
-    Route::get('product-sales', 'mongo.Analytics/productSales');
-    Route::get('seed-orders', 'mongo.Analytics/seedOrders'); // Helper to populate data
-});
-
-// MongoDB Replica Set Conceptual Example Routes
-Route::group('mongo/user', function () {
-    Route::post('add', 'mongo.User/add');
-    Route::get('get/:id', 'mongo.User/get');
-    Route::get('list', 'mongo.User/list');
-});
