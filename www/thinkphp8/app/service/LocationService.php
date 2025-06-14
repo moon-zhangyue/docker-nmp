@@ -131,7 +131,7 @@ class LocationService
             }
 
             // 记录日志
-            Log::info('根据多边形区域查询位置: {point_count}个坐标点', [
+            Log::info('根据多边形区域查询位置: {point_count}个坐标点，{filter}，{polygon}', [
                 'polygon'     => $polygon,
                 'filter'      => $filter,
                 'point_count' => count($polygon)

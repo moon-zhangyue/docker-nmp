@@ -41,7 +41,7 @@ class LocationController extends BaseController
         }
 
         Log::info('[MongoLocationController] Add: Received request to add location. Data: ' . json_encode($data));
-       
+
         $result = $this->locationService->addLocation($data);
 
         if ($result) {
@@ -163,6 +163,8 @@ class LocationController extends BaseController
     /**
      * 根据区域查询位置
      * 
+     * polygon: 区域多边形坐标，格式为："116.397428,39.90923;116.405234,39.90923;116.405234,39.917036;116.397428,39.917036"
+     * type: 位置类型，可选值为："office", "home", "school", "hospital", "other", "point"
      * @return Response
      */
     public function area(): Response

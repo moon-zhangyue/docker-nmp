@@ -29,6 +29,7 @@ Route::group('mongo', function () {
         Route::post('save', 'mongo/LocationController/save');//保存位置信息
         Route::put('update', 'mongo/LocationController/update');//更新位置信息
         Route::get('nearbyLocation', 'mongo/LocationController/nearbyLocation');//查找附近位置
+        Route::get('area', 'mongo/LocationController/area');//根据区域查询位置
     });
 
     // MongoDB分析聚合相关路由
