@@ -20,7 +20,7 @@ Route::group('mongo', function () {
         Route::post('archive-data', 'mongo/IoTController/archiveOldDeviceData');
         Route::post('receive-data', 'mongo/IoTController/receiveData');//接收设备数据
     });
-    
+
     // MongoDB地理位置相关路由
     Route::group('location', function () {
         Route::post('add', 'mongo/LocationController/add');//添加位置
@@ -45,8 +45,11 @@ Route::group('mongo', function () {
 
     // MongoDB全球数据复制相关路由
     Route::group('global-data', function () {
-        Route::post('create', 'GlobalDataController/createGlobalRecord');
-        Route::get('regional/:region', 'GlobalDataController/getRegionalData');
-        Route::post('replicate', 'GlobalDataController/replicateData');
+        Route::post('create', 'mongo/GlobalDataController/save');//创建全球数据记录
+        Route::get('regional/:region', 'mongo/GlobalDataController/stats');//获取区域数据
+        Route::post('replicate', 'mongo/GlobalDataController/update');//更新全球数据
+        Route::get('region/:region', 'mongo/GlobalDataController/region');//根据区域查询数据
+        Route::post('compare', 'mongo/GlobalDataController/compare');//多区域数据对比
+        Route::get('hot-regions', 'mongo/GlobalDataController/hotRegions');//获取热门区域
     });
 });

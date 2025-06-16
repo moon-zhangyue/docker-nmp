@@ -1,25 +1,27 @@
 <?php
 declare(strict_types=1);
 
-namespace app\controller;
+namespace app\controller\mongo;
 
 use app\BaseController;
-use app\service\GlobalDataService;
+use app\service\mongo\GlobalDataService;
 use think\App;
 use think\facade\Log;
 use think\Response;
 use think\exception\ValidateException;
 
+
+
 class GlobalDataController extends BaseController
 {
     protected $globalDataService;
-    
+
     public function __construct(App $app, GlobalDataService $globalDataService)
     {
         parent::__construct($app);
         $this->globalDataService = $globalDataService;
     }
-    
+
     /**
      * 保存全球数据
      * 
@@ -30,19 +32,19 @@ class GlobalDataController extends BaseController
         try {
             // 获取POST数据
             $data = $this->request->post();
-            
+
             // 保存数据
             $result = $this->globalDataService->saveData($data);
-            
+
             return json(['code' => 200, 'message' => '保存成功', 'data' => $result]);
         } catch (ValidateException $e) {
             return json(['code' => 400, 'message' => $e->getMessage()]);
         } catch (\Exception $e) {
-            Log::error('保存全球数据接口异常', ['message' => $e->getMessage()]);
+            Log::error('保存全球数据接口异常: {message}', ['message' => $e->getMessage()]);
             return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
     }
-    
+
     /**
      * 更新全球数据
      * 
@@ -54,19 +56,19 @@ class GlobalDataController extends BaseController
         try {
             // 获取PUT数据
             $data = $this->request->put();
-            
+
             // 更新数据
             $result = $this->globalDataService->updateData($id, $data);
-            
+
             return json(['code' => 200, 'message' => '更新成功', 'data' => $result]);
         } catch (ValidateException $e) {
             return json(['code' => 400, 'message' => $e->getMessage()]);
         } catch (\Exception $e) {
-            Log::error('更新全球数据接口异常', ['id' => $id, 'message' => $e->getMessage()]);
+            Log::error('更新全球数据接口异常: ID {id}, 错误 {message}', ['id' => $id, 'message' => $e->getMessage()]);
             return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
     }
-    
+
     /**
      * 根据区域查询数据
      * 
@@ -80,36 +82,36 @@ class GlobalDataController extends BaseController
             if (empty($region)) {
                 return json(['code' => 400, 'message' => '区域编码不能为空']);
             }
-            
+
             // 获取查询参数
-            $conditions = [];
+            $conditions  = [];
             $fieldParams = $this->request->get();
-            
+
             // 移除分页参数
             unset($fieldParams['page']);
             unset($fieldParams['limit']);
-            
+
             // 添加查询条件
             foreach ($fieldParams as $field => $value) {
                 if (!empty($value)) {
                     $conditions[$field] = $value;
                 }
             }
-            
+
             // 分页参数
-            $page = intval($this->request->param('page', 1));
+            $page  = intval($this->request->param('page', 1));
             $limit = intval($this->request->param('limit', 20));
-            
+
             // 查询数据
             $data = $this->globalDataService->getDataByRegion($region, $conditions, $page, $limit);
-            
+
             return json(['code' => 200, 'message' => '查询成功', 'data' => $data]);
         } catch (\Exception $e) {
-            Log::error('根据区域查询数据接口异常', ['region' => $region, 'message' => $e->getMessage()]);
+            Log::error('根据区域查询数据接口异常: 区域 {region}, 错误 {message}', ['region' => $region, 'message' => $e->getMessage()]);
             return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
     }
-    
+
     /**
      * 获取全球区域统计
      * 
@@ -119,26 +121,26 @@ class GlobalDataController extends BaseController
     {
         try {
             // 获取过滤条件
-            $conditions = [];
+            $conditions  = [];
             $fieldParams = $this->request->get();
-            
+
             // 添加过滤条件
             foreach ($fieldParams as $field => $value) {
                 if (!empty($value)) {
                     $conditions[$field] = $value;
                 }
             }
-            
+
             // 获取统计
             $stats = $this->globalDataService->getRegionStats($conditions);
-            
+
             return json(['code' => 200, 'message' => '查询成功', 'data' => $stats]);
         } catch (\Exception $e) {
-            Log::error('获取全球区域统计接口异常', ['message' => $e->getMessage()]);
+            Log::error('获取全球区域统计接口异常: {message}', ['message' => $e->getMessage()]);
             return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
     }
-    
+
     /**
      * 多区域数据对比
      * 
@@ -149,26 +151,26 @@ class GlobalDataController extends BaseController
         try {
             // 获取请求参数
             $regions = $this->request->param('regions');
-            $metric = $this->request->param('metric');
-            
+            $metric  = $this->request->param('metric');
+
             // 验证参数
             if (empty($regions) || empty($metric)) {
                 return json(['code' => 400, 'message' => '区域列表和对比指标不能为空']);
             }
-            
+
             // 解析区域列表
             $regionList = explode(',', $regions);
-            
+
             // 执行对比
             $result = $this->globalDataService->compareRegions($regionList, $metric);
-            
+
             return json(['code' => 200, 'message' => '对比成功', 'data' => $result]);
         } catch (\Exception $e) {
-            Log::error('多区域数据对比接口异常', ['message' => $e->getMessage()]);
+            Log::error('多区域数据对比接口异常: {message}', ['message' => $e->getMessage()]);
             return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
     }
-    
+
     /**
      * 获取热门区域
      * 
@@ -179,13 +181,13 @@ class GlobalDataController extends BaseController
         try {
             // 获取请求参数
             $limit = intval($this->request->param('limit', 10));
-            
+
             // 获取热门区域
             $hotRegions = $this->globalDataService->getHotRegions($limit);
-            
+
             return json(['code' => 200, 'message' => '查询成功', 'data' => $hotRegions]);
         } catch (\Exception $e) {
-            Log::error('获取热门区域接口异常', ['message' => $e->getMessage()]);
+            Log::error('获取热门区域接口异常: {message}', ['message' => $e->getMessage()]);
             return json(['code' => 500, 'message' => '服务器错误：' . $e->getMessage()]);
         }
     }

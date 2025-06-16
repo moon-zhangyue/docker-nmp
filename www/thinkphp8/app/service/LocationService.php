@@ -145,7 +145,7 @@ class LocationService
 
             return $result;
         } catch (\Exception $e) {
-            Log::error('根据多边形区域查询位置失败: {message}', [
+            Log::error('根据多边形区域查询位置失败: {message},{polygon}', [
                 'polygon' => $polygon,
                 'message' => $e->getMessage()
             ]);
