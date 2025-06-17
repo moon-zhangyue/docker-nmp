@@ -4,6 +4,7 @@ namespace app\service\mongo;
 
 use think\facade\Db;
 use think\facade\Log;
+use MongoDB\BSON\UTCDateTime;
 
 class UserService
 {
@@ -27,7 +28,7 @@ class UserService
         }
 
         // Add created_at timestamp
-        $userData['created_at'] = new \MongoDB\BSON\UTCDateTime();
+        $userData['created_at'] = new UTCDateTime();
 
         try {
             $insertedId = Db::connect($this->connection)->table($this->collection)->insertGetId($userData);
