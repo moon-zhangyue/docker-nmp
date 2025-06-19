@@ -41,22 +41,22 @@ class ProductCatalog extends Model
     {
         try {
             Log::info('创建产品目录', ['product_name' => $data['name'] ?? 'unknown']);
-            
+
             // 添加创建时间戳
             $data['created_at'] = time();
             $data['updated_at'] = time();
-            
+
             $product = self::create($data);
-            
+
             if ($product) {
                 Log::info('产品创建成功', ['product_id' => $product->_id]);
                 return $product->toArray();
             }
-            
+
             return false;
         } catch (\Exception $e) {
             Log::error('创建产品失败', [
-                'data' => $data,
+                'data'  => $data,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -75,23 +75,23 @@ class ProductCatalog extends Model
     {
         try {
             Log::info('更新产品动态属性', ['product_id' => $productId]);
-            
+
             $result = self::where('_id', $productId)->update([
                 'attributes' => $attributes,
                 'updated_at' => time()
             ]);
-            
+
             if ($result) {
                 Log::info('产品属性更新成功', ['product_id' => $productId]);
                 return true;
             }
-            
+
             return false;
         } catch (\Exception $e) {
             Log::error('更新产品属性失败', [
                 'product_id' => $productId,
                 'attributes' => $attributes,
-                'error' => $e->getMessage()
+                'error'      => $e->getMessage()
             ]);
             return false;
         }
@@ -109,9 +109,9 @@ class ProductCatalog extends Model
     {
         try {
             Log::info('动态条件搜索产品', ['conditions' => $conditions]);
-            
+
             $query = self::query();
-            
+
             // 处理动态条件
             foreach ($conditions as $field => $value) {
                 if (is_array($value)) {
@@ -125,19 +125,19 @@ class ProductCatalog extends Model
                     $query->where($field, 'like', '%' . $value . '%');
                 }
             }
-            
+
             $result = $query->page($page, $limit)
-                          ->order('updated_at', 'desc')
-                          ->select()
-                          ->toArray();
-            
+                ->order('updated_at', 'desc')
+                ->select()
+                ->toArray();
+
             Log::info('搜索完成', ['count' => count($result)]);
             return $result;
-            
+
         } catch (\Exception $e) {
             Log::error('动态搜索失败', [
                 'conditions' => $conditions,
-                'error' => $e->getMessage()
+                'error'      => $e->getMessage()
             ]);
             return [];
         }
@@ -154,34 +154,34 @@ class ProductCatalog extends Model
     {
         try {
             Log::info('添加产品变体', ['product_id' => $productId]);
-            
+
             // 获取现有变体
             $product = self::find($productId);
             if (!$product) {
                 throw new \Exception('产品不存在');
             }
-            
-            $variants = $product->variants ?? [];
-            $variant['id'] = uniqid();
+
+            $variants              = $product->variants ?? [];
+            $variant['id']         = uniqid();
             $variant['created_at'] = time();
-            $variants[] = $variant;
-            
+            $variants[]            = $variant;
+
             $result = $product->save([
-                'variants' => $variants,
+                'variants'   => $variants,
                 'updated_at' => time()
             ]);
-            
+
             if ($result) {
                 Log::info('产品变体添加成功', ['product_id' => $productId, 'variant_id' => $variant['id']]);
                 return true;
             }
-            
+
             return false;
         } catch (\Exception $e) {
             Log::error('添加产品变体失败', [
                 'product_id' => $productId,
-                'variant' => $variant,
-                'error' => $e->getMessage()
+                'variant'    => $variant,
+                'error'      => $e->getMessage()
             ]);
             return false;
         }
@@ -196,13 +196,13 @@ class ProductCatalog extends Model
     {
         try {
             Log::info('获取产品统计信息');
-            
+
             // 使用MongoDB聚合框架
             $pipeline = [
                 [
                     '$group' => [
-                        '_id' => '$category',
-                        'count' => ['$sum' => 1],
+                        '_id'       => '$category',
+                        'count'     => ['$sum' => 1],
                         'avg_price' => ['$avg' => '$price']
                     ]
                 ],
@@ -210,14 +210,14 @@ class ProductCatalog extends Model
                     '$sort' => ['count' => -1]
                 ]
             ];
-            
+
             // 注意：这里需要使用原生MongoDB查询
             // ThinkPHP的MongoDB驱动可能不完全支持聚合管道
             $result = [];
-            
+
             Log::info('统计信息获取完成');
             return $result;
-            
+
         } catch (\Exception $e) {
             Log::error('获取统计信息失败', ['error' => $e->getMessage()]);
             return [];
