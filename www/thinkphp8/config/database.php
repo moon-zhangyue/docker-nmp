@@ -2,7 +2,7 @@
 
 return [
     // 默认使用的数据库连接配置
-    'default'         => env('database.driver', 'mongo'),
+    'default'         => env('database.driver', 'postgresql'),
 
     // 自定义时间查询规则
     'time_query_rule' => [],
@@ -56,6 +56,54 @@ return [
             'trigger_sql'     => env('app_debug', true),
             // 开启字段缓存
             'fields_cache'    => false,
+        ],
+
+        // PostgreSQL连接配置
+        'postgresql'    => [
+            // 数据库类型
+            'type'                 => 'pgsql',
+            // 服务器地址
+            'hostname'             => env('pgsql.hostname', 'postgres'),
+            // 数据库名
+            'database'             => env('pgsql.database', 'tp8'),
+            // 用户名
+            'username'             => env('pgsql.username', 'postgres'),
+            // 密码
+            'password'             => env('pgsql.password', '123456'),
+            // 端口
+            'hostport'             => env('pgsql.hostport', '8432'),
+            // 数据库连接参数
+            'params'               => [],
+            // 数据库编码默认采用utf8
+            'charset'              => env('pgsql.charset', 'utf8'),
+            // 数据库表前缀
+            'prefix'               => env('pgsql.prefix', ''),
+            // 数据库部署方式:0 集中式(单一服务器),1 分布式(主从服务器)
+            'deploy'               => 0,
+            // 数据库读写是否分离 主从式有效
+            'rw_separate'          => false,
+            // 读写分离后 主服务器数量
+            'master_num'           => 1,
+            // 指定从服务器序号
+            'slave_no'             => '',
+            // 是否严格检查字段是否存在
+            'fields_strict'        => true,
+            // 是否需要断线重连
+            'break_reconnect'      => true,
+            // 监听SQL
+            'trigger_sql'          => env('app_debug', true),
+            // 开启字段缓存
+            'fields_cache'         => false,
+            // 慢查询阈值
+            'slow_query_threshold' => 1000,
+            // 慢查询日志
+            'slow_query_log'       => true,
+            // Schema配置
+            'schema'               => 'public',
+            // 是否使用连接池
+            'use_pool'             => true,
+            // 连接池数量
+            'max_connections'      => 50,
         ],
 
         // MongoDB副本集连接配置
