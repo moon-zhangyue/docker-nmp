@@ -456,10 +456,10 @@ services:
     restart: always
 
   postgres:
-    image: postgres:${POSTGRES_VERSION:-17.4-alpine}
+    image: postgres:${POSTGRES_VERSION:-15-alpine}
     container_name: postgres
     ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
+      - "8432:5432"
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/data:rw
       - ${POSTGRES_CONF_FILE:-./services/postgres/postgresql.conf}:/etc/postgresql/postgresql.conf:ro
