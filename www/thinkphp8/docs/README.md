@@ -51,60 +51,88 @@
 |--------|------|------|------|
 | v1.0.0 | 2024-05-15 | 初始版本 | 系统开发团队 |
 
-# ThinkPHP 8 项目文档
+# ThinkPHP 8 电子商务应用
 
-本文档提供了 ThinkPHP 8 项目的详细说明和使用指南。
+基于ThinkPHP 8和PostgreSQL构建的电子商务应用，包含用户管理、商品管理和购物流程的完整实现。
 
-## 系统概述
+## 项目概述
 
-- [系统概述](system-overview.md)
-- [数据库设计](database-design.md)
-- [API 文档](api-documentation.md)
-- [部署指南](deployment-guide.md)
+本项目是一个使用ThinkPHP 8框架开发的电子商务应用程序，采用PostgreSQL作为数据库。项目实现了电子商务网站的核心功能，包括：
 
-## 核心模块
+- 用户模块：注册、登录、个人信息管理、地址管理
+- 商品模块：商品列表、商品详情、分类管理、品牌管理
+- 购物模块：购物车管理、订单管理、支付流程
 
-- [核心模块](core-modules.md)
-- [Swagger 指南](swagger-guide.md)
-- [秒杀活动指南](seckill-activity-guide.md)
+## 技术栈
 
-## 数据存储解决方案
+- 框架：ThinkPHP 8
+- 数据库：PostgreSQL 14+
+- PHP版本：8.2+
 
-### 关系型数据库
-- [MySQL 使用指南](database-design.md)
+## 项目结构
 
-### NoSQL 数据库
-- [Redis 缓存解决方案](redis-cache-solution.md)
-- [Redis 缓存常见问题](redis-cache-problems.md)
-- [MongoDB 特性使用指南](mongodb-guide.md)
-- [MongoDB 使用示例](mongodb-usage-examples.md)
-- [MongoDB 索引和性能优化](mongodb-indexes.md)
+```
+thinkphp8/
+├── app/                        # 应用目录
+│   ├── controller/pg/          # 控制器目录
+│   ├── model/pg/               # 模型目录
+│   ├── service/pg/             # 服务层目录
+│   ├── validate/pg/            # 验证器目录
+│   └── exception/              # 异常处理目录
+├── config/                     # 配置目录
+├── database/                   # 数据库目录
+│   └── migrations/             # 数据库迁移文件目录
+├── public/                     # 公共资源目录
+├── route/                      # 路由配置目录
+└── docs/                       # 文档目录
+    ├── api/                    # API文档
+    └── guides/                 # 开发指南
+```
 
-### 消息队列
-- [RabbitMQ 使用指南](rabbitmq.md)
+## 安装和配置
 
-### 搜索引擎
-- [Elasticsearch 使用指南](elasticsearch-usage-guide.md)
-- [Elasticsearch 日志指南](elasticsearch-logging-guide.md)
-- [Elasticsearch API 文档](elasticsearch-api-documentation.md)
-- [Elasticsearch 自动补全 API](es-autocomplete-api.md)
+1. 克隆项目
 
-### 时序数据库
-- [InfluxDB 使用指南](influxdb-usage-guide.md)
-- [停车场 InfluxDB 指南](parking-influxdb-guide.md)
+```bash
+git clone <repository-url>
+cd thinkphp8
+```
 
-## 项目地址
+2. 安装依赖
 
-- 代码仓库: `http://your-git-repo-url/thinkphp8.git`
-- 测试环境: `http://test.example.com`
-- 生产环境: `http://www.example.com`
+```bash
+composer install
+```
 
-## 贡献指南
+3. 配置数据库连接
 
-如需修改此文档，请按照以下步骤操作:
+修改`.env`文件：
 
-1. 克隆文档仓库
-2. 创建您的功能分支 (`git checkout -b feature/your-feature`)
-3. 提交您的更改 (`git commit -am 'Add some feature'`)
-4. 推送到分支 (`git push origin feature/your-feature`)
-5. 创建一个 Pull Request
+```
+[DATABASE]
+TYPE = pgsql
+HOSTNAME = postgres
+DATABASE = tp8
+USERNAME = postgres
+PASSWORD = 123456
+HOSTPORT = 8432
+CHARSET = utf8
+PREFIX = 
+```
+
+4. 执行数据库迁移
+
+```bash
+php think migrate:run
+```
+
+5. 启动服务
+
+```bash
+php think run
+```
+
+## 文档索引
+
+- [API文档](./api/README.md)
+- [开发指南](./guides/README.md)
