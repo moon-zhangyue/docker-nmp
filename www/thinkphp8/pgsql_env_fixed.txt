@@ -1,0 +1,37 @@
+APP_DEBUG = true
+
+# 数据库配置 - MySQL
+database.driver = postgresql
+database.db_host = 127.0.0.1
+database.db_name = test
+database.db_user = username
+database.db_pass = password
+database.db_port = 3306
+database.db_charset = utf8mb4
+database.db_prefix = 
+
+# PostgreSQL配置
+pgsql.hostname = postgres
+pgsql.database = tp8
+pgsql.username = postgres
+pgsql.password = 123456
+pgsql.hostport = 8432
+pgsql.charset = utf8
+pgsql.prefix = 
+
+DEFAULT_LANG = zh-cn
+
+# Elasticsearch配置
+ELASTICSEARCH_HOST = elasticsearch:9200
+ELASTICSEARCH_USER = elastic
+ELASTICSEARCH_PASSWORD = changeme
+ELASTICSEARCH_INDEX_PREFIX = logs
+ELASTICSEARCH_API_KEY =
+ELASTICSEARCH_TIMEOUT = 10
+ELASTICSEARCH_CONNECT_TIMEOUT = 5
+ELASTICSEARCH_RETRIES = 2
+ELASTICSEARCH_SHARDS = 3
+ELASTICSEARCH_REPLICAS = 1
+ELASTICSEARCH_SSL_ENABLED = false
+ELASTICSEARCH_SSL_VERIFY = true
+ELASTICSEARCH_DEBUG = false 

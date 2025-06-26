@@ -27,10 +27,10 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['username'], ['unique' => true, 'name' => 'idx_username'])
-            ->addIndex(['email'], ['unique' => true, 'name' => 'idx_email'])
-            ->addIndex(['mobile'], ['unique' => true, 'name' => 'idx_mobile'])
-            ->addIndex(['status'], ['name' => 'idx_status'])
+            ->addIndex(['username'], ['unique' => true, 'name' => 'idx_users_username'])
+            ->addIndex(['email'], ['unique' => true, 'name' => 'idx_users_email'])
+            ->addIndex(['mobile'], ['unique' => true, 'name' => 'idx_users_mobile'])
+            ->addIndex(['status'], ['name' => 'idx_users_status'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -48,8 +48,8 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['user_id'], ['name' => 'idx_user_id'])
-            ->addIndex(['is_default'], ['name' => 'idx_is_default'])
+            ->addIndex(['user_id'], ['name' => 'idx_user_addresses_user_id'])
+            ->addIndex(['is_default'], ['name' => 'idx_user_addresses_is_default'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -63,12 +63,12 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['parent_id'], ['name' => 'idx_parent_id'])
-            ->addIndex(['sort'], ['name' => 'idx_sort'])
-            ->addIndex(['status'], ['name' => 'idx_status'])
+            ->addIndex(['parent_id'], ['name' => 'idx_categories_parent_id'])
+            ->addIndex(['sort'], ['name' => 'idx_categories_sort'])
+            ->addIndex(['status'], ['name' => 'idx_categories_status'])
             ->setPrimaryKey(['id'])
             ->create();
-            
+
         // 创建商品品牌表
         $this->table('brands', ['id' => false, 'engine' => 'InnoDB'])
             ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false, 'comment' => '品牌ID'])
@@ -80,9 +80,9 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['name'], ['name' => 'idx_name'])
-            ->addIndex(['sort'], ['name' => 'idx_sort'])
-            ->addIndex(['status'], ['name' => 'idx_status'])
+            ->addIndex(['name'], ['name' => 'idx_brands_name'])
+            ->addIndex(['sort'], ['name' => 'idx_brands_sort'])
+            ->addIndex(['status'], ['name' => 'idx_brands_status'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -108,17 +108,17 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['category_id'], ['name' => 'idx_category_id'])
-            ->addIndex(['brand_id'], ['name' => 'idx_brand_id'])
-            ->addIndex(['name'], ['name' => 'idx_name'])
-            ->addIndex(['on_sale'], ['name' => 'idx_on_sale'])
-            ->addIndex(['is_recommend'], ['name' => 'idx_is_recommend'])
-            ->addIndex(['is_hot'], ['name' => 'idx_is_hot'])
-            ->addIndex(['is_new'], ['name' => 'idx_is_new'])
-            ->addIndex(['sales'], ['name' => 'idx_sales'])
-            ->addIndex(['stock'], ['name' => 'idx_stock'])
-            ->addIndex(['sort'], ['name' => 'idx_sort'])
-            ->addIndex(['status'], ['name' => 'idx_status'])
+            ->addIndex(['category_id'], ['name' => 'idx_goods_category_id'])
+            ->addIndex(['brand_id'], ['name' => 'idx_goods_brand_id'])
+            ->addIndex(['name'], ['name' => 'idx_goods_name'])
+            ->addIndex(['on_sale'], ['name' => 'idx_goods_on_sale'])
+            ->addIndex(['is_recommend'], ['name' => 'idx_goods_is_recommend'])
+            ->addIndex(['is_hot'], ['name' => 'idx_goods_is_hot'])
+            ->addIndex(['is_new'], ['name' => 'idx_goods_is_new'])
+            ->addIndex(['sales'], ['name' => 'idx_goods_sales'])
+            ->addIndex(['stock'], ['name' => 'idx_goods_stock'])
+            ->addIndex(['sort'], ['name' => 'idx_goods_sort'])
+            ->addIndex(['status'], ['name' => 'idx_goods_status'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -139,11 +139,11 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['goods_id'], ['name' => 'idx_goods_id'])
-            ->addIndex(['code'], ['unique' => true, 'name' => 'idx_code'])
-            ->addIndex(['price'], ['name' => 'idx_price'])
-            ->addIndex(['stock'], ['name' => 'idx_stock'])
-            ->addIndex(['status'], ['name' => 'idx_status'])
+            ->addIndex(['goods_id'], ['name' => 'idx_goods_skus_goods_id'])
+            ->addIndex(['code'], ['unique' => true, 'name' => 'idx_goods_skus_code'])
+            ->addIndex(['price'], ['name' => 'idx_goods_skus_price'])
+            ->addIndex(['stock'], ['name' => 'idx_goods_skus_stock'])
+            ->addIndex(['status'], ['name' => 'idx_goods_skus_status'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -156,8 +156,8 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['name'], ['unique' => true, 'name' => 'idx_name'])
-            ->addIndex(['sort'], ['name' => 'idx_sort'])
+            ->addIndex(['name'], ['unique' => true, 'name' => 'idx_specs_name'])
+            ->addIndex(['sort'], ['name' => 'idx_specs_sort'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -171,8 +171,8 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['spec_id'], ['name' => 'idx_spec_id'])
-            ->addIndex(['sort'], ['name' => 'idx_sort'])
+            ->addIndex(['spec_id'], ['name' => 'idx_spec_values_spec_id'])
+            ->addIndex(['sort'], ['name' => 'idx_spec_values_sort'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -185,8 +185,8 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('selected', 'boolean', ['default' => true, 'comment' => '是否选中'])
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
-            ->addIndex(['user_id', 'sku_id'], ['unique' => true, 'name' => 'idx_user_sku'])
-            ->addIndex(['selected'], ['name' => 'idx_selected'])
+            ->addIndex(['user_id', 'sku_id'], ['unique' => true, 'name' => 'idx_carts_user_sku'])
+            ->addIndex(['selected'], ['name' => 'idx_carts_selected'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -220,11 +220,11 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
             ->addColumn('delete_time', 'timestamp', ['null' => true, 'comment' => '删除时间'])
-            ->addIndex(['order_no'], ['unique' => true, 'name' => 'idx_order_no'])
-            ->addIndex(['user_id'], ['name' => 'idx_user_id'])
-            ->addIndex(['status'], ['name' => 'idx_status'])
-            ->addIndex(['pay_status'], ['name' => 'idx_pay_status'])
-            ->addIndex(['ship_status'], ['name' => 'idx_ship_status'])
+            ->addIndex(['order_no'], ['unique' => true, 'name' => 'idx_orders_order_no'])
+            ->addIndex(['user_id'], ['name' => 'idx_orders_user_id'])
+            ->addIndex(['status'], ['name' => 'idx_orders_status'])
+            ->addIndex(['pay_status'], ['name' => 'idx_orders_pay_status'])
+            ->addIndex(['ship_status'], ['name' => 'idx_orders_ship_status'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -244,10 +244,10 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('total_amount', 'decimal', ['precision' => 10, 'scale' => 2, 'default' => 0, 'comment' => '商品总金额'])
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
             ->addColumn('update_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '更新时间'])
-            ->addIndex(['order_id'], ['name' => 'idx_order_id'])
-            ->addIndex(['order_no'], ['name' => 'idx_order_no'])
-            ->addIndex(['goods_id'], ['name' => 'idx_goods_id'])
-            ->addIndex(['sku_id'], ['name' => 'idx_sku_id'])
+            ->addIndex(['order_id'], ['name' => 'idx_order_items_order_id'])
+            ->addIndex(['order_no'], ['name' => 'idx_order_items_order_no'])
+            ->addIndex(['goods_id'], ['name' => 'idx_order_items_goods_id'])
+            ->addIndex(['sku_id'], ['name' => 'idx_order_items_sku_id'])
             ->setPrimaryKey(['id'])
             ->create();
 
@@ -262,10 +262,10 @@ class CreatePgsqlTables extends Migrator
             ->addColumn('content', 'string', ['limit' => 255, 'null' => false, 'comment' => '日志内容'])
             ->addColumn('ip', 'string', ['limit' => 50, 'null' => true, 'comment' => 'IP地址'])
             ->addColumn('create_time', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP', 'comment' => '创建时间'])
-            ->addIndex(['order_id'], ['name' => 'idx_order_id'])
-            ->addIndex(['order_no'], ['name' => 'idx_order_no'])
-            ->addIndex(['user_id'], ['name' => 'idx_user_id'])
-            ->addIndex(['type'], ['name' => 'idx_type'])
+            ->addIndex(['order_id'], ['name' => 'idx_order_logs_order_id'])
+            ->addIndex(['order_no'], ['name' => 'idx_order_logs_order_no'])
+            ->addIndex(['user_id'], ['name' => 'idx_order_logs_user_id'])
+            ->addIndex(['type'], ['name' => 'idx_order_logs_type'])
             ->setPrimaryKey(['id'])
             ->create();
     }
@@ -288,4 +288,4 @@ class CreatePgsqlTables extends Migrator
         $this->dropTable('user_addresses');
         $this->dropTable('users');
     }
-} 
+}

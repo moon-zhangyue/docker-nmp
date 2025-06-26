@@ -71,7 +71,7 @@ return [
             // 密码
             'password'             => env('pgsql.password', '123456'),
             // 端口
-            'hostport'             => env('pgsql.hostport', '8432'),
+            'hostport'             => env('pgsql.hostport', '5432'),
             // 数据库连接参数
             'params'               => [],
             // 数据库编码默认采用utf8
