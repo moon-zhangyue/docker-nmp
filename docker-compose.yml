@@ -358,19 +358,23 @@ services:
       - "${LOGSTASH_HOST_PORT_C}:9600"
       - "${LOGSTASH_HOST_PORT_S}:5044"
 
-  #  node:
-  #    image: node:${NODE_VERSION}
-  #    environment:
-  #      - NODE_ENV=production
-  #    volumes:
-  #      - ${SOURCE_DIR}:/www/:rw
-  #    expose:
-  #      - "8081"
-  #    networks:
-  #      - default
-  #    stdin_open: true
-  #    tty: true
-
+  node:
+    image: node:latest
+    container_name: node
+    working_dir: /app
+    volumes:
+      - ${SOURCE_DIR}:/app:rw
+    ports:
+      - "3010:3010"
+      - "8080:8080"
+      - "8090:8090"
+    environment:
+      - NODE_ENV=development
+      - TZ=$TZ
+    tty: true
+    networks:
+      - default
+    restart: always
 
   supervisor:
     build:
@@ -747,7 +751,7 @@ services:
     container_name: clickhouse
     ports:
       - "${CLICKHOUSE_HTTP_PORT}:8123"
-      - "${CLICKHOUSE_TCP_PORT}:9000"
+      - "${CLICKHOUSE_TCP_PORT}:9010"
     volumes:
       - ${CLICKHOUSE_DATA_DIR}:/var/lib/clickhouse
       - ${CLICKHOUSE_LOG_DIR}:/var/log/clickhouse-server
