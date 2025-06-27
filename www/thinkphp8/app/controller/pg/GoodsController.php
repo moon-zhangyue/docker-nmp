@@ -21,7 +21,7 @@ class GoodsController extends BaseController
      * @var GoodsService
      */
     protected $goodsService;
-    
+
     /**
      * 构造函数
      */
@@ -29,7 +29,7 @@ class GoodsController extends BaseController
     {
         $this->goodsService = $goodsService;
     }
-    
+
     /**
      * 获取商品列表
      *
@@ -38,7 +38,7 @@ class GoodsController extends BaseController
     public function list()
     {
         $params = $this->request->get();
-        
+
         // 验证数据
         try {
             validate(GoodsValidate::class)
@@ -47,21 +47,21 @@ class GoodsController extends BaseController
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
-        
-        $page = isset($params['page']) ? (int)$params['page'] : 1;
-        $limit = isset($params['limit']) ? (int)$params['limit'] : 10;
-        
+
+        $page  = isset($params['page']) ? (int) $params['page'] : 1;
+        $limit = isset($params['limit']) ? (int) $params['limit'] : 10;
+
         try {
             // 获取商品列表
             $result = $this->goodsService->getGoodsList($params, $page, $limit);
-            
+
             return $this->success('获取成功', $result);
         } catch (\Exception $e) {
-            Log::error('获取商品列表异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'params' => $params]);
+            Log::error('获取商品列表异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'params' => $params]);
             return $this->error('获取商品列表失败');
         }
     }
-    
+
     /**
      * 获取商品详情
      *
@@ -73,16 +73,16 @@ class GoodsController extends BaseController
         try {
             // 获取商品详情
             $goods = $this->goodsService->getGoodsDetail($id);
-            
-            return $this->success('获取成功', $goods);
+
+            return $this->success('获取成功', $goods->toArray());
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('获取商品详情异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'goods_id' => $id]);
+            Log::error('获取商品详情异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'goods_id' => $id]);
             return $this->error('获取商品详情失败');
         }
     }
-    
+
     /**
      * 获取商品SKU信息
      *
@@ -94,16 +94,16 @@ class GoodsController extends BaseController
         try {
             // 获取商品SKU信息
             $sku = $this->goodsService->getGoodsSku($id);
-            
-            return $this->success('获取成功', $sku);
+
+            return $this->success('获取成功', $sku->toArray());
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('获取商品SKU信息异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'sku_id' => $id]);
+            Log::error('获取商品SKU信息异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'sku_id' => $id]);
             return $this->error('获取商品规格信息失败');
         }
     }
-    
+
     /**
      * 获取分类列表
      *
@@ -112,18 +112,18 @@ class GoodsController extends BaseController
     public function categoryList()
     {
         $parentId = $this->request->param('parent_id', 0, 'intval');
-        
+
         try {
             // 获取分类列表
             $categories = $this->goodsService->getCategoryList($parentId);
-            
+
             return $this->success('获取成功', $categories);
         } catch (\Exception $e) {
-            Log::error('获取分类列表异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'parent_id' => $parentId]);
+            Log::error('获取分类列表异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'parent_id' => $parentId]);
             return $this->error('获取分类列表失败');
         }
     }
-    
+
     /**
      * 获取品牌列表
      *
@@ -134,11 +134,11 @@ class GoodsController extends BaseController
         try {
             // 获取品牌列表
             $brands = $this->goodsService->getBrandList();
-            
+
             return $this->success('获取成功', $brands);
         } catch (\Exception $e) {
-            Log::error('获取品牌列表异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('获取品牌列表异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('获取品牌列表失败');
         }
     }
-} 
+}

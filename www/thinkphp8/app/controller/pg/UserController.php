@@ -60,7 +60,7 @@ class UserController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('用户注册系统异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('用户注册系统异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('系统异常，请稍后重试');
         }
     }
@@ -104,7 +104,7 @@ class UserController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('用户登录系统异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('用户登录系统异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('系统异常，请稍后重试');
         }
     }
@@ -139,7 +139,7 @@ class UserController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('获取用户信息系统异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('获取用户信息系统异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('系统异常，请稍后重试');
         }
     }
@@ -180,7 +180,7 @@ class UserController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('更新用户信息系统异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('更新用户信息系统异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('系统异常，请稍后重试');
         }
     }
@@ -214,7 +214,7 @@ class UserController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('修改密码系统异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('修改密码系统异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('系统异常，请稍后重试');
         }
     }
@@ -233,9 +233,9 @@ class UserController extends BaseController
             // 获取用户地址列表
             $addresses = \app\model\pg\UserAddress::where('user_id', $userId)->select();
 
-            return $this->success('获取成功', $addresses);
+            return $this->success('获取成功', $addresses->toArray());
         } catch (\Exception $e) {
-            Log::error('获取用户地址列表系统异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('获取用户地址列表系统异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('系统异常，请稍后重试');
         }
     }
@@ -265,7 +265,7 @@ class UserController extends BaseController
             // 添加地址
             $address = $this->userService->addAddress($userId, $data);
 
-            return $this->success('添加成功', $address);
+            return $this->success('添加成功', $address->toArray());
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
@@ -300,7 +300,7 @@ class UserController extends BaseController
             // 更新地址
             $address = $this->userService->updateAddress($userId, $id, $data);
 
-            return $this->success('更新成功', $address);
+            return $this->success('更新成功', $address->toArray());
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {

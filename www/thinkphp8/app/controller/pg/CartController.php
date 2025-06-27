@@ -48,7 +48,7 @@ class CartController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('获取购物车列表异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('获取购物车列表异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('获取购物车列表失败');
         }
     }
@@ -82,7 +82,7 @@ class CartController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('添加商品到购物车异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'data' => $data]);
+            Log::error('添加商品到购物车异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'data' => $data]);
             return $this->error('添加商品到购物车失败');
         }
     }
@@ -117,7 +117,7 @@ class CartController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('更新购物车商品数量异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'id' => $id, 'data' => $data]);
+            Log::error('更新购物车商品数量异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'id' => $id, 'data' => $data]);
             return $this->error('更新购物车商品数量失败');
         }
     }
@@ -152,7 +152,7 @@ class CartController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('更新购物车商品选中状态异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'id' => $id, 'data' => $data]);
+            Log::error('更新购物车商品选中状态异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'id' => $id, 'data' => $data]);
             return $this->error('更新购物车商品选中状态失败');
         }
     }
@@ -186,7 +186,7 @@ class CartController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('购物车全选/全不选异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'data' => $data]);
+            Log::error('购物车全选/全不选异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'data' => $data]);
             return $this->error('操作失败');
         }
     }
@@ -210,7 +210,7 @@ class CartController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('删除购物车商品异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'id' => $id]);
+            Log::error('删除购物车商品异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'id' => $id]);
             return $this->error('删除购物车商品失败');
         }
     }
@@ -233,7 +233,7 @@ class CartController extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('清空购物车异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('清空购物车异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('清空购物车失败');
         }
     }
