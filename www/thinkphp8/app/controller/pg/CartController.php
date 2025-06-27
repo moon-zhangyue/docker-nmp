@@ -21,7 +21,7 @@ class CartController extends BaseController
      * @var CartService
      */
     protected $cartService;
-    
+
     /**
      * 构造函数
      */
@@ -29,7 +29,7 @@ class CartController extends BaseController
     {
         $this->cartService = $cartService;
     }
-    
+
     /**
      * 获取购物车列表
      *
@@ -40,10 +40,10 @@ class CartController extends BaseController
         try {
             // 获取当前登录用户ID
             $userId = $this->getUserId();
-            
+
             // 获取购物车列表
             $result = $this->cartService->getCartList($userId);
-            
+
             return $this->success('获取成功', $result);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
@@ -52,7 +52,7 @@ class CartController extends BaseController
             return $this->error('获取购物车列表失败');
         }
     }
-    
+
     /**
      * 添加商品到购物车
      *
@@ -61,7 +61,7 @@ class CartController extends BaseController
     public function add()
     {
         $data = $this->request->post();
-        
+
         // 验证数据
         try {
             validate(CartValidate::class)
@@ -70,14 +70,14 @@ class CartController extends BaseController
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
-        
+
         try {
             // 获取当前登录用户ID
             $userId = $this->getUserId();
-            
+
             // 添加商品到购物车
-            $result = $this->cartService->addToCart($userId, (int)$data['sku_id'], (int)($data['quantity'] ?? 1));
-            
+            $result = $this->cartService->addToCart($userId, (int) $data['sku_id'], (int) ($data['quantity'] ?? 1));
+
             return $this->success('添加成功', $result);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
@@ -86,7 +86,7 @@ class CartController extends BaseController
             return $this->error('添加商品到购物车失败');
         }
     }
-    
+
     /**
      * 更新购物车商品数量
      *
@@ -96,7 +96,7 @@ class CartController extends BaseController
     public function updateQuantity(int $id)
     {
         $data = $this->request->put();
-        
+
         // 验证数据
         try {
             validate(CartValidate::class)
@@ -105,14 +105,14 @@ class CartController extends BaseController
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
-        
+
         try {
             // 获取当前登录用户ID
             $userId = $this->getUserId();
-            
+
             // 更新购物车商品数量
-            $result = $this->cartService->updateQuantity($userId, $id, (int)$data['quantity']);
-            
+            $result = $this->cartService->updateQuantity($userId, $id, (int) $data['quantity']);
+
             return $this->success('更新成功', $result);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
@@ -121,7 +121,7 @@ class CartController extends BaseController
             return $this->error('更新购物车商品数量失败');
         }
     }
-    
+
     /**
      * 更新购物车商品选中状态
      *
@@ -131,7 +131,7 @@ class CartController extends BaseController
     public function updateSelected(int $id)
     {
         $data = $this->request->put();
-        
+
         // 验证数据
         try {
             validate(CartValidate::class)
@@ -140,14 +140,14 @@ class CartController extends BaseController
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
-        
+
         try {
             // 获取当前登录用户ID
             $userId = $this->getUserId();
-            
+
             // 更新购物车商品选中状态
-            $result = $this->cartService->updateSelected($userId, $id, (bool)$data['selected']);
-            
+            $result = $this->cartService->updateSelected($userId, $id, (bool) $data['selected']);
+
             return $this->success('更新成功', $result);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
@@ -156,7 +156,7 @@ class CartController extends BaseController
             return $this->error('更新购物车商品选中状态失败');
         }
     }
-    
+
     /**
      * 全选/全不选
      *
@@ -165,7 +165,7 @@ class CartController extends BaseController
     public function selectAll()
     {
         $data = $this->request->put();
-        
+
         // 验证数据
         try {
             validate(CartValidate::class)
@@ -174,14 +174,14 @@ class CartController extends BaseController
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
-        
+
         try {
             // 获取当前登录用户ID
             $userId = $this->getUserId();
-            
+
             // 全选/全不选
-            $result = $this->cartService->selectAll($userId, (bool)$data['selected']);
-            
+            $result = $this->cartService->selectAll($userId, (bool) $data['selected']);
+
             return $this->success('操作成功', $result);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
@@ -190,7 +190,7 @@ class CartController extends BaseController
             return $this->error('操作失败');
         }
     }
-    
+
     /**
      * 删除购物车商品
      *
@@ -202,10 +202,10 @@ class CartController extends BaseController
         try {
             // 获取当前登录用户ID
             $userId = $this->getUserId();
-            
+
             // 删除购物车商品
             $result = $this->cartService->removeFromCart($userId, $id);
-            
+
             return $this->success('删除成功', $result);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
@@ -214,7 +214,7 @@ class CartController extends BaseController
             return $this->error('删除购物车商品失败');
         }
     }
-    
+
     /**
      * 清空购物车
      *
@@ -225,10 +225,10 @@ class CartController extends BaseController
         try {
             // 获取当前登录用户ID
             $userId = $this->getUserId();
-            
+
             // 清空购物车
             $result = $this->cartService->clearCart($userId);
-            
+
             return $this->success('清空成功', $result);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
@@ -237,7 +237,7 @@ class CartController extends BaseController
             return $this->error('清空购物车失败');
         }
     }
-    
+
     /**
      * 获取购物车商品数量
      *
@@ -248,19 +248,19 @@ class CartController extends BaseController
         try {
             // 获取当前登录用户ID
             $userId = $this->getUserId();
-            
+
             // 获取购物车商品数量
             $count = $this->cartService->getCartCount($userId);
-            
+
             return $this->success('获取成功', ['count' => $count]);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('获取购物车商品数量异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('获取购物车商品数量异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return $this->error('获取购物车商品数量失败');
         }
     }
-    
+
     /**
      * 获取当前登录用户ID
      *
@@ -271,11 +271,11 @@ class CartController extends BaseController
     {
         // 这里简单模拟，实际应从JWT Token中获取用户ID
         $userId = $this->request->header('X-User-Id');
-        
+
         if (!$userId) {
             throw new BusinessException('未登录或登录已过期', 401);
         }
-        
-        return (int)$userId;
+
+        return (int) $userId;
     }
-} 
+}
