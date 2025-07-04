@@ -24,12 +24,12 @@ class CartService
     {
         // 获取购物车列表
         $cart = Cart::getCartList($userId);
-        
+
         // 处理商品数据
-        $total = 0;
+        $total         = 0;
         $totalQuantity = 0;
-        $items = [];
-        
+        $items         = [];
+
         foreach ($cart as $item) {
             // 获取SKU
             $sku = $item->sku;
@@ -38,7 +38,7 @@ class CartService
                 $item->delete();
                 continue;
             }
-            
+
             // 获取商品
             $goods = $sku->goods;
             if (!$goods || !$goods->on_sale) {
@@ -46,43 +46,43 @@ class CartService
                 $item->delete();
                 continue;
             }
-            
+
             // 计算小计
             $subtotal = $sku->price * $item->quantity;
-            
+
             // 如果选中，计入总价
             if ($item->selected) {
                 $total += $subtotal;
                 $totalQuantity += $item->quantity;
             }
-            
+
             // 构建商品数据
             $items[] = [
-                'id' => $item->id,
-                'sku_id' => $item->sku_id,
-                'goods_id' => $goods->id,
-                'name' => $goods->name,
-                'cover' => $goods->cover,
-                'sku_name' => $sku->name,
-                'image' => $sku->image ?: $goods->cover,
-                'price' => $sku->price,
-                'specs' => $sku->specs,
+                'id'         => $item->id,
+                'sku_id'     => $item->sku_id,
+                'goods_id'   => $goods->id,
+                'name'       => $goods->name,
+                'cover'      => $goods->cover,
+                'sku_name'   => $sku->name,
+                'image'      => $sku->image ?: $goods->cover,
+                'price'      => $sku->price,
+                'specs'      => $sku->specs,
                 'specs_text' => $sku->specs_text,
-                'quantity' => $item->quantity,
-                'stock' => $sku->stock,
-                'selected' => $item->selected,
-                'subtotal' => $subtotal,
+                'quantity'   => $item->quantity,
+                'stock'      => $sku->stock,
+                'selected'   => $item->selected,
+                'subtotal'   => $subtotal,
             ];
         }
-        
+
         // 返回结果
         return [
-            'items' => $items,
-            'total' => $total,
+            'items'          => $items,
+            'total'          => $total,
             'total_quantity' => $totalQuantity,
         ];
     }
-    
+
     /**
      * 添加商品到购物车
      *
@@ -99,52 +99,52 @@ class CartService
         if (!$sku) {
             throw new BusinessException('商品不存在');
         }
-        
+
         // 检查商品状态
         if (!$sku->status) {
             throw new BusinessException('商品已下架');
         }
-        
+
         // 检查商品库存
         if ($sku->stock <= 0) {
             throw new BusinessException('商品已售罄');
         }
-        
+
         // 检查商品库存是否充足
         if ($sku->stock < $quantity) {
             throw new BusinessException('商品库存不足');
         }
-        
+
         // 检查商品是否上架
         $goods = $sku->goods;
         if (!$goods || !$goods->on_sale) {
             throw new BusinessException('商品已下架');
         }
-        
+
         // 添加到购物车
         try {
             $cart = Cart::addToCart($userId, $skuId, $quantity);
-            
+
             Log::info('添加商品到购物车', [
-                'user_id' => $userId,
-                'sku_id' => $skuId,
+                'user_id'  => $userId,
+                'sku_id'   => $skuId,
                 'quantity' => $quantity,
-                'cart_id' => $cart->id
+                'cart_id'  => $cart->id
             ]);
-            
+
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
             Log::error('添加商品到购物车异常', [
-                'error' => $e->getMessage(),
-                'user_id' => $userId,
-                'sku_id' => $skuId,
+                'error'    => $e->getMessage(),
+                'user_id'  => $userId,
+                'sku_id'   => $skuId,
                 'quantity' => $quantity
             ]);
             throw new BusinessException('添加商品到购物车失败');
         }
     }
-    
+
     /**
      * 更新购物车商品数量
      *
@@ -161,46 +161,46 @@ class CartService
         if (!$cart) {
             throw new BusinessException('购物车商品不存在');
         }
-        
+
         // 检查数量是否合法
         if ($quantity <= 0) {
             throw new BusinessException('商品数量必须大于0');
         }
-        
+
         // 检查商品库存
         $sku = GoodsSku::find($cart->sku_id);
         if (!$sku) {
             throw new BusinessException('商品不存在');
         }
-        
+
         // 检查商品库存是否充足
         if ($sku->stock < $quantity) {
             throw new BusinessException('商品库存不足');
         }
-        
+
         // 更新购物车商品数量
         try {
             Cart::updateQuantity($id, $userId, $quantity);
-            
+
             Log::info('更新购物车商品数量', [
-                'user_id' => $userId,
-                'cart_id' => $id,
+                'user_id'  => $userId,
+                'cart_id'  => $id,
                 'quantity' => $quantity
             ]);
-            
+
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
             Log::error('更新购物车商品数量异常', [
-                'error' => $e->getMessage(),
-                'user_id' => $userId,
-                'cart_id' => $id,
+                'error'    => $e->getMessage(),
+                'user_id'  => $userId,
+                'cart_id'  => $id,
                 'quantity' => $quantity
             ]);
             throw new BusinessException('更新购物车商品数量失败');
         }
     }
-    
+
     /**
      * 更新购物车商品选中状态
      *
@@ -217,30 +217,30 @@ class CartService
         if (!$cart) {
             throw new BusinessException('购物车商品不存在');
         }
-        
+
         // 更新购物车商品选中状态
         try {
             Cart::updateSelected($id, $userId, $selected);
-            
+
             Log::info('更新购物车商品选中状态', [
-                'user_id' => $userId,
-                'cart_id' => $id,
+                'user_id'  => $userId,
+                'cart_id'  => $id,
                 'selected' => $selected
             ]);
-            
+
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
             Log::error('更新购物车商品选中状态异常', [
-                'error' => $e->getMessage(),
-                'user_id' => $userId,
-                'cart_id' => $id,
+                'error'    => $e->getMessage(),
+                'user_id'  => $userId,
+                'cart_id'  => $id,
                 'selected' => $selected
             ]);
             throw new BusinessException('更新购物车商品选中状态失败');
         }
     }
-    
+
     /**
      * 全选/全不选
      *
@@ -254,24 +254,24 @@ class CartService
         // 更新购物车商品选中状态
         try {
             Cart::selectAll($userId, $selected);
-            
+
             Log::info('购物车全选/全不选', [
-                'user_id' => $userId,
+                'user_id'  => $userId,
                 'selected' => $selected
             ]);
-            
+
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
             Log::error('购物车全选/全不选异常', [
-                'error' => $e->getMessage(),
-                'user_id' => $userId,
+                'error'    => $e->getMessage(),
+                'user_id'  => $userId,
                 'selected' => $selected
             ]);
             throw new BusinessException('购物车全选/全不选失败');
         }
     }
-    
+
     /**
      * 删除购物车商品
      *
@@ -287,28 +287,28 @@ class CartService
         if (!$cart) {
             throw new BusinessException('购物车商品不存在');
         }
-        
+
         // 删除购物车商品
         try {
             Cart::removeFromCart($id, $userId);
-            
+
             Log::info('删除购物车商品', [
                 'user_id' => $userId,
                 'cart_id' => $id
             ]);
-            
+
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
             Log::error('删除购物车商品异常', [
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
                 'user_id' => $userId,
                 'cart_id' => $id
             ]);
             throw new BusinessException('删除购物车商品失败');
         }
     }
-    
+
     /**
      * 清空购物车
      *
@@ -321,26 +321,26 @@ class CartService
         // 清空购物车
         try {
             Cart::clearCart($userId);
-            
+
             Log::info('清空购物车', [
                 'user_id' => $userId
             ]);
-            
+
             // 返回空购物车
             return [
-                'items' => [],
-                'total' => 0,
+                'items'          => [],
+                'total'          => 0,
                 'total_quantity' => 0,
             ];
         } catch (\Exception $e) {
             Log::error('清空购物车异常', [
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
                 'user_id' => $userId
             ]);
             throw new BusinessException('清空购物车失败');
         }
     }
-    
+
     /**
      * 获取购物车商品数量
      *
@@ -351,4 +351,4 @@ class CartService
     {
         return Cart::getCartCount($userId);
     }
-} 
+}
