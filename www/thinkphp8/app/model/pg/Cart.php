@@ -12,16 +12,16 @@ class Cart extends Model
 {
     // 设置当前模型对应的数据库连接
     protected $connection = 'postgresql';
-    
+
     // 设置当前模型对应的完整数据表名称
     protected $table = 'carts';
-    
+
     // 设置当前模型的数据库主键
     protected $pk = 'id';
-    
+
     // 自动写入时间戳
     protected $autoWriteTimestamp = true;
-    
+
     // 类型转换
     protected $type = [
         'id'       => 'integer',
@@ -30,7 +30,7 @@ class Cart extends Model
         'quantity' => 'integer',
         'selected' => 'boolean',
     ];
-    
+
     /**
      * 关联用户
      *
@@ -40,7 +40,7 @@ class Cart extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
-    
+
     /**
      * 关联商品SKU
      *
@@ -50,7 +50,7 @@ class Cart extends Model
     {
         return $this->belongsTo(GoodsSku::class, 'sku_id', 'id');
     }
-    
+
     /**
      * 获取购物车列表
      *
@@ -59,15 +59,19 @@ class Cart extends Model
      */
     public static function getCartList(int $userId)
     {
-        return self::with(['sku' => function ($query) {
-            $query->with(['goods' => function ($query) {
-                $query->field('id,name,cover');
-            }]);
-        }])->where('user_id', $userId)
-          ->order('id', 'desc')
-          ->select();
+        return self::with([
+            'sku' => function ($query) {
+                $query->with([
+                    'goods' => function ($query) {
+                        $query->field('id,name,cover');
+                    }
+                ]);
+            }
+        ])->where('user_id', $userId)
+            ->order('id', 'desc')
+            ->select();
     }
-    
+
     /**
      * 获取购物车已选商品
      *
@@ -76,16 +80,20 @@ class Cart extends Model
      */
     public static function getSelectedItems(int $userId)
     {
-        return self::with(['sku' => function ($query) {
-            $query->with(['goods' => function ($query) {
-                $query->field('id,name,cover');
-            }]);
-        }])->where('user_id', $userId)
-          ->where('selected', true)
-          ->order('id', 'desc')
-          ->select();
+        return self::with([
+            'sku' => function ($query) {
+                $query->with([
+                    'goods' => function ($query) {
+                        $query->field('id,name,cover');
+                    }
+                ]);
+            }
+        ])->where('user_id', $userId)
+            ->where('selected', true)
+            ->order('id', 'desc')
+            ->select();
     }
-    
+
     /**
      * 添加商品到购物车
      *
@@ -100,7 +108,7 @@ class Cart extends Model
         $cart = self::where('user_id', $userId)
             ->where('sku_id', $skuId)
             ->find();
-        
+
         if ($cart) {
             // 如果已存在，增加数量
             $cart->quantity += $quantity;
@@ -108,17 +116,17 @@ class Cart extends Model
             $cart->save();
         } else {
             // 如果不存在，创建新购物车项
-            $cart = new self;
-            $cart->user_id = $userId;
-            $cart->sku_id = $skuId;
+            $cart           = new self;
+            $cart->user_id  = $userId;
+            $cart->sku_id   = $skuId;
             $cart->quantity = $quantity;
             $cart->selected = true;
             $cart->save();
         }
-        
+
         return $cart;
     }
-    
+
     /**
      * 更新购物车商品数量
      *
@@ -133,7 +141,7 @@ class Cart extends Model
             ->where('user_id', $userId)
             ->update(['quantity' => $quantity]);
     }
-    
+
     /**
      * 更新购物车商品选中状态
      *
@@ -148,7 +156,7 @@ class Cart extends Model
             ->where('user_id', $userId)
             ->update(['selected' => $selected]);
     }
-    
+
     /**
      * 全选/全不选
      *
@@ -161,7 +169,7 @@ class Cart extends Model
         return self::where('user_id', $userId)
             ->update(['selected' => $selected]);
     }
-    
+
     /**
      * 删除购物车商品
      *
@@ -175,7 +183,7 @@ class Cart extends Model
             ->where('user_id', $userId)
             ->delete();
     }
-    
+
     /**
      * 清空购物车
      *
@@ -187,7 +195,7 @@ class Cart extends Model
         return self::where('user_id', $userId)
             ->delete();
     }
-    
+
     /**
      * 获取购物车商品总数
      *
@@ -199,7 +207,7 @@ class Cart extends Model
         return self::where('user_id', $userId)
             ->sum('quantity');
     }
-    
+
     /**
      * 获取购物车商品总价
      *
@@ -212,13 +220,13 @@ class Cart extends Model
         $query = self::alias('c')
             ->join('goods_skus s', 'c.sku_id = s.id')
             ->where('c.user_id', $userId);
-        
+
         if ($onlySelected) {
             $query->where('c.selected', true);
         }
-        
+
         $total = $query->sum('c.quantity * s.price');
-        
+
         return $total ?: 0;
     }
-} 
+}
