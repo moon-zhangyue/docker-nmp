@@ -12,16 +12,16 @@ class OrderLog extends Model
 {
     // 设置当前模型对应的数据库连接
     protected $connection = 'postgresql';
-    
+
     // 设置当前模型对应的完整数据表名称
     protected $table = 'order_logs';
-    
+
     // 设置当前模型的数据库主键
     protected $pk = 'id';
-    
+
     // 自动写入时间戳
     protected $autoWriteTimestamp = true;
-    
+
     // 类型转换
     protected $type = [
         'id'       => 'integer',
@@ -29,12 +29,12 @@ class OrderLog extends Model
         'user_id'  => 'integer',
         'type'     => 'integer'
     ];
-    
+
     // 日志类型：系统
     const TYPE_SYSTEM = 0;
     // 日志类型：用户
     const TYPE_USER = 1;
-    
+
     /**
      * 关联订单
      *
@@ -44,7 +44,7 @@ class OrderLog extends Model
     {
         return $this->belongsTo(Order::class, 'order_id', 'id');
     }
-    
+
     /**
      * 关联用户
      *
@@ -54,7 +54,7 @@ class OrderLog extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
-    
+
     /**
      * 获取日志类型文字
      *
@@ -64,15 +64,15 @@ class OrderLog extends Model
      */
     public function getTypeTextAttr($value, $data)
     {
-        $type = $data['type'] ?? null;
+        $type    = $data['type'] ?? null;
         $typeMap = [
             self::TYPE_SYSTEM => '系统',
-            self::TYPE_USER => '用户',
+            self::TYPE_USER   => '用户',
         ];
-        
+
         return $typeMap[$type] ?? '未知类型';
     }
-    
+
     /**
      * 记录订单日志
      *
@@ -87,16 +87,16 @@ class OrderLog extends Model
      */
     public static function record(int $orderId, string $orderNo, int $userId, string $action, string $content, int $type = self::TYPE_SYSTEM, string $ip = '')
     {
-        $log = new self;
+        $log           = new self;
         $log->order_id = $orderId;
         $log->order_no = $orderNo;
-        $log->user_id = $userId;
-        $log->action = $action;
-        $log->content = $content;
-        $log->type = $type;
-        $log->ip = $ip ?: request()->ip();
+        $log->user_id  = $userId;
+        $log->action   = $action;
+        $log->content  = $content;
+        $log->type     = $type;
+        $log->ip       = $ip ?: request()->ip();
         $log->save();
-        
+
         return $log;
     }
-} 
+}
