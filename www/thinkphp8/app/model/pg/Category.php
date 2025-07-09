@@ -12,33 +12,33 @@ use think\model\concern\SoftDelete;
 class Category extends Model
 {
     use SoftDelete;
-    
+
     // 设置当前模型对应的数据库连接
     protected $connection = 'postgresql';
-    
+
     // 设置当前模型对应的完整数据表名称
     protected $table = 'categories';
-    
+
     // 设置当前模型的数据库主键
     protected $pk = 'id';
-    
+
     // 设置当前模型默认的查询条件
     protected $defaultScope = ['status' => true];
-    
+
     // 设置软删除字段
     protected $deleteTime = 'delete_time';
-    
+
     // 自动写入时间戳
     protected $autoWriteTimestamp = true;
-    
+
     // 类型转换
     protected $type = [
-        'id'       => 'integer',
+        'id'        => 'integer',
         'parent_id' => 'integer',
-        'sort'     => 'integer',
-        'status'   => 'boolean'
+        'sort'      => 'integer',
+        'status'    => 'boolean'
     ];
-    
+
     /**
      * 搜索分类名称
      *
@@ -52,7 +52,7 @@ class Category extends Model
             $query->where('name', 'like', "%{$value}%");
         }
     }
-    
+
     /**
      * 搜索父级分类ID
      *
@@ -66,7 +66,7 @@ class Category extends Model
             $query->where('parent_id', $value);
         }
     }
-    
+
     /**
      * 搜索状态
      *
@@ -80,7 +80,7 @@ class Category extends Model
             $query->where('status', $value);
         }
     }
-    
+
     /**
      * 关联父级分类
      *
@@ -90,7 +90,7 @@ class Category extends Model
     {
         return $this->belongsTo(self::class, 'parent_id', 'id');
     }
-    
+
     /**
      * 关联子分类
      *
@@ -100,7 +100,7 @@ class Category extends Model
     {
         return $this->hasMany(self::class, 'parent_id', 'id');
     }
-    
+
     /**
      * 关联商品
      *
@@ -110,7 +110,7 @@ class Category extends Model
     {
         return $this->hasMany(Goods::class, 'category_id', 'id');
     }
-    
+
     /**
      * 获取分类树状结构
      *
@@ -121,24 +121,24 @@ class Category extends Model
     public static function getTree($parentId = 0, $filter = [])
     {
         $filter = array_merge(['status' => true], $filter);
-        
+
         // 查询指定父级下的所有分类
         $categories = self::where('parent_id', $parentId)
             ->where($filter)
             ->order('sort', 'asc')
             ->select();
-            
+
         $tree = [];
         foreach ($categories as $category) {
             $item = $category->toArray();
             // 递归获取子分类
             $item['children'] = self::getTree($category->id, $filter);
-            $tree[] = $item;
+            $tree[]           = $item;
         }
-        
+
         return $tree;
     }
-    
+
     /**
      * 获取所有子分类ID（包括自身）
      *
@@ -148,15 +148,15 @@ class Category extends Model
     public static function getAllChildrenIds($categoryId)
     {
         $ids = [$categoryId];
-        
+
         // 获取直接子分类
         $children = self::where('parent_id', $categoryId)->column('id');
-        
+
         // 递归获取所有子分类
         foreach ($children as $childId) {
             $ids = array_merge($ids, self::getAllChildrenIds($childId));
         }
-        
+
         return $ids;
     }
-} 
+}

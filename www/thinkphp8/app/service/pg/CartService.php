@@ -125,7 +125,7 @@ class CartService
         try {
             $cart = Cart::addToCart($userId, $skuId, $quantity);
 
-            Log::info('添加商品到购物车', [
+            Log::info('添加商品到购物车 {user_id} {sku_id} {quantity} {cart_id}', [
                 'user_id'  => $userId,
                 'sku_id'   => $skuId,
                 'quantity' => $quantity,
@@ -135,7 +135,7 @@ class CartService
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
-            Log::error('添加商品到购物车异常', [
+            Log::error('添加商品到购物车异常 {error} {user_id} {sku_id} {quantity}', [
                 'error'    => $e->getMessage(),
                 'user_id'  => $userId,
                 'sku_id'   => $skuId,
@@ -182,7 +182,7 @@ class CartService
         try {
             Cart::updateQuantity($id, $userId, $quantity);
 
-            Log::info('更新购物车商品数量', [
+            Log::info('更新购物车商品数量 {user_id} {cart_id} {quantity}', [
                 'user_id'  => $userId,
                 'cart_id'  => $id,
                 'quantity' => $quantity
@@ -191,7 +191,7 @@ class CartService
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
-            Log::error('更新购物车商品数量异常', [
+            Log::error('更新购物车商品数量异常 {error} {user_id} {cart_id} {quantity}', [
                 'error'    => $e->getMessage(),
                 'user_id'  => $userId,
                 'cart_id'  => $id,
@@ -222,7 +222,7 @@ class CartService
         try {
             Cart::updateSelected($id, $userId, $selected);
 
-            Log::info('更新购物车商品选中状态', [
+            Log::info('更新购物车商品选中状态 {user_id} {cart_id} {selected}', [
                 'user_id'  => $userId,
                 'cart_id'  => $id,
                 'selected' => $selected
@@ -231,7 +231,7 @@ class CartService
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
-            Log::error('更新购物车商品选中状态异常', [
+            Log::error('更新购物车商品选中状态异常 {error} {user_id} {cart_id} {selected}', [
                 'error'    => $e->getMessage(),
                 'user_id'  => $userId,
                 'cart_id'  => $id,
@@ -255,7 +255,7 @@ class CartService
         try {
             Cart::selectAll($userId, $selected);
 
-            Log::info('购物车全选/全不选', [
+            Log::info('购物车全选/全不选 {user_id} {selected}', [
                 'user_id'  => $userId,
                 'selected' => $selected
             ]);
@@ -263,7 +263,7 @@ class CartService
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
-            Log::error('购物车全选/全不选异常', [
+            Log::error('购物车全选/全不选异常 {error} {user_id} {selected}', [
                 'error'    => $e->getMessage(),
                 'user_id'  => $userId,
                 'selected' => $selected
@@ -292,7 +292,7 @@ class CartService
         try {
             Cart::removeFromCart($id, $userId);
 
-            Log::info('删除购物车商品', [
+            Log::info('删除购物车商品 {user_id} {cart_id}', [
                 'user_id' => $userId,
                 'cart_id' => $id
             ]);
@@ -300,7 +300,7 @@ class CartService
             // 返回购物车列表
             return $this->getCartList($userId);
         } catch (\Exception $e) {
-            Log::error('删除购物车商品异常', [
+            Log::error('删除购物车商品异常 {error} {user_id} {cart_id}', [
                 'error'   => $e->getMessage(),
                 'user_id' => $userId,
                 'cart_id' => $id
@@ -322,7 +322,7 @@ class CartService
         try {
             Cart::clearCart($userId);
 
-            Log::info('清空购物车', [
+            Log::info('清空购物车 {user_id}', [
                 'user_id' => $userId
             ]);
 
@@ -333,7 +333,7 @@ class CartService
                 'total_quantity' => 0,
             ];
         } catch (\Exception $e) {
-            Log::error('清空购物车异常', [
+            Log::error('清空购物车异常 {error} {user_id}', [
                 'error'   => $e->getMessage(),
                 'user_id' => $userId
             ]);

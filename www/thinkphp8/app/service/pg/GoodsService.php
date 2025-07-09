@@ -294,7 +294,8 @@ class GoodsService
         // 查询品牌列表
         $brands = Brand::where('status', true)
             ->order('sort', 'asc')
-            ->select();
+            ->select()
+            ->toArray();
 
         // 缓存结果
         Cache::set($cacheKey, $brands, self::CACHE_TIME);
@@ -317,7 +318,7 @@ class GoodsService
         Cache::delete(self::CACHE_PREFIX . 'list');
 
         // 记录日志
-        Log::info('清除商品缓存', ['goods_id' => $goodsId]);
+        Log::info('清除商品缓存 {goods_id}', ['goods_id' => $goodsId]);
 
         return true;
     }
@@ -330,10 +331,10 @@ class GoodsService
     public function clearCategoryCache()
     {
         // 清除所有分类缓存
-        $keys = Cache::getCacheKey(self::CACHE_PREFIX . 'category:*');
-        foreach ($keys as $key) {
-            Cache::delete($key);
-        }
+        Cache::tag(self::CACHE_PREFIX . 'category')->clear();
+
+        // 或者简单地清除顶级分类缓存，它会导致所有相关缓存重建
+        // Cache::delete(self::CACHE_PREFIX . 'category:0');
 
         return true;
     }

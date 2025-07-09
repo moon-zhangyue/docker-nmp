@@ -120,12 +120,12 @@ class OrderService
             $order->ship_status = Order::SHIP_STATUS_UNSHIPPED;
 
             // 设置收货信息
-            $order->receiver_name     = $address->name;
-            $order->receiver_mobile   = $address->mobile;
-            $order->receiver_province = $address->province;
-            $order->receiver_city     = $address->city;
-            $order->receiver_district = $address->district;
-            $order->receiver_address  = $address->detail;
+            $order->receiver_name     = $address['name'];
+            $order->receiver_mobile   = $address['mobile'];
+            $order->receiver_province = $address['province'];
+            $order->receiver_city     = $address['city'];
+            $order->receiver_district = $address['district'];
+            $order->receiver_address  = $address['detail'];
             $order->note              = $note;
 
             // 初始化金额
@@ -202,7 +202,7 @@ class OrderService
             // 提交事务
             Db::commit();
 
-            Log::info('创建订单成功', [
+            Log::info('创建订单成功 {user_id} {order_id} {order_no}', [
                 'user_id'  => $userId,
                 'order_id' => $order->id,
                 'order_no' => $order->order_no
@@ -213,7 +213,7 @@ class OrderService
             // 回滚事务
             Db::rollback();
 
-            Log::error('创建订单异常', [
+            Log::error('创建订单异常 {error} {user_id} {address_id}', [
                 'error'      => $e->getMessage(),
                 'user_id'    => $userId,
                 'address_id' => $addressId
@@ -279,7 +279,7 @@ class OrderService
             // 提交事务
             Db::commit();
 
-            Log::info('取消订单成功', [
+            Log::info('取消订单成功 {user_id} {order_id} {order_no} {reason}', [
                 'user_id'  => $userId,
                 'order_id' => $order->id,
                 'order_no' => $order->order_no,
@@ -291,7 +291,7 @@ class OrderService
             // 回滚事务
             Db::rollback();
 
-            Log::error('取消订单异常', [
+            Log::error('取消订单异常 {error} {user_id} {order_id}', [
                 'error'    => $e->getMessage(),
                 'user_id'  => $userId,
                 'order_id' => $orderId
@@ -354,7 +354,7 @@ class OrderService
             // 提交事务
             Db::commit();
 
-            Log::info('支付订单成功', [
+            Log::info('支付订单成功 {user_id} {order_id} {order_no} {pay_method}', [
                 'user_id'    => $userId,
                 'order_id'   => $order->id,
                 'order_no'   => $order->order_no,
@@ -366,7 +366,7 @@ class OrderService
             // 回滚事务
             Db::rollback();
 
-            Log::error('支付订单异常', [
+            Log::error('支付订单异常 {error} {user_id} {order_id}', [
                 'error'    => $e->getMessage(),
                 'user_id'  => $userId,
                 'order_id' => $orderId
@@ -427,7 +427,7 @@ class OrderService
             // 提交事务
             Db::commit();
 
-            Log::info('确认收货成功', [
+            Log::info('确认收货成功 {user_id} {order_id} {order_no}', [
                 'user_id'  => $userId,
                 'order_id' => $order->id,
                 'order_no' => $order->order_no
@@ -438,7 +438,7 @@ class OrderService
             // 回滚事务
             Db::rollback();
 
-            Log::error('确认收货异常', [
+            Log::error('确认收货异常 {error} {user_id} {order_id}', [
                 'error'    => $e->getMessage(),
                 'user_id'  => $userId,
                 'order_id' => $orderId
@@ -505,7 +505,7 @@ class OrderService
             // 提交事务
             Db::commit();
 
-            Log::info('订单发货成功', [
+            Log::info('订单发货成功 {order_id} {order_no} {delivery_company} {delivery_no}', [
                 'order_id'         => $order->id,
                 'order_no'         => $order->order_no,
                 'delivery_company' => $deliveryCompany,
@@ -517,7 +517,7 @@ class OrderService
             // 回滚事务
             Db::rollback();
 
-            Log::error('订单发货异常', [
+            Log::error('订单发货异常 {error} {order_id}', [
                 'error'    => $e->getMessage(),
                 'order_id' => $orderId
             ]);

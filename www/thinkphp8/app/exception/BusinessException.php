@@ -18,7 +18,7 @@ class BusinessException extends Exception
      * @param int $code 错误码
      * @param Throwable|null $previous 上一个异常
      */
-    public function __construct(string $message = '', int $code = 400, Throwable $previous = null)
+    public function __construct(string $message = '', int $code = 400, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
     }
