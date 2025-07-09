@@ -41,11 +41,24 @@ return [
     // 操作方法的参数绑定方式 route get param
     'action_bind_param'     => 'get',
     // 请求缓存规则 true为自动规则
-    'request_cache_key'     => true,
+    'request_cache_key'     => false,
     // 请求缓存有效期
     'request_cache_expire'  => null,
     // 全局请求缓存排除规则
     'request_cache_except'  => [],
     // 请求缓存的Tag
-    'request_cache_tag'     => '',    
+    'request_cache_tag'     => '',
+    // 默认JSONP格式返回的处理方法
+    'default_jsonp_handler' => 'jsonpReturn',
+    // 默认JSONP处理方法
+    'var_jsonp_handler'     => 'callback',
+
+    // 加载路由文件
+    'route_file' => [
+        'app',    // 基础路由
+        'api',    // API路由
+        'mongo',  // MongoDB API路由
+        'redis',  // Redis相关路由
+        'pg',     // PostgreSQL API路由
+    ],
 ];
