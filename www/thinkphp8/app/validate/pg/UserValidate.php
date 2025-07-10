@@ -27,6 +27,9 @@ class UserValidate extends Validate
         'old_password'         => 'require|length:6,20',
         'new_password'         => 'require|length:6,20|different:old_password',
         'confirm_new_password' => 'require|confirm:new_password',
+        // 为登录场景单独定义简化规则
+        'login_username'       => 'require',
+        'login_password'       => 'require',
     ];
 
     /**
@@ -67,7 +70,11 @@ class UserValidate extends Validate
      */
     protected $scene = [
         'register'        => ['username', 'password', 'confirm_password', 'email', 'mobile', 'nickname'],
-        'login'           => ['username', 'password'],
+        // 登录场景使用单独的规则字段，只验证是否填写
+        'login'           => [
+            'username' => 'login_username',
+            'password' => 'login_password'
+        ],
         'update'          => ['nickname', 'mobile', 'avatar', 'gender'],
         'change_password' => ['old_password', 'new_password', 'confirm_new_password'],
     ];

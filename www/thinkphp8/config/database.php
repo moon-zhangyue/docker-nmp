@@ -62,6 +62,7 @@ return [
         'postgresql'    => [
             // 数据库类型
             'type'                 => 'pgsql',
+            // 'type'                 => '\think\db\connector\PgsqlExt',
             // 服务器地址
             'hostname'             => env('pgsql.hostname', 'postgres'),
             // 数据库名

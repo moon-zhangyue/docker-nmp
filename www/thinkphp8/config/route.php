@@ -47,7 +47,7 @@ return [
     // 全局请求缓存排除规则
     'request_cache_except'  => [],
     // 请求缓存的Tag
-    'request_cache_tag'     => '',
+    'request_cache_tag'     => '',    
     // 默认JSONP格式返回的处理方法
     'default_jsonp_handler' => 'jsonpReturn',
     // 默认JSONP处理方法

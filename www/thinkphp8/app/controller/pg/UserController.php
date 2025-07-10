@@ -10,6 +10,7 @@ use app\validate\pg\UserValidate;
 use app\validate\pg\AddressValidate;
 use think\facade\Log;
 use think\Response;
+use think\Request;
 
 /**
  * 用户控制器
@@ -36,9 +37,9 @@ class UserController extends BaseController
      *
      * @return Response
      */
-    public function register()
+    public function register(Request $request): Response
     {
-        $data = $this->request->post();
+        $data = $request->post();
 
         // 验证数据
         try {
@@ -70,9 +71,9 @@ class UserController extends BaseController
      *
      * @return Response
      */
-    public function login()
+    public function login(Request $request)
     {
-        $data = $this->request->post();
+        $data = $request->post();
 
         // 验证数据
         try {
