@@ -46,7 +46,7 @@ class UserController extends BaseController
             validate(UserValidate::class)
                 ->scene('register')
                 ->check($data);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) { // 使用 \Throwable 捕获所有可能的异常
             return $this->error($e->getMessage());
         }
 
@@ -60,8 +60,8 @@ class UserController extends BaseController
             ]);
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
-        } catch (\Exception $e) {
-            Log::error('用户注册系统异常：{error}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        } catch (\Throwable $e) {
+            Log::error('用户注册系统异常：{error}, {trace}, {data}', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'data' => $data]);
             return $this->error('系统异常，请稍后重试');
         }
     }

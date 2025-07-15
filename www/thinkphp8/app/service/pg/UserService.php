@@ -17,32 +17,41 @@ class UserService
     /**
      * 用户注册
      *
-     * @param array $data 用户数据
-     * @return User
-     * @throws BusinessException
+     * @param array $data 用户数据，包含用户名、密码、邮箱等信息
+     * @return User 注册成功的用户对象
+     * @throws BusinessException 当用户名、邮箱或手机号已存在，或注册过程中发生异常时抛出
      */
     public function register(array $data)
     {
-        // 验证用户名是否已存在
-        if (User::where('username', $data['username'])->find()) {
-            Log::error('用户注册失败：用户名已存在 {username}', ['username' => $data['username']]);
-            throw new BusinessException('用户名已存在');
-        }
+        // 使用预加载和唯一性检查优化查询
+        $existingUser = User::where(function ($query) use ($data) {
+            $query->where('username', $data['username'])
+                ->orWhere('email', $data['email']);
 
-        // 验证邮箱是否已存在
-        if (User::where('email', $data['email'])->find()) {
-            Log::error('用户注册失败：邮箱已存在 {email}', ['email' => $data['email']]);
-            throw new BusinessException('邮箱已存在');
-        }
+            if (!empty($data['mobile'])) {
+                $query->orWhere('mobile', $data['mobile']);
+            }
+        })->find();
 
-        // 验证手机号是否已存在
-        if (isset($data['mobile']) && $data['mobile'] && User::where('mobile', $data['mobile'])->find()) {
-            Log::error('用户注册失败：手机号已存在 {mobile}', ['mobile' => $data['mobile']]);
-            throw new BusinessException('手机号已存在');
+        if ($existingUser) {
+            if ($existingUser->username === $data['username']) {
+                Log::error('用户注册失败：用户名已存在');
+                throw new BusinessException('用户名已存在');
+            }
+
+            if ($existingUser->email === $data['email']) {
+                Log::error('用户注册失败：邮箱已存在');
+                throw new BusinessException('邮箱已存在');
+            }
+
+            if (!empty($data['mobile']) && $existingUser->mobile === $data['mobile']) {
+                Log::error('用户注册失败：手机号已存在');
+                throw new BusinessException('手机号已存在');
+            }
         }
 
         try {
-            // 创建用户
+            // 创建用户并设置初始属性
             $user = User::create([
                 'username' => $data['username'],
                 'password' => $data['password'], // 密码会在模型中自动加密
@@ -57,6 +66,7 @@ class UserService
             // 确保返回类型正确
             return User::find($user->id);
         } catch (\Exception $e) {
+            // 处理注册异常，记录错误日志并抛出业务异常
             Log::error('用户注册异常 {error} {data}', ['error' => $e->getMessage(), 'data' => $data]);
             throw new BusinessException('用户注册失败：' . $e->getMessage());
         }
@@ -144,7 +154,7 @@ class UserService
         }
 
         // 手机号验证
-        if (isset($data['mobile']) && $data['mobile'] && $data['mobile'] != $user->mobile) {
+        if (isset($data['mobile']) && !empty($data['mobile']) && $data['mobile'] != $user->mobile) {
             if (User::where('mobile', $data['mobile'])->where('id', '<>', $userId)->find()) {
                 Log::warning('更新用户信息失败：手机号已存在 {user_id} {mobile}', ['user_id' => $userId, 'mobile' => $data['mobile']]);
                 throw new BusinessException('手机号已被使用');
