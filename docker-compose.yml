@@ -640,29 +640,29 @@ services:
   #   networks:
   #     - default
 
-  # TDengine - 时序数据库
-  tdengine:
-    build:
-      context: ./services/tdengine
-      args:
-        TDENGINE_VERSION: ${TDENGINE_VERSION}
-        TZ: "$TZ"
-    container_name: tdengine
-    hostname: tdengine
-    restart: always
-    ports:
-      - "${TDENGINE_HOST_PORT}:6030"
-      - "6041:6041"
-      - "6042:6042"
-    volumes:
-      - ${TDENGINE_DATA_DIR}:/var/lib/taos
-      - ${TDENGINE_LOG_DIR}:/var/log/taos
-    environment:
-      TZ: "$TZ"
-      TAOS_SKIP_SYS_CHECK: "1"
-    command: ["/usr/bin/taosd", "--skip-sysctl"]
-    networks:
-      - default
+  # # TDengine - 时序数据库
+  # tdengine:
+  #   build:
+  #     context: ./services/tdengine
+  #     args:
+  #       TDENGINE_VERSION: ${TDENGINE_VERSION}
+  #       TZ: "$TZ"
+  #   container_name: tdengine
+  #   hostname: tdengine
+  #   restart: always
+  #   ports:
+  #     - "${TDENGINE_HOST_PORT}:6030"
+  #     - "6041:6041"
+  #     - "6042:6042"
+  #   volumes:
+  #     - ${TDENGINE_DATA_DIR}:/var/lib/taos
+  #     - ${TDENGINE_LOG_DIR}:/var/log/taos
+  #   environment:
+  #     TZ: "$TZ"
+  #     TAOS_SKIP_SYS_CHECK: "1"
+  #   command: ["/usr/bin/taosd", "--skip-sysctl"]
+  #   networks:
+  #     - default
 
   # InfluxDB - 时序数据库
   influxdb:
