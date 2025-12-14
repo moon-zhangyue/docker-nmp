@@ -14,7 +14,6 @@
 
 use Webman\Route;
 use app\controller\UserController;
-use support\Request;
 
 // 用户模块路由
 Route::post('/user/register', [UserController::class, 'register']);

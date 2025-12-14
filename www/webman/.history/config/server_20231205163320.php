@@ -17,7 +17,7 @@ return [
     'transport' => 'tcp',
     'context' => [],
     'name' => 'webman',
-    'count' => cpu_count() * 4, // 进程数，通常为 CPU 核数 * 4
+    'count' => cpu_count() * 4,
     'user' => '',
     'group' => '',
     'reusePort' => false,
