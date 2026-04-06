@@ -126,6 +126,33 @@ services:
     networks:
       - default
 
+  php85:
+    build:
+      context: ./services/php85
+      args:
+        PHP_VERSION: php:${PHP85_VERSION}-fpm-alpine
+        CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+        PHP_EXTENSIONS: ${PHP85_EXTENSIONS}
+        TZ: "$TZ"
+    container_name: php85
+    expose:
+      - 9501
+    ports:
+      - "${PHP85_HOST_PORT}:9000"
+      - "${PHP85_HYPERF1_PORT}:9501"
+      - "${PHP85_HYPERF2_PORT}:9502"
+    volumes:
+      - ${SOURCE_DIR}:/www/:rwx
+      - ${PHP85_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
+      - ${PHP85_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+      - ${PHP85_LOG_DIR}:/var/log/php
+      - ${DATA_DIR}/composer:/tmp/composer
+    restart: always
+    cap_add:
+      - SYS_PTRACE
+    networks:
+      - default
+
 
 
   #  php80:
@@ -403,11 +430,17 @@ services:
       - default
 
   golang:
-    image: golang:1.22-alpine
+    image: golang:1.26-alpine
     container_name: golang
+    ports:
+      - "8081:8080"
     volumes:
       - ./go_projects:/go/src/app/:rw
+      - ${DATA_DIR}/go_cache:/go/pkg/mod/cache
     working_dir: /go/src/app
+    environment:
+      - TZ=$TZ
+      - GOPROXY=https://goproxy.cn,direct
     tty: true # Keep container running
     restart: always
     networks:
