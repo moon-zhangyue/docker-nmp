@@ -6,14 +6,15 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
 
 1. `100%`开源
 2. `100%`遵循Docker标准
-3. 支持**多版本PHP**共存，可任意切换（PHP5.4、PHP5.6、PHP7.1、PHP7.2、PHP7.3、PHP7.4、PHP8.0)
+3. 支持**多版本PHP**共存，可任意切换（PHP7.1、PHP7.2、PHP7.3、PHP7.4、PHP8.0、PHP8.2、PHP8.4、PHP8.5)
 4. 支持绑定**任意多个域名**
 5. 支持**HTTPS和HTTP/2**
 6. **PHP源代码、MySQL数据、配置文件、日志文件**都可在Host中直接修改查看
 7. 内置**完整PHP扩展安装**命令
 8. 默认支持`pdo_mysql`、`mysqli`、`mbstring`、`gd`、`curl`、`opcache`等常用热门扩展，根据环境灵活配置
 9. 可一键选配常用服务：
-    - 多PHP版本：PHP5.4、PHP5.6、PHP7.0-7.4、PHP8.0
+    - 多PHP版本：PHP7.0-7.4、PHP8.2、PHP8.4、PHP8.5
+    - Golang、Gin框架
     - Web服务：Nginx、Openresty
     - 数据库：MySQL5、MySQL8、Redis、memcached、MongoDB、ElasticSearch
     - 消息队列：RabbitMQ
@@ -73,8 +74,10 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
 │   ├── mysql                   MySQL8 配置文件目录
 │   ├── mysql5                  MySQL5 配置文件目录
 │   ├── nginx                   Nginx 配置文件目录
-│   ├── php                     PHP5.6 - PHP7.4 配置目录
-│   ├── php54                   PHP5.4 配置目录
+│   ├── php                     PHP8.0 - PHP8.5 配置目录
+│   ├── php82                   PHP8.2 配置目录
+│   ├── php84                   PHP8.4 配置目录
+│   ├── php85                   PHP8.5 配置目录
 │   └── redis                   Redis 配置目录
 ├── logs                        日志目录
 ├── docker-compose.sample.yml   Docker 服务配置示例文件
@@ -103,7 +106,7 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
     $ cp env.sample .env                                # 复制环境变量文件
     $ cp docker-compose.sample.yml docker-compose.yml   # 复制 docker-compose 配置文件。默认启动3个服务：
                                                         # Nginx、PHP7和MySQL8。要开启更多其他服务，如Redis、
-                                                        # PHP5.6、PHP5.4、MongoDB，ElasticSearch等，请删
+                                                        # PHP8.4、PHP8.5、MongoDB，ElasticSearch等，请删
                                                         # 除服务块前的注释
     $ docker-compose up                                 # 启动
     ```
@@ -119,9 +122,9 @@ PHP5.4启动后，打开Nginx 配置，修改`fastcgi_pass`的主机地址，由
 ```
 为：
 ```
-    fastcgi_pass   php54:9000;
+    fastcgi_pass   php82:9000;
 ```
-其中 `php` 和 `php54` 是`docker-compose.yml`文件中服务器的名称。
+其中 `php` 和 `php82` 是`docker-compose.yml`文件中服务器的名称。
 
 最后，**重启 Nginx** 生效。
 ```bash
