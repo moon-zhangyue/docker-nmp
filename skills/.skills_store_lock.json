@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "php": {
+      "name": "PHP",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=php",
+      "source": "skillhub",
+      "version": "1.0.1"
+    },
+    "php-full-stack-developer": {
+      "name": "Php Full Stack Developer",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=php-full-stack-developer",
+      "source": "skillhub",
+      "version": "0.1.0"
+    },
+    "golang-code-style": {
+      "name": "Golang Code Style",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=golang-code-style",
+      "source": "skillhub",
+      "version": "1.1.1"
+    },
+    "golang-cli": {
+      "name": "Golang Cli",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=golang-cli",
+      "source": "skillhub",
+      "version": "1.1.1"
+    },
+    "golang-database": {
+      "name": "Golang Database",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=golang-database",
+      "source": "skillhub",
+      "version": "1.1.1"
+    },
+    "mysql": {
+      "name": "MySQL",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=mysql",
+      "source": "skillhub",
+      "version": "1.0.1"
+    }
+  }
+}
