@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -13,15 +14,19 @@ func TestMySQLStoreIntegration(t *testing.T) {
 	}
 
 	cfg := DefaultDatabaseConfig()
-	if os.Getenv("MYSQL9_HOST") == "" {
+	if os.Getenv("MYSQL9_HOST") == "" && !runningInDocker() {
 		cfg.Host = "localhost"
 	}
-	if os.Getenv("MYSQL9_PORT") == "" {
+	if os.Getenv("MYSQL9_PORT") == "" && !runningInDocker() {
 		cfg.Port = "3308"
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	if err := ensureDatabaseExists(ctx, cfg); err != nil {
+		t.Fatalf("ensure database exists: %v", err)
+	}
 
 	db, err := OpenDB(ctx, cfg)
 	if err != nil {
@@ -74,4 +79,30 @@ func TestMySQLStoreIntegration(t *testing.T) {
 	if err := store.DeleteUser(ctx, id); err != nil {
 		t.Fatalf("delete user: %v", err)
 	}
+}
+
+func runningInDocker() bool {
+	_, err := os.Stat("/.dockerenv")
+	return err == nil
+}
+
+func ensureDatabaseExists(ctx context.Context, cfg DatabaseConfig) error {
+	adminConfig := cfg
+	adminConfig.DBName = ""
+
+	adminDB, err := OpenDB(ctx, adminConfig)
+	if err != nil {
+		return err
+	}
+	defer adminDB.Close()
+
+	query := fmt.Sprintf(
+		"CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+		cfg.DBName,
+	)
+	if _, err := adminDB.ExecContext(ctx, query); err != nil {
+		return err
+	}
+
+	return nil
 }

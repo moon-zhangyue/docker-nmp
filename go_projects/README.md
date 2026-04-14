@@ -1,166 +1,102 @@
-# Golang 开发环境使用指南
+# Go Projects
+
+这个目录现在提供一套可运行的 `Gin + MySQL9` 示例，包含：
+
+- 基于 `gin` 的 REST API
+- 基于 `database/sql` 的 MySQL9 连接
+- `users` 表的基础 CRUD
+- 不依赖真实数据库的接口测试
+- 可选的 MySQL9 集成测试
+
+主要代码文件：
+
+- `app_main.go`：程序入口
+- `app_server.go`：Gin 初始化与启动
+- `app_database.go`：MySQL 连接与连接池配置
+- `app_routes.go`：路由、处理器、存储接口与 MySQL 实现
+- `app_test.go`：接口级单元测试
+- `integration_test.go`：真实 MySQL9 集成测试
+
+为了避免旧示例代码影响构建，历史文件已经保留为 `*.disabled`。
 
 ## 快速开始
 
-### 1. 启动 Golang 容器
+1. 启动容器
 
 ```bash
-# 启动 golang 容器
-docker-compose up -d golang
+docker-compose up -d mysql9 golang
 ```
 
-### 2. 进入容器开发
+2. 进入项目目录
 
 ```bash
-# 进入容器
-docker exec -it golang sh
-
-# 在容器中运行 Go 程序
-cd /go/src/app
-go run main.go
+cd go_projects
 ```
 
-### 3. 访问应用
+3. 运行应用
 
-- 应用地址：http://localhost:8081
-- 健康检查：http://localhost:8081/health
+如果你本机安装了 Go：
 
-## 目录结构
-
+```bash
+go run .
 ```
-go_projects/
-├── main.go          # 示例代码
-├── go.mod          # Go 模块定义
-├── Dockerfile      # Docker 构建文件（可选）
-└── .gitignore      # Git 忽略文件
+
+如果你希望直接在 `golang` 容器内运行：
+
+```bash
+docker exec -it golang sh -lc "cd /go/src/app && /usr/local/go/bin/go run ."
 ```
+
+4. 访问接口
+
+- `GET http://localhost:8081/health`
+- `GET http://localhost:8081/api/db/test`
+
+如果你在本机直接运行，端口默认是 `8080`。
+
+## 测试
+
+运行全部测试：
+
+```bash
+docker exec golang sh -lc "cd /go/src/app && /usr/local/go/bin/go test ./..."
+```
+
+运行真实 MySQL9 集成测试：
+
+```bash
+docker exec golang sh -lc "cd /go/src/app && MYSQL9_INTEGRATION=1 /usr/local/go/bin/go test -run TestMySQLStoreIntegration ./..."
+```
+
+## 环境变量
+
+- `MYSQL9_HOST`
+- `MYSQL9_PORT`
+- `MYSQL9_USER`
+- `MYSQL9_PASSWORD`
+- `MYSQL9_DATABASE`
+- `MYSQL9_MAX_OPEN_CONNS`
+- `MYSQL9_MAX_IDLE_CONNS`
+- `MYSQL9_CONN_MAX_LIFETIME`
+- `MYSQL9_CONN_MAX_IDLE_TIME`
+- `GIN_MODE`
+- `PORT`
+
+默认情况下：
+
+- 在容器网络中连接 MySQL9，使用 `mysql-9:3306`
+- 在宿主机集成测试场景，可使用 `localhost:3308`
 
 ## 常用命令
 
-### 在容器中执行
+格式化：
 
 ```bash
-# 查看 Go 版本
-docker exec -it golang go version
-
-# 运行程序
-docker exec -it golang go run main.go
-
-# 构建程序
-docker exec -it golang go build -o app main.go
-
-# 安装依赖
-docker exec -it golang go mod tidy
+docker exec golang sh -lc "cd /go/src/app && /usr/local/go/bin/gofmt -w app_database.go app_routes.go app_server.go app_main.go app_test.go integration_test.go"
 ```
 
-### 在本地开发（推荐）
-
-如果你在本地安装了 Go，也可以在本地开发，然后在容器中运行：
+构建：
 
 ```bash
-# 本地运行
-cd go_projects
-go run main.go
-
-# 本地构建
-go build -o app.exe main.go
+docker exec golang sh -lc "cd /go/src/app && /usr/local/go/bin/go build -o app ."
 ```
-
-## 配置说明
-
-### 环境变量（.env）
-
-- `GO_VERSION=1.22` - Go 语言版本
-- `GO_HOST_PORT=8081` - 主机映射端口
-- `GO_PROJECT_DIR=./go_projects` - 项目目录
-
-### Docker Compose 配置
-
-```yaml
-golang:
-  image: golang:1.22-alpine
-  container_name: golang
-  ports:
-    - "8081:8080"           # 端口映射
-  volumes:
-    - ./go_projects:/go/src/app/:rw  # 代码挂载
-    - ${DATA_DIR}/go_cache:/go/pkg/mod/cache  # 模块缓存
-  environment:
-    - GOPROXY=https://goproxy.cn,direct  # 国内代理
-```
-
-## 创建新项目
-
-### 1. 在容器中初始化
-
-```bash
-docker exec -it golang sh
-cd /go/src/app/myapp
-go mod init myapp
-```
-
-### 2. 或在本地初始化
-
-```bash
-cd go_projects
-mkdir myapp
-cd myapp
-go mod init myapp
-```
-
-## 使用 Dockerfile 部署
-
-如果需要构建独立镜像部署：
-
-```bash
-# 构建镜像
-docker build -t my-go-app .
-
-# 运行容器
-docker run -d -p 8080:8080 my-go-app
-```
-
-## 常见问题
-
-### Q: 如何安装第三方包？
-
-```bash
-docker exec -it golang go get github.com/gin-gonic/gin
-```
-
-### Q: 如何运行测试？
-
-```bash
-docker exec -it golang go test ./...
-```
-
-### Q: 如何格式化代码？
-
-```bash
-docker exec -it golang go fmt ./...
-```
-
-### Q: 如何进行代码检查？
-
-```bash
-docker exec -it golang go vet ./...
-```
-
-## 推荐的 IDE 插件
-
-- **VS Code**: Go (by Go Team at Google)
-- **GoLand**: JetBrains 官方 Go IDE
-- **Vim/Neovim**: vim-go 或 coc.nvim + gopls
-
-## 性能优化
-
-1. **使用 Go 模块代理**: 已配置 `GOPROXY=https://goproxy.cn,direct`
-2. **缓存依赖**: 使用 volume 挂载 `/go/pkg/mod/cache`
-3. **多阶段构建**: 参考 Dockerfile 中的多阶段构建示例
-
-## 下一步
-
-- 创建你的第一个 Go Web 应用
-- 集成数据库（MySQL、PostgreSQL 等）
-- 添加单元测试
-- 配置 CI/CD 流程
