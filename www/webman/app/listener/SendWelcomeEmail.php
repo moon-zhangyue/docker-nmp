@@ -22,7 +22,7 @@ class SendWelcomeEmail implements EventInterface
     {
         return UserRegistered::NAME;
     }
-    
+
     /**
      * 处理事件
      * 
@@ -33,11 +33,11 @@ class SendWelcomeEmail implements EventInterface
     {
         // 记录日志
         Log::info('发送欢迎邮件', [
-            'user_id' => $event->user->id,
+            'user_id'  => $event->user->id,
             'username' => $event->user->username,
-            'email' => $event->user->email
+            'email'    => $event->user->email
         ]);
-        
+
         // 这里可以实现实际的邮件发送逻辑
         // 例如使用PHPMailer或其他邮件库
         echo "发送欢迎邮件给用户: {$event->user->email}\n";

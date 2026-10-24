@@ -1,0 +1,814 @@
+# version: "3"
+services:
+  nginx:
+    build:
+      context: ./services/nginx
+      args:
+        NGINX_VERSION: nginx:${NGINX_VERSION}
+        CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+        NGINX_INSTALL_APPS: ${NGINX_INSTALL_APPS}
+    container_name: nginx20
+    ports:
+      - "${NGINX_HTTP_HOST_PORT}:80"
+      - "${NGINX_HTTPS_HOST_PORT}:443"
+    volumes:
+      - ${SOURCE_DIR}:/www/:rw
+      - ${NGINX_SSL_CERTIFICATE_DIR}:/ssl:rw
+      - ${NGINX_CONFD_DIR}:/etc/nginx/conf.d/:rw
+      - ${NGINX_CONF_FILE}:/etc/nginx/nginx.conf:ro
+      - ${NGINX_FASTCGI_PHP_CONF}:/etc/nginx/fastcgi-php.conf:ro
+      - ${NGINX_FASTCGI_PARAMS}:/etc/nginx/fastcgi_params:ro
+      - ${NGINX_LOG_DIR}:/var/log/nginx/:rw
+    environment:
+      TZ: "$TZ"
+    restart: always
+    networks:
+      - default
+      # 可以把-default 改成下列配置，以固定容器IP
+      #default:
+      #  ipv4_address: 10.0.0.10
+
+  # php74:
+  #   build:
+  #     context: ./services/php
+  #     args:
+  #       PHP_VERSION: php:${PHP_VERSION}-fpm-alpine
+  #       CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+  #       COMPOSER_URL: ${COMPOSER_URL}
+  #       PHP_EXTENSIONS: ${PHP_EXTENSIONS}
+  #       TZ: "$TZ"
+  #   container_name: php
+  #   expose:
+  #     - 9501
+  #   ports:
+  #     # 这里的${xxx}和.env文件一一对应。
+  #     - "9000:9000"
+  #     - "9501:9501"
+  #     - "9502:9502"
+  #     - "9503:9503"
+  #     - "9504:9504"
+  #     - "9505:9505"
+  #     - "9506:9506"
+  #   extra_hosts:
+  #     - "www.site1.com:172.17.0.1"
+  #   volumes:
+  #     - ${SOURCE_DIR}:/www/:rw
+  #     - ${PHP_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
+  #     - ${PHP_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+  #     - ${PHP_LOG_DIR}:/var/log/php
+  #     - ${DATA_DIR}/composer:/tmp/composer
+  #   restart: always
+  #   cap_add:
+  #     - SYS_PTRACE
+  #   networks:
+  #     - default
+
+  # php:
+  #   build:
+  #     context: ./services/php82
+  #     args:
+  #       #PHP_VERSION: php:${PHP82_VERSION}-fpm-alpine3.18
+  #       PHP_VERSION: php:${PHP82_VERSION}-fpm-alpine
+  #       CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+  #       PHP_EXTENSIONS: ${PHP82_EXTENSIONS}
+  #       TZ: "$TZ"
+  #   container_name: php82
+  #   expose:
+  #     - 9501
+  #   ports:
+  #     # 这里的${xxx}和.env文件一一对应。
+  #     - "${PHP_HOST_PORT}:9000"
+  #     - "${PHP_HYPERF1_PORT}:9501"
+  #     - "${PHP_HYPERF2_PORT}:9502"
+  #     - "${PHP_HYPERF3_PORT}:9503"
+  #     - "${PHP_HYPERF4_PORT}:8787"
+  #     - "2345:2345"
+  #     - "8787:8787"
+  #     - "443"
+  #   extra_hosts:
+  #     - "www.site1.com:172.17.0.1"
+  #   volumes:
+  #     - ${SOURCE_DIR}:/www/:rwx
+  #     - ${PHP82_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
+  #     - ${PHP82_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+  #     - ${PHP82_LOG_DIR}:/var/log/php
+  #     - ${DATA_DIR}/composer:/tmp/composer
+  #   restart: always
+  #   cap_add:
+  #     - SYS_PTRACE
+  #   networks:
+  #     - default
+      
+  # php84:
+  #   build:
+  #     context: ./services/php84
+  #     args:
+  #       PHP_VERSION: php:${PHP84_VERSION}-fpm-alpine
+  #       CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+  #       PHP_EXTENSIONS: ${PHP84_EXTENSIONS}
+  #       TZ: "$TZ"
+  #   container_name: php84
+  #   expose:
+  #     - 9501
+  #   ports:
+  #     - "${PHP84_HOST_PORT}:9000"
+  #     - "${PHP84_HYPERF1_PORT}:9501"
+  #     - "${PHP84_HYPERF2_PORT}:9502"
+  #   volumes:
+  #     - ${SOURCE_DIR}:/www/:rwx
+  #     - ${PHP84_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
+  #     - ${PHP84_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+  #     - ${PHP84_LOG_DIR}:/var/log/php
+  #     - ${DATA_DIR}/composer:/tmp/composer
+  #   restart: always
+  #   cap_add:
+  #     - SYS_PTRACE
+  #   networks:
+  #     - default
+
+  php85:
+    build:
+      context: ./services/php85
+      args:
+        PHP_VERSION: php:${PHP85_VERSION}-fpm-alpine
+        CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+        PHP_EXTENSIONS: ${PHP85_EXTENSIONS}
+        TZ: "$TZ"
+    container_name: php85
+    expose:
+      - 9501
+    ports:
+      - "${PHP85_HOST_PORT}:9000"
+      - "${PHP85_HYPERF1_PORT}:9501"
+      - "${PHP85_HYPERF2_PORT}:9502"
+    volumes:
+      - ${SOURCE_DIR}:/www/:rwx
+      - ${PHP85_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
+      - ${PHP85_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+      - ${PHP85_LOG_DIR}:/var/log/php
+      - ${DATA_DIR}/composer:/tmp/composer
+    restart: always
+    cap_add:
+      - SYS_PTRACE
+    networks:
+      - default
+
+
+
+  #  php80:
+  #    build:
+  #      context: ./services/php80
+  #      args:
+  #        PHP_VERSION: php:${PHP80_VERSION}-fpm-alpine
+  #        CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+  #        COMPOSER_URL: ${COMPOSER_URL}
+  #        PHP_EXTENSIONS: ${PHP80_EXTENSIONS}
+  #    container_name: php80
+  #    expose:
+  #      - 9501
+  #    volumes:
+  #      - ${SOURCE_DIR}:/www/:rw
+  #      - ${PHP80_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
+  #      - ${PHP80_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+  #      - ${PHP80_LOG_DIR}:/var/log/php
+  #      - ${DATA_DIR}/composer:/tmp/composer
+  #    restart: always
+  #    cap_add:
+  #      - SYS_PTRACE
+  #    networks:
+  #      - default
+
+  # mysql:
+  #    image: mysql:${MYSQL_VERSION}
+  #    container_name: mysql-8
+  #    ports:
+  #      - "${MYSQL_HOST_PORT}:3307"
+  #    volumes:
+  #      - ${MYSQL_CONF_FILE}:/etc/mysql/conf.d/mysql.cnf:ro
+  #      - ${DATA_DIR}/mysql:/var/lib/mysql/:rw
+  #      - ${MYSQL_LOG_DIR}:/var/log/mysql/:rw
+  #
+  #    restart: always
+  #    networks:
+  #      - default
+  #    environment:
+  #      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+  #      MYSQL_ROOT_HOST: "${MYSQL_ROOT_HOST}"
+  #      TZ: "$TZ"
+
+  # mysql5:
+  #   image: mysql:${MYSQL5_VERSION}
+  #   container_name: mysql5
+  #   ports:
+  #     - "${MYSQL5_HOST_PORT}:3306"
+  #   volumes:
+  #     - ${MYSQL5_CONF_FILE}:/etc/mysql/conf.d/mysql.cnf:ro
+  #     - ${DATA_DIR}/mysql5:/var/lib/mysql/:rw
+  #     - ${MYSQL5_LOG_DIR}:/var/log/mysql/:rw
+  #   restart: always
+  #   networks:
+  #     - default
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: "${MYSQL5_ROOT_PASSWORD}"
+  #     MYSQL_ROOT_HOST: "${MYSQL5_ROOT_HOST}"
+  #     TZ: "$TZ"
+
+  mysql9:
+    image: mysql:${MYSQL9_VERSION}
+    container_name: mysql-9
+    ports:
+      - "${MYSQL9_HOST_PORT}:3306"
+    volumes:
+      - ${DATA_DIR}/mysql9:/var/lib/mysql/:rw
+    restart: always
+    networks:
+      - default
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL9_ROOT_PASSWORD}"
+      MYSQL_ROOT_HOST: "${MYSQL9_ROOT_HOST}"
+      TZ: "$TZ"
+
+  #  openresty:
+  #    image:  openresty/openresty:${OPENRESTY_VERSION}
+  #    container_name: openresty
+  #    ports:
+  #       - "${OPENRESTY_HTTP_HOST_PORT}:80"
+  #       - "${OPENRESTY_HTTPS_HOST_PORT}:443"
+  #    volumes:
+  #       - ${SOURCE_DIR}:/www/:rw
+  #       - ${OPENRESTY_CONFD_DIR}:/etc/nginx/conf.d/:ro
+  #       - ${OPENRESTY_SSL_CERTIFICATE_DIR}:/ssl:rw
+  #       - ${OPENRESTY_CONF_FILE}:/usr/local/openresty/nginx/conf/nginx.conf:ro
+  #       - ${OPENRESTY_FASTCGI_PHP_CONF}:/usr/local/openresty/nginx/conf/fastcgi-php.conf:ro
+  #       - ${OPENRESTY_CONF_FASTCGIPARAMS_FILE}:/usr/local/openresty/nginx/conf/fastcgi_params:ro
+  #       - ${OPENRESTY_LOG_DIR}:/var/log/nginx/:rw
+  #    environment:
+  #      TZ: "$TZ"
+  #    networks:
+  #      - default
+
+  redis:
+    image: redis:${REDIS_VERSION}
+    container_name: redis
+    ports:
+      - "${REDIS_HOST_PORT}:6379"
+    volumes:
+      - ${REDIS_CONF_FILE}:/etc/redis.conf:ro
+      - ${DATA_DIR}/redis:/data/:rw
+    restart: always
+    entrypoint: [ "redis-server", "/etc/redis.conf" ]
+    environment:
+      TZ: "$TZ"
+    networks:
+      - default
+
+
+  #  memcached:
+  #    image: memcached:${MEMCACHED_VERSION}
+  #    container_name: memcached
+  #    ports:
+  #      - "${MEMCACHED_HOST_PORT}:11211"
+  #    environment:
+  #       MEMCACHED_CACHE_SIZE: "${MEMCACHED_CACHE_SIZE}"
+  #    networks:
+  #      - default
+
+  rabbitmq:
+    build:
+      context: ./services/rabbitmq
+      args:
+        RABBITMQ_VERSION: ${RABBITMQ_VERSION}
+        RABBITMQ_PLUGINS: ${RABBITMQ_PLUGINS}
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "${RABBITMQ_HOST_PORT_C}:5672"
+      - "${RABBITMQ_HOST_PORT_S}:15672"
+    environment:
+      TZ: "$TZ"
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS}"
+    networks:
+          - default
+
+  #  phpmyadmin:
+  #    image: phpmyadmin/phpmyadmin:latest
+  #    container_name: phpmyadmin
+  #    ports:
+  #      - "${PHPMYADMIN_HOST_PORT}:80"
+  #    volumes:
+  #      - ${PHPMYADMIN_USER_CONF_FILE}:/etc/phpmyadmin/config.user.inc.php:ro
+  #      - ${PHPMYADMIN_PHP_CONF_FILE}:/usr/local/etc/php/conf.d/php-phpmyadmin.ini:ro
+  #    networks:
+  #      - default
+  #    environment:
+  #      - PMA_HOST=mysql
+  #      - PMA_PORT=3306
+  #      - TZ=$TZ
+
+  #  phpredisadmin:
+  #    image: erikdubbelbau/phpredisadmin:latest
+  #    container_name: phpredisadmin
+  #    ports:
+  #      - "${REDISMYADMIN_HOST_PORT}:80"
+  #    networks:
+  #      - default
+  #    environment:
+  #      - REDIS_1_HOST=redis
+  #      - REDIS_1_PORT=6379
+  #      - TZ=$TZ
+
+  # mongodb:
+  #   image: mongo:${MONGODB_VERSION}
+  #   container_name: mongodb
+  #   environment:
+  #       MONGO_INITDB_ROOT_USERNAME: "${MONGODB_INITDB_ROOT_USERNAME}"
+  #       MONGO_INITDB_ROOT_PASSWORD: "${MONGODB_INITDB_ROOT_PASSWORD}"
+  #       TZ: "$TZ"
+  #   volumes:
+  #     - ${DATA_DIR}/mongo:/data/db:rw
+  #     - ${DATA_DIR}/mongo_key:/mongo:rw
+  #   ports:
+  #     - "${MONGODB_HOST_PORT}:27017"
+  #   networks:
+  #     - default
+  #   command:
+  #     --auth
+
+  #  adminmongo:
+  #    image: mrvautin/adminmongo
+  #    container_name: adminmongo
+  #    ports:
+  #      - "${ADMINMONGO_HOST_PORT}:1234"
+  #    environment:
+  #      - HOST=0.0.0.0
+  #      - DB_HOST=mongodb
+  #      - DB_PORT=27017
+  #    networks:
+  #      - default
+
+  # elasticsearch:
+  #   build:
+  #     context: ./services/elasticsearch
+  #     args:
+  #       ELASTICSEARCH_VERSION: ${ELASTICSEARCH_VERSION}
+  #       ELASTICSEARCH_PLUGINS: ${ELASTICSEARCH_PLUGINS}
+  #   container_name: elasticsearch
+  #   environment:
+  #     - TZ=$TZ
+  #     - discovery.type=single-node
+  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  #     - xpack.security.enabled=false
+  #     - ELASTIC_PASSWORD=changeme
+  #   volumes:
+  #     - ${DATA_DIR}/esdata:/usr/share/elasticsearch/data
+  #     - ${ELASTICSEARCH_CONF_FILE}:/usr/share/elasticsearch/config/elasticsearch.yml
+  #     - ${ELASTICSEARCH_JVM_CONF_FILE}:/usr/share/elasticsearch/config/jvm.options
+  #     - ${ELASTICSEARCH_LOG4J2_CONF_FILE}:/usr/share/elasticsearch/config/log4j2.properties
+  #     - ./services/elasticsearch/plugins:/usr/share/elasticsearch/plugins
+  #   hostname: elasticsearch
+  #   restart: always
+  #   ports:
+  #     - "${ELASTICSEARCH_HOST_PORT_C}:9200"
+  #     - "${ELASTICSEARCH_HOST_PORT_S}:9300"
+
+  # kibana:
+  #   image: kibana:${KIBANA_VERSION}
+  #   container_name: kibana
+  #   environment:
+  #     TZ: "$TZ"
+  #     ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+  #     I18N_LOCALE: "${KIBANA_I18N_LOCALE}"
+  #   hostname: kibana
+  #   depends_on:
+  #     - elasticsearch
+  #   restart: always
+  #   ports:
+  #     - "${KIBANA_HOST}:5601"
+
+  # logstash:
+  #   image: logstash:${LOGSTASH_VERSION}
+  #   container_name: logstash
+  #   hostname: logstash
+  #   restart: always
+  #   depends_on:
+  #     - elasticsearch
+  #   environment:
+  #     TZ: "$TZ"
+  #     ELASTICSEARCH_URL: "http://elasticsearch:9200"
+  #   ports:
+  #     - "${LOGSTASH_HOST_PORT_C}:9600"
+  #     - "${LOGSTASH_HOST_PORT_S}:5044"
+
+  # node:
+  #   image: node:latest
+  #   container_name: node
+  #   working_dir: /app
+  #   volumes:
+  #     - ${SOURCE_DIR}:/app:rw
+  #   ports:
+  #     - "3010:3010"
+  #     - "8080:8080"
+  #     - "8090:8090"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - TZ=$TZ
+  #   tty: true
+  #   networks:
+  #     - default
+  #   restart: always
+
+  # supervisor:
+  #   build:
+  #     context: ./services/supervisor
+  #     args:
+  #       ALPINE_VERSION: alpine:${ALPINE_VERSION}
+  #       TZ: "$TZ"
+  #       CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+  #   container_name: supervisor
+  #   ports:
+  #     - "${SUPERVISOR_HOST_PORT_C}:9001"
+  #   volumes:
+  #     - ${SOURCE_DIR}:/www/:rw
+  #     - ./logs/supervisor:/var/log/supervisor/:rw
+  #     - ${SUPERVISOR_CONFIG}:/etc/supervisor/conf.d/:rw
+  #     - ${SUPERVISOR_CONF_FILE}:/etc/supervisor/supervisord.conf:ro
+  #   command:
+  #     - /bin/sh
+  #     - -c
+  #     - |
+  #       supervisord -n -c /etc/supervisor/supervisord.conf
+  #   restart: always
+  #   cap_add:
+  #     - SYS_PTRACE
+  #   networks:
+  #     - default
+
+  golang:
+    image: golang:1.26-alpine
+    container_name: golang
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./go_projects:/go/src/app/:rw
+      - ${DATA_DIR}/go_cache:/go/pkg/mod/cache
+    working_dir: /go/src/app
+    environment:
+      - TZ=$TZ
+      - GOPROXY=https://goproxy.cn,direct
+    tty: true # Keep container running
+    restart: always
+    networks:
+      - default
+
+  kafka:
+    image: wurstmeister/kafka:${KAFKA_VERSION}
+    container_name: kafka
+    ports:
+      - "${KAFKA_HOST_PORT}:9092"
+    volumes:
+      - ${KAFKA_LOG_DIR}:/kafka/kafka-logs
+    environment:
+      TZ: "$TZ"
+      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID}
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION}
+      KAFKA_LOG_RETENTION_HOURS: "168"
+      KAFKA_LOG_SEGMENT_BYTES: "1073741824"
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: "300000"
+      KAFKA_NUM_NETWORK_THREADS: "3"
+      KAFKA_NUM_IO_THREADS: "8"
+      KAFKA_SOCKET_SEND_BUFFER_BYTES: "102400"
+      KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: "102400"
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: "104857600"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+    depends_on:
+      - zookeeper
+    networks:
+      - default
+    restart: always
+
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-15-alpine}
+    container_name: postgres
+    ports:
+      - "8432:5432"
+    volumes:
+      - ${DATA_DIR}/postgres:/var/lib/postgresql/data:rw
+      - ${POSTGRES_CONF_FILE:-./services/postgres/postgresql.conf}:/etc/postgresql/postgresql.conf:ro
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-123456}"
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_DB: "${POSTGRES_DB:-default}"
+      TZ: "$TZ"
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    restart: always
+    networks:
+      - default
+
+  # 删除或注释掉原来的 kafka-manager 配置
+  # kafka-manager:
+  #   image: hlebalbau/kafka-manager:stable
+  #   ...
+
+  # 添加 kafdrop 配置
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    ports:
+      - "9005:9000"
+    environment:
+      TZ: "$TZ"
+      KAFKA_BROKERCONNECT: "kafka:9092"
+      JVM_OPTS: "-Xms32M -Xmx64M"
+      SERVER_SERVLET_CONTEXTPATH: "/"
+    depends_on:
+      - kafka
+    networks:
+      - default
+    restart: always
+
+  # Prometheus 服务
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    container_name: prometheus
+    restart: always
+    ports:
+      - "${PROMETHEUS_HOST_PORT}:9090"
+    volumes:
+      - ${PROMETHEUS_CONF_FILE}:/etc/prometheus/prometheus.yml
+      - ${PROMETHEUS_DATA_DIR}:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - default
+
+  # xhgui:
+  #   image: mongo:4.4    # 改用官方的 mongo 镜像
+  #   container_name: xhgui-mongo
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - ${DATA_DIR}/xhgui/mongo:/data/db
+  #   networks:
+  #     - default
+  #   restart: always
+  #   environment:
+  #     TZ: "$TZ"
+
+  # xhgui-app:
+  #   build:
+  #     context: ./services/xhgui
+  #   container_name: xhgui-app
+  #   ports:
+  #     - "8142:9000"  # 添加端口映射
+  #   volumes:
+  #     - ${SOURCE_DIR}/xhgui:/www/xhgui:rw
+  #   expose:
+  #     - "9000"
+  #   depends_on:
+  #     - xhgui
+  #   networks:
+  #     - default
+  #   restart: always
+
+  # 添加监控服务
+
+
+  # Prometheus 服务已存在，保持不变
+
+  # Node Exporter - 系统指标监控
+  # node-exporter:
+  #   image: prom/node-exporter:latest
+  #   container_name: node-exporter
+  #   restart: always
+  #   ports:
+  #     - "${NODE_EXPORTER_PORT}:9100"
+  #   volumes:
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /:/rootfs:ro
+  #   command:
+  #     - '--path.procfs=/host/proc'
+  #     - '--path.sysfs=/host/sys'
+  #     - '--path.rootfs=/rootfs'
+  #     - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+  #   networks:
+  #     - default
+
+  # MySQL Exporter - MySQL 监控
+  # mysql-exporter:
+  #   image: prom/mysqld-exporter:latest
+  #   container_name: mysql-exporter
+  #   restart: always
+  #   ports:
+  #     - "${MYSQL_EXPORTER_PORT}:9104"
+  #   environment:
+  #     - DATA_SOURCE_NAME=root:${MYSQL5_ROOT_PASSWORD}@(mysql5:3306)/
+  #   depends_on:
+  #     - mysql5
+  #   networks:
+  #     - default
+
+  # Redis Exporter - Redis 监控
+  # redis-exporter:
+  #   image: oliver006/redis_exporter:latest
+  #   container_name: redis-exporter
+  #   restart: always
+  #   ports:
+  #     - "${REDIS_EXPORTER_PORT}:9121"
+  #   environment:
+  #     - REDIS_ADDR=redis:6379
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - default
+
+  # Nginx Exporter - Nginx 监控
+  # nginx-exporter:
+  #   image: nginx/nginx-prometheus-exporter:latest
+  #   container_name: nginx-exporter
+  #   restart: always
+  #   ports:
+  #     - "${NGINX_EXPORTER_PORT}:9113"
+  #   command:
+  #     - '-nginx.scrape-uri=http://nginx20:80/nginx_status'
+  #   depends_on:
+  #     - nginx
+  #   networks:
+  #     - default
+
+  # PHP-FPM Exporter - PHP-FPM 监控
+  # php-fpm-exporter:
+  #   image: hipages/php-fpm_exporter:latest
+  #   container_name: php-fpm-exporter
+  #   restart: always
+  #   ports:
+  #     - "${PHP_FPM_EXPORTER_PORT}:9253"
+  #   environment:
+  #     - PHP_FPM_SCRAPE_URI=tcp://php82:9000/status
+  #   depends_on:
+  #     - php
+  #   networks:
+  #     - default
+
+  # Kafka Exporter - Kafka 监控
+  # kafka-exporter:
+  #   image: danielqsj/kafka-exporter:latest
+  #   container_name: kafka-exporter
+  #   restart: always
+  #   ports:
+  #     - "${KAFKA_EXPORTER_PORT}:9308"
+  #   command:
+  #     - '--kafka.server=kafka:9092'
+  #   depends_on:
+  #     - kafka
+  #   networks:
+  #     - default
+
+  # # TDengine - 时序数据库
+  # tdengine:
+  #   build:
+  #     context: ./services/tdengine
+  #     args:
+  #       TDENGINE_VERSION: ${TDENGINE_VERSION}
+  #       TZ: "$TZ"
+  #   container_name: tdengine
+  #   hostname: tdengine
+  #   restart: always
+  #   ports:
+  #     - "${TDENGINE_HOST_PORT}:6030"
+  #     - "6041:6041"
+  #     - "6042:6042"
+  #   volumes:
+  #     - ${TDENGINE_DATA_DIR}:/var/lib/taos
+  #     - ${TDENGINE_LOG_DIR}:/var/log/taos
+  #   environment:
+  #     TZ: "$TZ"
+  #     TAOS_SKIP_SYS_CHECK: "1"
+  #   command: ["/usr/bin/taosd", "--skip-sysctl"]
+  #   networks:
+  #     - default
+
+  # InfluxDB - 时序数据库
+  influxdb:
+    build:
+      context: ./services/influxdb
+      args:
+        INFLUXDB_VERSION: ${INFLUXDB_VERSION}
+        TZ: "$TZ"
+    container_name: influxdb
+    hostname: influxdb
+    restart: always
+    ports:
+      - "${INFLUXDB_HOST_PORT}:8086"
+    volumes:
+      - ${INFLUXDB_DATA_DIR}:/var/lib/influxdb2
+    environment:
+      TZ: "$TZ"
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_ADMIN_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
+    networks:
+      - default
+
+  # Consul - 服务发现和配置
+  consul:
+    image: consul:${CONSUL_VERSION}
+    container_name: consul
+    restart: always
+    ports:
+      - "${CONSUL_UI_PORT}:8500"
+      - "${CONSUL_SERVER_PORT}:8300"
+      - "${CONSUL_DNS_PORT}:8600/udp"
+    volumes:
+      - ${CONSUL_DATA_DIR}:/consul/data
+      - ${CONSUL_CONFIG_DIR}:/consul/config
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - CONSUL_CLIENT_INTERFACE=eth0
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    depends_on:
+      - kafka
+      - zookeeper
+    networks:
+      - default
+
+  # Yearning - MySQL审核平台
+  yearning:
+    image: chaiyd/yearning:latest
+    container_name: yearning
+    restart: always
+    ports:
+      - "${YEARNING_HOST_PORT}:8000"
+    volumes:
+      - ${YEARNING_DATA_DIR}:/opt/yearning/data
+    environment:
+      MYSQL_ADDR: mysql5
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      MYSQL_DB: tp8
+    depends_on:
+      - mysql5
+    networks:
+      - default
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.4
+    container_name: meilisearch
+    ports:
+      - "${MEILISEARCH_HOST_PORT}:7700"
+    volumes:
+      - ${DATA_DIR}/meilisearch:/meili_data
+    environment:
+      - MEILI_MASTER_KEY=${MEILISEARCH_MASTER_KEY:-masterKey}
+      - MEILI_NO_ANALYTICS=${MEILISEARCH_NO_ANALYTICS:-true}
+      - MEILI_ENV=${MEILI_ENV:-development}
+    restart: always
+    networks:
+      - default
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION}
+    container_name: clickhouse
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT}:8123"
+      - "${CLICKHOUSE_TCP_PORT}:9010"
+    volumes:
+      - ${CLICKHOUSE_DATA_DIR}:/var/lib/clickhouse
+      - ${CLICKHOUSE_LOG_DIR}:/var/log/clickhouse-server
+      - ./services/clickhouse/config.xml:/etc/clickhouse-server/config.xml
+      - ./services/clickhouse/users.xml:/etc/clickhouse-server/users.xml
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=${CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT}
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    restart: always
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      # 解除下面的注释可以设置网段，用于nginx等容器固定容器IP
+      #config:
+      #  - subnet: 10.0.0.0/24
+
+
+
