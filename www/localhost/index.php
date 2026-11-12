@@ -47,7 +47,7 @@ function getNginxVersion()
         curl_setopt($ch, CURLOPT_TIMEOUT, 3);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
         $headers = curl_exec($ch);
-        curl_close($ch);
+        $ch      = null;
 
         if ($headers && preg_match('/Server:\s*nginx\/([0-9.]+)/i', $headers, $matches)) {
             return $matches[1];
@@ -81,8 +81,8 @@ function getMysqlVersion()
     if (extension_loaded('PDO_MYSQL')) {
         try {
             //注意host地址
-            $dbh = new PDO('mysql:host=mysql5;port=3306;dbname=mysql', 'root', '123456');
-            $sth = $dbh->query('SELECT VERSION() as version');
+            $dbh  = new PDO('mysql:host=mysql9;port=3308;dbname=mysql', 'root', '123456');
+            $sth  = $dbh->query('SELECT VERSION() as version');
             $info = $sth->fetch();
         } catch (PDOException $e) {
             return $e->getMessage();
