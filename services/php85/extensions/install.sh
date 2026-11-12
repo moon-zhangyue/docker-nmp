@@ -53,6 +53,34 @@ isPhpVersionGreaterOrEqual()
 
 
 #
+# Download extension source from PECL and build it.
+# Required for PHP >= 8.5, because bundled .tgz packages are too old:
+#   - redis-6.0.2 / mongodb-1.15.2 use ext/standard/php_smart_string.h,
+#     which was removed in PHP 8.5
+#   - imagick-3.7.0 / swoole-5.x are not compatible with PHP 8.5 API
+#
+# Usage: installExtensionFromPeclPkg redis [--enable-xxx]
+#
+installExtensionFromPeclPkg()
+{
+    pkgName=$1
+    shift 1
+    ( cd /tmp \
+        && rm -rf "${pkgName}-build" \
+        && mkdir "${pkgName}-build" \
+        && cd "${pkgName}-build" \
+        && curl -sL "https://pecl.php.net/get/${pkgName}" -o source.tgz \
+        && tar -xf source.tgz \
+        && cd "${pkgName}-"* \
+        && phpize \
+        && ./configure "$@" \
+        && make ${MC} \
+        && make install ) \
+    && docker-php-ext-enable ${pkgName}
+}
+
+
+#
 # Install extension from package file(.tgz),
 # For example:
 #
@@ -357,10 +385,13 @@ if [[ -z "${EXTENSIONS##*,imagick,*}" ]]; then
     echo "---------- Install imagick ----------"
     apk add --no-cache file-dev
     apk add --no-cache imagemagick imagemagick-dev
-#    cd imagick-3.7.0 && phpize && ./configure
-#    make
-#    make install
-    installExtensionFromTgz imagick-3.7.0
+    isPhpVersionGreaterOrEqual 8 5
+    if [[ "$?" = "0" ]]; then
+        # bundled imagick-3.7.0.tgz is not compatible with PHP >= 8.5
+        installExtensionFromPeclPkg imagick
+    else
+        installExtensionFromTgz imagick-3.7.0
+    fi
 fi
 
 if [[ -z "${EXTENSIONS##*,rar,*}" ]]; then
@@ -541,7 +572,13 @@ fi
 
 if [[ -z "${EXTENSIONS##*,redis,*}" ]]; then
     echo "---------- Install redis ----------"
-    installExtensionFromTgz redis-6.0.2
+    isPhpVersionGreaterOrEqual 8 5
+    if [[ "$?" = "0" ]]; then
+        # redis-6.0.2.tgz uses ext/standard/php_smart_string.h, removed in PHP 8.5
+        installExtensionFromPeclPkg redis
+    else
+        installExtensionFromTgz redis-6.0.2
+    fi
 fi
 
 if [[ -z "${EXTENSIONS##*,apcu,*}" ]]; then
@@ -589,8 +626,14 @@ fi
 if [[ -z "${EXTENSIONS##*,mongodb,*}" ]]; then
     echo "---------- Install mongodb ----------"
     apk add --no-cache openssl-dev
-    installExtensionFromTgz mongodb-1.15.2
-    docker-php-ext-configure mongodb --with-mongodb-ssl=openssl
+    isPhpVersionGreaterOrEqual 8 5
+    if [[ "$?" = "0" ]]; then
+        # mongodb-1.15.2.tgz is not compatible with PHP >= 8.5
+        installExtensionFromPeclPkg mongodb
+    else
+        installExtensionFromTgz mongodb-1.15.2
+        docker-php-ext-configure mongodb --with-mongodb-ssl=openssl
+    fi
     docker-php-ext-enable mongodb
 fi
 
@@ -606,7 +649,13 @@ if [[ -z "${EXTENSIONS##*,swoole,*}" ]]; then
     apk add --no-cache libstdc++
     isPhpVersionGreaterOrEqual 8 0
     if [[ "$?" = "0" ]]; then
-        installExtensionFromTgz swoole-6.0.2 --enable-openssl --enable-http2
+        isPhpVersionGreaterOrEqual 8 5
+        if [[ "$?" = "0" ]]; then
+            # always build the latest swoole (>= 6.2 supports PHP 8.5) from PECL
+            installExtensionFromPeclPkg swoole --enable-openssl --enable-http2
+        else
+            installExtensionFromTgz swoole-6.0.2 --enable-openssl --enable-http2
+        fi
     fi
 fi
 
@@ -625,9 +674,30 @@ fi
 
 if [[ -z "${EXTENSIONS##*,xhprof,*}" ]]; then
     echo "---------- Install XHProf ----------"
-    pecl install xhprof
+    # PECL xhprof >= 2.3.10 supports PHP 8.5
+    printf "\n" | pecl install xhprof
     docker-php-ext-enable xhprof
+fi
 
+if [[ -z "${EXTENSIONS##*,tideways_xhprof,*}" ]]; then
+    echo "---------- Install tideways_xhprof ----------"
+    # tideways/php-xhprof-extension v5.0.4 (open-source xhprof fork, archived 2023)
+    # verified to compile against PHP 8.5 after patching the unexpanded
+    # PHP_CHECK_GCC_ARG macro (removed from PHP's acinclude.m4 in newer PHP)
+    mkdir tideways_xhprof
+    if [ -f tideways_xhprof-5.0.4.tgz ]; then
+        tar -xf tideways_xhprof-5.0.4.tgz -C tideways_xhprof --strip-components=1
+    else
+        curl -sL "https://codeload.github.com/tideways/php-xhprof-extension/tar.gz/refs/tags/v5.0.4" -o tideways_xhprof-src.tgz \
+        && tar -xf tideways_xhprof-src.tgz -C tideways_xhprof --strip-components=1
+    fi
+    ( cd tideways_xhprof \
+        && phpize \
+        && sed -i 's/PHP_CHECK_GCC_ARG(/: # PHP_CHECK_GCC_ARG(/' configure \
+        && ./configure \
+        && make ${MC} \
+        && make install ) \
+    && docker-php-ext-enable tideways_xhprof
 fi
 
 if [[ -z "${EXTENSIONS##*,xlswriter,*}" ]]; then
