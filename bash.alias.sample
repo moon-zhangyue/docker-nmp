@@ -1,5 +1,5 @@
 # dnmp alias
-alias dnginx='docker exec -it nginx /bin/sh'
+alias dnginx='docker compose exec nginx sh'
 alias dphp='docker exec -it php /bin/sh'
 alias dphp56='docker exec -it php56 /bin/sh'
 alias dphp54='docker exec -it php54 /bin/sh'

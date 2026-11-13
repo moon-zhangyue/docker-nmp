@@ -7,7 +7,7 @@ services:
         NGINX_VERSION: nginx:${NGINX_VERSION}
         CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
         NGINX_INSTALL_APPS: ${NGINX_INSTALL_APPS}
-    container_name: nginx20
+    # 不设置 container_name，交由 Compose 自动命名，避免固定名字阻止 --scale
     ports:
       - "${NGINX_HTTP_HOST_PORT}:80"
       - "${NGINX_HTTPS_HOST_PORT}:443"
@@ -665,7 +665,7 @@ services:
 #   ports:
 #     - "${NGINX_EXPORTER_PORT}:9113"
 #   command:
-#     - '-nginx.scrape-uri=http://nginx20:80/nginx_status'
+#     - '-nginx.scrape-uri=http://nginx:80/nginx_status'
 #   depends_on:
 #     - nginx
 #   networks:

@@ -14,42 +14,54 @@
 
 use Webman\Route;
 use app\controller\UserController;
+use app\middleware\AuthCheck;
 use support\Request;
 
-// 用户模块路由
+// ============================================================
+// 公开路由：默认不挂中间件，可匿名访问
+// ============================================================
+
+// 注册 / 登录必须公开，否则无法建立会话
 Route::post('/user/register', [UserController::class, 'register']);
 Route::post('/user/login', [UserController::class, 'login']);
-Route::get('/user/info', [UserController::class, 'info']);
-Route::get('/user/get-by-id', [app\controller\UserController::class, 'getUserById']);
-Route::post('/user/logout', [app\controller\UserController::class, 'logout']);
 
-// 简单 GET 路由
+// 首页
 Route::get('/', function (Request $request) {
     return response('Hello Webman!');
 });
 
-// 带参数路由
-Route::get('/user/{id}', function (Request $request, $id) {
-    return response("User ID: $id");
-});
-
-// POST 路由
+// 测试路由
 Route::post('/login', function (Request $request) {
     $data = $request->post();
     return json(['message' => 'Logged in', 'data' => $data]);
 });
 
-// 分组路由
 Route::group('/api', function () {
     Route::get('/test', function () {
         return 'API Test';
     });
 });
 
-// 任意方法路由
 Route::any('/anything', function () {
     return 'Any method allowed';
 });
 
-// 关闭默认路由（如果需要自定义所有路由）
+// ============================================================
+// 需要登录的路由组：显式挂载 AuthCheck
+// 新增敏感接口请放进本组，或单独 ->middleware(AuthCheck::class)
+// ============================================================
+Route::group('/user', function () {
+    Route::get('/info', [UserController::class, 'info']);
+    Route::get('/get-by-id', [UserController::class, 'getUserById']);
+    Route::post('/logout', [UserController::class, 'logout']);
+})->middleware(AuthCheck::class);
+
+// 带参数的测试路由（公开）。
+// 必须放在所有 /user 静态路由之后注册：nikic/fast-route 不允许先定义变量路由
+// 再定义同前缀静态路由，否则抛 BadRouteException "Static route ... is shadowed"。
+Route::get('/user/{id}', function (Request $request, $id) {
+    return response("User ID: $id");
+});
+
+// 关闭默认路由（避免控制器方法被自动映射成不受鉴权约束的 URL）
 Route::disableDefaultRoute();

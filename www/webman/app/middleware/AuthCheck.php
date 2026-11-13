@@ -8,21 +8,13 @@ use Webman\Http\Request;
 
 /**
  * 用户认证中间件
- * 
- * 用于验证用户是否已登录，保护需要登录才能访问的接口
+ *
+ * 只挂载在 config/route.php 中「需要登录」的路由组上，不再作为全局中间件。
+ * 因此能执行到这里就说明该接口必须登录，无需再维护路径白名单。
+ * 注意：默认所有路由都是公开的，新增敏感接口必须显式挂本中间件。
  */
 class AuthCheck implements MiddlewareInterface
 {
-    /**
-     * 不需要登录验证的路由
-     * 
-     * @var array
-     */
-    protected $except = [
-        '/user/register',
-        '/user/login',
-    ];
-
     /**
      * 处理请求
      *
@@ -32,25 +24,15 @@ class AuthCheck implements MiddlewareInterface
      */
     public function process(Request $request, callable $handler): Response
     {
-        // 获取当前路径
-        $path = $request->path();
-
-        // 如果是不需要登录验证的路由，直接通过
-        if (in_array($path, $this->except)) {
-            return $handler($request);
-        }
-
-        // 检查用户是否已登录
         $userId = $request->session()->get('user_id');
         if (!$userId) {
-            // 未登录，返回401错误
+            // 未登录，返回业务 401（HTTP 状态仍为 200，与原有行为一致）
             return json([
                 'code' => 401,
                 'msg'  => '未登录或登录已过期',
             ]);
         }
 
-        // 已登录，继续处理请求
         return $handler($request);
     }
 }

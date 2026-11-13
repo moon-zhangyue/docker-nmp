@@ -41,11 +41,11 @@ function getNginxVersion()
     if (function_exists('curl_init')) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, 'http://localhost');
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_NOBODY, TRUE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_HEADER, TRUE);
         curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, FALSE);
         $headers = curl_exec($ch);
         $ch      = null;
 
@@ -81,7 +81,7 @@ function getMysqlVersion()
     if (extension_loaded('PDO_MYSQL')) {
         try {
             //注意host地址
-            $dbh  = new PDO('mysql:host=mysql9;port=3308;dbname=mysql', 'root', '123456');
+            $dbh  = new PDO('mysql:host=mysql-9;port=3306;dbname=mysql', 'root', '123456');
             $sth  = $dbh->query('SELECT VERSION() as version');
             $info = $sth->fetch();
         } catch (PDOException $e) {
@@ -120,7 +120,7 @@ function getMongoVersion()
     if (extension_loaded('mongodb')) {
         try {
             $manager = new MongoDB\Driver\Manager('mongodb://root:123456@mongodb:27017/thinkphp8?authSource=admin');
-            $command = new MongoDB\Driver\Command(array('serverStatus' => true));
+            $command = new MongoDB\Driver\Command(array('serverStatus' => TRUE));
 
             $cursor = $manager->executeCommand('thinkphp8', $command);
 

@@ -128,9 +128,9 @@ PHP5.4启动后，打开Nginx 配置，修改`fastcgi_pass`的主机地址，由
 
 最后，**重启 Nginx** 生效。
 ```bash
-$ docker exec -it nginx nginx -s reload
+$ docker compose exec nginx nginx -s reload
 ```
-这里两个`nginx`，第一个是容器名，第二个是容器中的`nginx`程序。
+这里两个 `nginx`，第一个是 **Compose 服务名**，第二个是容器中的 `nginx` 程序。nginx 服务未设置固定容器名（由 Compose 自动命名为 `docker-nmp-nginx-1`），所以请用 `docker compose exec nginx ...` 按服务名操作，不要用 `docker exec -it nginx ...`。
 
 
 ### 3.2 安装PHP扩展
@@ -396,11 +396,11 @@ $ docker-compose down                       # 停止并删除容器，网络，�
 $ docker ps           # 查看所有运行中的容器
 $ docker ps -a        # 所有容器
 ```
-输出的`NAMES`那一列就是容器的名称，如果使用默认配置，那么名称就是`nginx`、`php`、`php56`、`mysql`等。
+输出的`NAMES`那一列就是容器的名称。本项目的 nginx 服务**未设置 `container_name`**，由 Compose 自动命名为 `docker-nmp-nginx-1`（编号可能变化），因此推荐始终按服务名操作：`docker compose exec nginx ...`；其余服务在 compose 中显式指定了 `container_name`，名称固定。
 
 然后，打开`~/.bashrc`或者`~/.zshrc`文件，加上：
 ```bash
-alias dnginx='docker exec -it nginx /bin/sh'
+alias dnginx='docker compose exec nginx sh'
 alias dphp='docker exec -it php /bin/sh'
 alias dphp56='docker exec -it php56 /bin/sh'
 alias dphp54='docker exec -it php54 /bin/sh'
