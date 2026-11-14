@@ -3,7 +3,7 @@
 - 审查日期：2026-11-13
 - 审查范围：`services/nginx/`（`nginx.conf`、`conf.d/*.conf`、`fastcgi-php.conf`、`fastcgi_params`、`Dockerfile`、`ssl/`）、`services/openresty/openresty.conf`、`docker-compose.yml` 与 `.env` 中 nginx 相关段
 - 版本与容器名：审查时为 `.env:59` `NGINX_VERSION=1.20.2-alpine`；**现已升级为 `NGINX_VERSION=1.28-alpine`（nginx/1.28.3）**，nginx 服务**未设置 `container_name`**（Compose 自动命名 `docker-nmp-nginx-1`），发布 80 / 443 / 8142
-- 说明：**审查时未修改任何配置文件**，所有改动以"建议片段"形式给出；后续已落地的升级、改名与 401 修复见文末「附：后续变更记录」
+- 说明：**审查时未修改任何配置文件**，所有改动以"建议片段"形式给出；后续已落地的升级、改名、401 修复与 **P0 全量修复（含补充项 1.7）** 见文末「附：后续变更记录」
 
 ---
 
@@ -11,23 +11,27 @@
 
 共 **24 项**问题：P0（会直接导致站点异常或安全风险）6 项、P1（明确的性能损失）8 项、P2（可观测性 / 健壮性 / 可维护性）10 项。
 
+> **状态更新**：P0 的 6 项 + 补充项 1.7 已于 2026-11-13 **全部处理并实测通过**（见文末变更记录第 10 项）；P1 的 8 项已于 2026-11-14 **全部处理并实测通过**（见第 11 项）。**剩余未应用的是第 3 节 P2 表格中的 3.1–3.14、3.16 共 15 项**（3.15 已随"去掉 container_name"处理，3.17 是"保持不变"的基准项）。
+
 | 优先级 | 一句话结论 |
 |---|---|
-| P0 | `tp6.local` 指向不存在的目录；workerman/webman 的 `upstream` 是死配置且强制给 HTTP 站点的 Cookie 加 `Secure`；8142 端口无鉴权暴露 XHGui；nginx 1.20.2 已停止维护 |
-| P1 | 单 worker + 1024 连接数、`gzip` 关闭、FastCGI 缓冲默认 2×8k、反向代理无 keepalive、TLS 无会话复用 —— 五项都是"改一行就有收益" |
+| P0（**已全部处理**） | 原问题：`tp6.local` 指向不存在的目录；workerman/webman 的 `upstream` 是死配置且强制给 HTTP 站点的 Cookie 加 `Secure`；8142 端口无鉴权暴露 XHGui；`stub_status` 白名单 `172.0.0.0/8` 过宽；nginx 1.20.2 已停止维护 |
+| P1（**已全部处理**） | 原问题：单 worker + 1024 连接数、`gzip` 关闭、FastCGI 缓冲默认 2×8k、反向代理无 keepalive、TLS 无会话复用 —— 五项都是"改一行就有收益" |
 | P2 | 全站 access_log 写进 `/dev/null`、`log_format` 定义了却没用、缺 `$request_time`，出问题时几乎无法定位慢在 nginx 还是 PHP |
 
-**投入产出比最高的三件事**：
+**审查时投入产出比最高的三件事**（第 1、2 项已完成，第 3 项属 P2 仍未应用）：
 
-1. 把 `worker_processes` / `worker_connections` 调大并打开 gzip —— 一行配置换来数倍静态响应吞吐。
-2. 修 `workerman.conf` 的 `proxy_pass` 与 `proxy_cookie_path` —— 现在 keepalive 完全没生效，且 HTTP 站点的会话 Cookie 会被浏览器丢弃。
-3. 把 `access_log` 从 `/dev/null` 改成带缓冲的真实文件，并在 `log_format` 里补 `$request_time` / `$upstream_response_time` —— 否则后续所有性能调优都是盲调。
+1. ~~把 `worker_processes` / `worker_connections` 调大并打开 gzip~~ —— **已处理**：`worker_processes 2` / `worker_connections 8192` / `multi_accept on` / `worker_rlimit_nofile 65535`，gzip 已开并对 JSON/JS/CSS/SVG 等生效（见文末第 11 项）。
+2. ~~修 `workerman.conf` 的 `proxy_pass` 与 `proxy_cookie_path`~~ —— **已处理**：upstream 已启用、`keepalive 32` + HTTP/1.1 生效，Cookie 不再加 `Secure`（见文末第 7、10 项）。
+3. 把 `access_log` 从 `/dev/null` 改成带缓冲的真实文件，并在 `log_format` 里补 `$request_time` / `$upstream_response_time` —— 否则后续所有性能调优都是盲调。（**仍未应用**，属 P2）
 
 ---
 
 ## 1. P0：功能性错误与安全风险
 
 ### 1.1 `tp6.local` 的 root 指向不存在的目录
+
+> **状态：已处理** —— 该冗余 server 块已从 `localhost.conf` 整体删除（用户自行修改），现仅保留 `tp8.local`。以下保留审查时的原始描述。
 
 `services/nginx/conf.d/localhost.conf:100-104`
 
@@ -43,6 +47,8 @@ root   /www/tp8/public/;      # ← 目录不存在，且名字与 server_name �
 ---
 
 ### 1.2 `upstream` 声明了却完全没被使用
+
+> **状态：已于 2026-11-13 处理**（见文末第 10 项）：两个 upstream 改指 `php85:2345` / `php85:8787`、`keepalive 10240 → 32`、`proxy_pass` 改用 upstream 名，并补齐 `proxy_http_version 1.1` / `Connection` / `X-Forwarded-Proto`，另加 `map` 兼容 WebSocket。以下保留审查时的原始描述。
 
 `services/nginx/conf.d/workerman.conf:2-5, 27, 31-34, 57`
 
@@ -114,6 +120,8 @@ proxy_cookie_path / "/; secure; HttpOnly; SameSite=strict";
 
 ### 1.4 XHGui 在 8142 端口裸奔
 
+> **状态：已于 2026-11-13 处理**（见文末第 10 项）：8142 只绑定 `127.0.0.1`，并加来源白名单 + `auth_basic`；顺带删掉重复的 `SCRIPT_FILENAME`。以下保留审查时的原始描述。
+
 `services/nginx/conf.d/xhgui.conf:4-10` + `docker-compose.yml:14` + `.env:328`
 
 ```nginx
@@ -145,6 +153,8 @@ server {
 
 ### 1.5 `stub_status` 的白名单网段过宽
 
+> **状态：已于 2026-11-13 处理**（见文末第 10 项）：`allow 172.0.0.0/8` → `allow 172.16.0.0/12`。以下保留审查时的原始描述。
+
 `services/nginx/conf.d/localhost.conf:34-36`
 
 ```nginx
@@ -161,6 +171,8 @@ deny all;
 
 ### 1.6 nginx 1.20.2 早已停止维护
 
+> **状态：已于 2026-11-13 处理**（见文末第 1 项）：已升级为 `nginx:1.28-alpine`（nginx/1.28.3），并适配 `http2 on;`、重签 2048-bit 证书。以下保留审查时的原始描述。
+
 `.env:59` → `services/nginx/Dockerfile:2` → `FROM nginx:1.20.2-alpine`。
 
 1.20 稳定分支在 1.22 发布后即停止维护，1.20.2 是 2021 年的构建。对外部暴露 80/443/8142 的容器运行一个多年未打补丁的 nginx，风险不需要多说。
@@ -176,6 +188,8 @@ deny all;
 ---
 
 ### 1.7 （补充）Web 根目录没有任何敏感路径防护
+
+> **状态：已于 2026-11-13 处理**（见文末第 10 项）：80/443 两个 server 均加隐藏文件、`vendor|composer.json|composer.lock`、备份/日志/SQL 后缀三组 deny 规则，并放行 `.well-known`。**注意（已实测）**：`addusers.php` / `add_user.php` 等 CLI 脚本仍可通过 Web 触发 —— 本次基线探测请求 `/addusers.php` 即触发脚本，21:48:44 生成了 111 MB `www/localhost/temp.csv`，随后因 `mysql5` 主机不存在（compose 中已注释）在 `addusers.php:61` 抛 `mysqli_sql_exception` 终止，**未写库、未执行 `LOAD DATA`**，临时 CSV 已清理。这属于代码审查报告 1.4 的 P0，本次按用户选定范围未额外拦截（避免改变现有 Web 调试方式）；若需 nginx 侧兜底，可在两个 server 的 deny 规则组追加 `location ~ ^/(addusers|add_user|add_goods|swoole|kafka_consumer)\.php$ { deny all; }`。以下保留审查时的原始描述。
 
 `services/nginx/conf.d/localhost.conf:50-52, 95-97` 的 `.htaccess` 拒绝规则是注释状态，`root /www/localhost` 下存在 `composer.json`、`composer.lock`、`names.txt`、`vendor/`。结合上一轮代码审查的结论 —— 同目录下还有 `addusers.php`（触发 100 万行写入）、`add_user.php`（含 `DROP TABLE`）、`index.php`（`echo phpinfo()`）—— nginx 层面没有任何一道闸门。
 
@@ -194,6 +208,8 @@ location ~ \.(sql|log|bak|swp)$  { deny all; }
 ## 2. P1：性能瓶颈
 
 ### 2.1 单 worker + 1024 连接数，并发上限被硬锁死
+
+> **状态：已于 2026-11-14 处理**（见文末第 11 项）：`worker_processes 2`、`worker_connections 8192`、`multi_accept on`、`worker_rlimit_nofile 65535`；`openresty.conf` 同步修改。**未用 `auto`** —— 容器内 nginx 读到的是宿主机 12 核、不感知 cgroup 配额。以下保留审查时的原始描述。
 
 `services/nginx/nginx.conf:3, 9`；`services/openresty/openresty.conf` 同样问题
 
@@ -222,6 +238,8 @@ events {
 
 ### 2.2 gzip 关闭、`tcp_nopush` 被注释
 
+> **状态：已于 2026-11-14 处理**（见文末第 11 项）：`tcp_nopush on`；`gzip on` + `gzip_vary` / `gzip_comp_level 5` / `gzip_min_length 1024` / `gzip_proxied any` / `gzip_types` 覆盖 JSON、JS、CSS、XML、SVG。实测 PHP 响应返回 `Content-Encoding: gzip` 与 `Vary: Accept-Encoding`。以下保留审查时的原始描述。
+
 `services/nginx/nginx.conf:27, 32`
 
 ```nginx
@@ -248,6 +266,8 @@ gzip_types
 注意 `gzip_types` 默认只含 `text/html`，不显式列 `application/javascript` / `application/json` 等于大部分静态资源没被压缩。
 
 ### 2.3 FastCGI 缓冲区停留在默认 2×8k，且读超时 1 小时
+
+> **状态：已于 2026-11-14 处理**（见文末第 11 项）：`fastcgi_buffer_size 32k`、`fastcgi_buffers 8 16k`、`fastcgi_busy_buffers_size 64k`、`connect 5s` / `send 30s` / `read 60s`（原 3600）、`fastcgi_keep_conn on`。实测连续 10 次 PHP 请求全部 200，`nginx.error.log` 无 FastCGI 错误。以下保留审查时的原始描述。
 
 `services/nginx/fastcgi-php.conf:12`
 
@@ -276,6 +296,10 @@ fastcgi_keep_conn        on;      # 配合 FPM 减少握手
 
 ### 2.4 TLS 没有会话复用，且未显式限制协议
 
+> **状态：已于 2026-11-14 处理**（见文末第 11 项）：`ssl_protocols TLSv1.2 TLSv1.3`、`ssl_prefer_server_ciphers off`、`ssl_session_cache shared:SSL:10m`、`ssl_session_timeout 10m`。
+>
+> **两处有意偏离报告建议**：① `ssl_session_tickets` 定为 **`on`** 而非报告写的 `off` —— TLS1.3 的复用只能靠 ticket（无 session id），`off` 会让"减少握手"的目标在 TLS1.3 下完全失效（实测 `-reconnect` 全为 `New`）；改为 `on` 后 TLS1.2 出现 `Reused`、TLS1.3 `-sess_in` 也返回 `Reused`。② **未加 HSTS** —— 本机还有 `webman.local` / `workerman.local` / `tp8.local` 纯 HTTP 站点，加 HSTS 会让浏览器强制 HTTPS、这些站点直接不可用。以下保留审查时的原始描述。
+
 `services/nginx/conf.d/localhost.conf:56, 68-69`
 
 ```nginx
@@ -302,6 +326,10 @@ add_header Strict-Transport-Security "max-age=31536000" always;   # 确认全站
 
 ### 2.5 缺少静态资源缓存与 `open_file_cache`
 
+> **状态：已于 2026-11-14 处理**（见文末第 11 项）：http 块加 `open_file_cache max=4096 inactive=30s` / `valid 60s` / `min_uses 2` / `errors on`；`localhost` 443 与 `tp8.local` 加静态资源 location（`expires 7d` + `Cache-Control: public, immutable`，实测 `favicon.ico` 返回 `max-age=604800` + `public, immutable`）。`webman` / `workerman` 两个纯反代站点**未加**，静态资源仍交上游处理，避免绕过应用。以下保留审查时的原始描述。
+>
+> 注意：`open_file_cache_errors on` 会把 404 缓存最长 60s，新建文件后可能短暂 404，需要即时可见就把 `open_file_cache_valid` 调小。
+
 所有 server 都没有 `expires` / `Cache-Control`，也没有 `open_file_cache`。而 `fastcgi-php.conf:6` 的 `try_files $fastcgi_script_name =404` 会在**每个 PHP 请求**上对脚本做一次 stat —— 这是本配置里最容易被忽略的系统调用开销。
 
 **修复**（`nginx.conf` 的 http 块）：
@@ -326,6 +354,8 @@ location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|map)$ {
 
 ### 2.6 无 HTTP → HTTPS 跳转
 
+> **状态：已于 2026-11-14 处理**（见文末第 11 项）：`localhost` 的 80 server 改为 `return 301 https://$host$request_uri`，PHP 只在 443 处理；`/nginx_status`（供 exporter 采集）与 `/.well-known/acme-challenge/`（ACME 续签）保留 HTTP 例外。**行为变化**：`http://localhost/...` 现在会 301 到 HTTPS（自签证书会弹警告）；`webman.local` / `tp8.local` 是独立 server，仍走 HTTP、不受影响。以下保留审查时的原始描述。
+
 `localhost.conf` 里 80 和 443 两个 server 内容几乎完全一致，各自独立提供 PHP。既然签了证书并启用 http2，80 端口却没有任何重定向，HTTPS 形同"可选"。
 
 **修复**：把 80 的 server 改成重定向（保留 `/nginx_status` 例外），PHP 只在 443 处理：
@@ -341,9 +371,13 @@ server {
 
 ### 2.7 `keepalive 10240` 与 upstream 死配置叠加
 
+> **状态：已随 1.2 处理**：两个 upstream 接通的同时 `keepalive` 已降到 `32`（见文末第 10 项），实测连续请求后到 8787 仅保持 1 条 ESTABLISHED 连接。
+
 见 1.2。这两个 upstream 一旦按建议接通，10240 的连接数会立刻变成真实的资源占用，务必同步降到 32–256。
 
 ### 2.8 `client_max_body_size 100M` 与缓冲未配
+
+> **状态：已于 2026-11-14 处理**（见文末第 11 项）：`client_max_body_size` 100M → **128M**（与 php `post_max_size=100M` 留出 multipart 余量），并补 `client_body_buffer_size 256k`、`client_header_timeout 10s`、`client_body_timeout 30s`、`send_timeout 30s`。以下保留审查时的原始描述。
 
 `nginx.conf:28` 允许 100M 请求体，但 `client_body_buffer_size` 用默认值（8k/16k），意味着几乎每个上传都会写临时文件。若确实需要大文件上传，建议：
 
@@ -501,4 +535,33 @@ http {
 
 9. **PHP 8.5 启动报错修复（webman 层，与 nginx 配置无关）**：用户报 `ErrorException: Method ReflectionProperty::setAccessible() is deprecated since 8.5`（`vendor/webman/log/src/Middleware.php:263`）。触发链是 `config/app.php` 的 `error_reporting => E_ALL` + `support/bootstrap.php:31` 的 `set_error_handler` 把 `E_DEPRECATED` 转成 `ErrorException`；`webman/log` v2.1.3 的 `getCapsule()` 调用了 PHP 8.1 起无效果、8.5 起被弃用的 `setAccessible(true)`，且 `initDbListen()` 的 `catch { echo $e; }` 会把堆栈打到 stdout，看起来像启动失败（服务其实可用）。官方 **v2.1.4 已删除该调用**，因此用 `composer update webman/log --no-scripts --no-interaction` 升级（仅 1 update / 0 install，`composer.json` 未改），**没有手工 patch vendor**。重启后又发现第二类同类报错：`plugin/admin/app/controller/Crud.php:129` 的 `string $field = null` 和 `PluginController.php:512` 的 `string $default = null` 是 PHP 8.4+ 弃用的隐式可空参数，导致 worker `exit with status 64000`；改为显式 `?string $x = null`（语义不变）。全项目 `php -d error_reporting=E_ALL -l` 扫描已无编译期 deprecation；重启后新增日志仅 `stop` / `start in DEBUG mode`，0 个 ErrorException、0 个异常退出，WorkerMan 27 个进程稳定，首页/`/api/test`/`/user/info`/`/user/123` 全部正常。备份 `backup/webman-log-upgrade-2026-11-13/`、`backup/webman-php85-deprecations-2026-11-13/`。附带发现 `composer audit` 报 23 个安全公告 / 7 个包（guzzlehttp/guzzle、guzzlehttp/psr7、symfony/cache、symfony/http-foundation、symfony/http-kernel、symfony/mime、symfony/polyfill-intl-idn），**未处理**。
 
-其余 **22 项**优化建议（worker_processes、gzip、访问日志、fastcgi 缓冲与超时、workerman upstream/keepalive、xhgui 鉴权等）仍未应用。原文件备份分别在 `backup/nginx-upgrade-2026-11-13/`、`backup/nginx-rename-2026-11-13/`、`backup/nginx-remove-container-name-2026-11-13/`、`backup/webman-auth-fix-2026-11-13/`。
+10. **P0 全量修复（用户要求「先将 P0 修复」）**：本次针对本报告 P0 6 项 + 补充项 1.7。其中 1.1（`tp6.local` 冗余 server 已删除）、1.3（Cookie `Secure`，见第 7 项）、1.6（nginx 1.28，见第 1 项）此前已处理，本次实际修改 1.2 / 1.4 / 1.5 / 1.7，并把全部 P0 在正文标注为已处理。
+
+    - **1.2 `workerman.conf`**：`upstream workerman` / `upstream webman` 由 `127.0.0.1:8181` / `127.0.0.1:8787` 改为 `php85:2345` / `php85:8787`，`keepalive 10240 → 32`；两处 `proxy_pass` 由直写 `http://php85:...` 改为 `http://workerman` / `http://webman`；补 `proxy_http_version 1.1` 与 `proxy_set_header X-Forwarded-Proto $scheme`。Connection 头用 `map $http_upgrade $workerman_connection_upgrade { default upgrade; '' ''; }` 处理：带 Upgrade 头时透传 `upgrade`（兼容 WebSocket），否则为空字符串让 nginx 不发送该头，从而启用 upstream keepalive。保留上一轮的 `proxy_cookie_path / "/; HttpOnly; SameSite=Lax";`。
+    - **1.4 `xhgui.conf` + `.env`**：`.env:328` 的 `XHGUI_HOST_PORT` 改为 `127.0.0.1:8142`（compose 的 `${XHGUI_HOST_PORT:-8142}:8142` 展开为 `127.0.0.1:8142:8142`，`docker compose config` 确认 `host_ip: 127.0.0.1`，**未改 compose**）；`xhgui.conf` 加 `allow 127.0.0.1; allow 172.16.0.0/12; deny all;` 与 `auth_basic` + `auth_basic_user_file /etc/nginx/conf.d/.htpasswd;`，并删掉与 `fastcgi_params:2` 重复的 `SCRIPT_FILENAME`。凭据文件 `services/nginx/conf.d/.htpasswd`（apr1 哈希、用户名 `admin`、一次性随机密码）被 `conf.d/.gitignore` 的 `*` 忽略、不入库；新环境需重新生成，否则 `nginx -t` 会因找不到文件而失败：
+      ```bash
+      printf 'admin:%s\n' "$(openssl passwd -apr1 '你的密码')" > services/nginx/conf.d/.htpasswd
+      ```
+    - **1.5 `localhost.conf`**：`allow 172.0.0.0/8` → `allow 172.16.0.0/12`（Docker 私有网段），容器来源 172.18.x 仍可访问 `/nginx_status`。
+    - **1.7 `localhost.conf`（80 + 443 两个 server）**：在 PHP 正则 location **之前**加 `location ~ /\.(?!well-known) { deny all; }`、`location ~ ^/(vendor|composer\.(json|lock))(/|$) { deny all; }`、`location ~ \.(?:sql|log|bak|swp)$ { deny all; }`（正则 location 按出现顺序匹配，放后面会被 PHP 转发规则抢先）。CLI 脚本 `addusers.php` 等**未**额外拦截，属代码审查报告 1.4 范畴。**基线探测副作用（已处理）**：请求 `/addusers.php` 会真的执行脚本，21:48:44 生成 111 MB `www/localhost/temp.csv`，随后因 `mysql5` 主机不存在于 `addusers.php:61` 抛 `mysqli_sql_exception` 终止，未写库、未执行 `LOAD DATA`；临时 CSV 已删除，`logs/php85/php-fpm.log` 有对应 Fatal error 记录。这实证了「CLI 脚本可被 Web 任意触发」的风险，后续若允许可加一行 deny 兜底。
+
+    **验证**：`nginx -t` 通过；`docker compose up -d --force-recreate nginx` 后 8142 仅监听 `127.0.0.1:8142`（首次 recreate 因旧端口未释放报 `bind: Only one usage of each socket address`，`docker compose up -d nginx` 重试即成功）。实测：8142 匿名 / 错误密码 401、正确凭据 200；`nginx_status` 200；`/composer.json`、`/composer.lock`、`/vendor/autoload.php`、`/.env`、`/test.sql`、`/backup.log` 全部 403，`/.well-known/...` 放行（404 仅因文件不存在），`/`、`/index.php` 200，HTTPS 站点同样生效；`http://webman.local/` → `Hello Webman!`（200），`/user/info` 仍业务 401 且 `Set-Cookie` 无 `secure`，`favicon.ico` 200，连续 12 次请求后 php85 侧到 8787 仅 1 条 ESTABLISHED（keepalive 生效）；HTTPS 200 且 `ALPN protocol: h2`；`nginx.webman.error.log` 最后错误仍停在 19:46 的历史记录，无新增 502；php85 内 WorkerMan 27 个进程未受 nginx 重建影响；`docker-compose.yml` 与 `backup/webman-autostart-2026-11-13/docker-compose.yml.bak` 仍逐字节一致（webman 依旧手动启停）。`workerman.local` 返回 502 是**预期**：php85 的 2345 端口本来就没有服务监听，本次为确认 upstream 解析生效主动探测过一次，error.log 中 upstream 显示为 `http://172.18.0.13:2345/`，非本次改动引入的回归。
+
+    **备份**：`backup/nginx-p0-fix-2026-11-13/`（localhost.conf / workerman.conf / xhgui.conf / .env / 本文档）。**注意**：`services/nginx/conf.d/.gitignore` 为 `*` + 仅放行 `localhost.conf`，因此 `workerman.conf`、`xhgui.conf`、`.htpasswd` 都是**未跟踪文件**，改动只存在于本地工作区、不会进版本库；需要纳入版本控制请自行调整该 `.gitignore`。
+
+11. **P1 全量修复（用户要求「把 P1 的 8 项也全都修改完全」）**：2026-11-14 完成 2.1–2.8，改动落在 `nginx.conf` / `fastcgi-php.conf` / `localhost.conf` / `openresty.conf`。
+
+    - **2.1** `nginx.conf`：`worker_processes 1 → 2`（**不用 `auto`** —— 容器内 nginx 读到宿主机 12 核、不感知 cgroup）、`worker_connections 1024 → 8192`、`multi_accept on`、`worker_rlimit_nofile 65535`；`openresty.conf` 同步（该服务在 compose 中仍为注释状态）。实测 worker 进程数 = 2；容器 `ulimit -n = 1048576`，足以支撑 8192。
+    - **2.2** `nginx.conf`：`tcp_nopush on`；`gzip on` + `gzip_vary on` / `gzip_comp_level 5` / `gzip_min_length 1024` / `gzip_proxied any` / `gzip_types`（text/plain text/css text/xml application/json application/javascript application/xml+rss application/xhtml+xml image/svg+xml）。实测 `https://localhost/index.php` 返回 `Content-Encoding: gzip` + `Vary: Accept-Encoding`。
+    - **2.3** `fastcgi-php.conf`：`fastcgi_buffer_size 32k`、`fastcgi_buffers 8 16k`、`fastcgi_busy_buffers_size 64k`、`fastcgi_connect_timeout 5s`、`fastcgi_send_timeout 30s`、`fastcgi_read_timeout 3600 → 60s`、`fastcgi_keep_conn on`。实测连续 10 次 PHP 请求全 200，`nginx.error.log` 无 FastCGI/upstream 错误，PHP 8.5.12 FPM 与 `keep_conn` 兼容。
+    - **2.4** `nginx.conf`：`ssl_protocols TLSv1.2 TLSv1.3`、`ssl_prefer_server_ciphers off`、`ssl_session_cache shared:SSL:10m`、`ssl_session_timeout 10m`。**两处有意偏离报告**：① `ssl_session_tickets` 取 **`on`**（报告写 `off`）—— TLS1.3 的复用只能靠 ticket，`off` 时实测 `-reconnect` 全为 `New`，等于把 2.4 的目标抵消；改 `on` 后 TLS1.2 出现 `Reused`（shared cache 生效），TLS1.3 用 `-sess_out/-sess_in` 也返回 `Reused`。② **未加 HSTS**（报告本身标注"确认全站 HTTPS 后再加"）：`webman.local` / `workerman.local` / `tp8.local` 仍是纯 HTTP，加 HSTS 会让这些站点不可用。实测 TLS1.2 / TLS1.3 握手成功、TLS1.1 被拒、`ALPN protocol: h2` 保持。
+    - **2.5** `nginx.conf` + `localhost.conf`（443）+ `tp8.local`：http 块加 `open_file_cache max=4096 inactive=30s` / `valid 60s` / `min_uses 2` / `errors on`；两处加静态资源 location（`expires 7d` + `Cache-Control: public, immutable` + `try_files $uri =404`）。实测 `http://tp8.local/favicon.ico` 返回 `Expires`、`Cache-Control: max-age=604800` 与 `public, immutable`（出现两个 `Cache-Control` 是 `expires` 与 `add_header` 叠加的正常行为，值兼容）。`webman` / `workerman` 两个纯反代站点未加，静态资源仍交上游，避免绕过应用。
+    - **2.6** `localhost.conf`：80 的 `localhost` server 改为纯跳转（`return 301 https://$host$request_uri`），PHP 只在 443 处理；保留两个 HTTP 例外 —— `location = /nginx_status`（exporter / 宿主采集）与 `location ^~ /.well-known/acme-challenge/`（ACME 续签）。实测 `http://localhost/` → 301、`/nginx_status` → 200。**行为变化**：`http://localhost/...` 现在会跳到 HTTPS（自签证书会弹警告）；`webman.local` / `tp8.local` 是独立 server，仍走 HTTP、不受影响。
+    - **2.7** 已随 1.2 完成（`keepalive 10240 → 32`），实测连续请求后到 8787 仅 1 条 ESTABLISHED。
+    - **2.8** `nginx.conf`：`client_max_body_size 100M → 128M`（与 php `post_max_size=100M` 留出 multipart 余量）、`client_body_buffer_size 256k`、`client_header_timeout 10s`、`client_body_timeout 30s`、`send_timeout 30s`。
+
+    **不回归验证**：`nginx -t` 通过、`nginx -s reload` 成功；`https://localhost/` 200、`https://localhost/composer.json` 仍 403、`webman.local/` → `Hello Webman!`、`/user/info` 业务 401 且 `Set-Cookie` 无 `secure`、8142 匿名 401 / 认证 200、`ALPN protocol: h2` 保持、`docker-compose.yml` 未改。**过程中发现 webman 未运行**：php85 容器状态是 `Up About an hour`，11-13 启动的 WorkerMan 在容器重启后丢失（符合"手动启停、不写 compose"的约定，与本次改动无关），已按运行态方式 `docker compose exec -d php85 sh -c 'cd /www/webman && php start.php start'` 拉起，27 个进程、8787 LISTEN；拉起前的 502 记录停在 16:59:08，之后无新增。
+
+    **备份**：`backup/nginx-p1-2026-11-14/`（nginx.conf / fastcgi-php.conf / localhost.conf / openresty.conf / 本文档）。`nginx.conf`、`fastcgi-php.conf` 是单文件 bind mount，编辑后容器内已确认读到新内容（`nginx -T` 可查），无需重建容器。
+
+剩余 **P2 中的 15 项**（第 3 节表格 3.1–3.14、3.16：`access_log /dev/null`、`log_format` 未被使用且缺 `$request_time`、`server_tokens on`、`PATH_INFO` 死代码、`if (!-f ...)` 写法、`conf.d/.gitignore` 白名单、volumes 读写权限、`depends_on`/healthcheck、限流等）仍未应用；3.15 已处理，3.17 为基准项无需改动。历次原文件备份在 `backup/nginx-upgrade-2026-11-13/`、`backup/nginx-rename-2026-11-13/`、`backup/nginx-remove-container-name-2026-11-13/`、`backup/webman-auth-fix-2026-11-13/`、`backup/nginx-p0-fix-2026-11-13/`、`backup/nginx-p1-2026-11-14/`。
