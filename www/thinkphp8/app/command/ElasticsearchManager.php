@@ -281,7 +281,7 @@ class ElasticsearchManager extends Command
      * @param Input $input 输入对象
      * @return int
      */
-    protected function clearOldIndices(Output $output, Input $input = null)
+    protected function clearOldIndices(Output $output, ?Input $input = null)
     {
         try {
             $config = Config::get('elasticsearch');

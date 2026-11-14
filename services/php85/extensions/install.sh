@@ -730,49 +730,25 @@ if [[ -z "${EXTENSIONS##*,zookeeper,*}" ]]; then
     isPhpVersionGreaterOrEqual 8 0
 
     if [[ "$?" = "0" ]]; then
-        echo "---------- Installing zookeeper dependencies ----------"
-        # 添加必要的依赖
-        apk add --no-cache re2c autoconf make g++
-        
-        # 安装 libzookeeper
-        # 尝试从主仓库安装
-        if ! apk add --no-cache libzookeeper-dev 2>/dev/null; then
-            # 如果主仓库安装失败，尝试从 edge/testing 仓库安装
-            echo "尝试从 edge/testing 仓库安装 libzookeeper-dev"
-            apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ libzookeeper-dev
-            
-            # 如果仍然失败，尝试手动编译安装
-            if [ $? -ne 0 ]; then
-                echo "从仓库安装失败，尝试手动编译安装 libzookeeper"
-                cd /tmp
-                wget https://archive.apache.org/dist/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1.tar.gz
-                tar -xzf apache-zookeeper-3.7.1.tar.gz
-                cd apache-zookeeper-3.7.1/zookeeper-client/zookeeper-client-c
-                ./configure --prefix=/usr
-                make && make install
-                cd /tmp
-                rm -rf apache-zookeeper-3.7.1 apache-zookeeper-3.7.1.tar.gz
-            fi
-        fi
-        
-        # 安装 PHP 扩展
+        echo "---------- Installing libzookeeper from source ----------"
+        # Alpine（含 edge/testing）已不提供 libzookeeper-dev，只能从 Apache 源码编译 C client。
+        # 选用 3.4.14：源码包自带 generated/zookeeper.jute.*，无需 ant 生成 jute 代码，
+        # 且与本编排中的 wurstmeister/zookeeper(3.4.x) 服务端协议一致。
+        apk add --no-cache build-base autoconf automake libtool openssl-dev zlib-dev
+        ( cd /tmp \
+            && rm -rf zookeeper-3.4.14 zookeeper.tar.gz \
+            && curl -sL "https://archive.apache.org/dist/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz" -o zookeeper.tar.gz \
+            && tar -xzf zookeeper.tar.gz \
+            && cd zookeeper-3.4.14/zookeeper-client/zookeeper-client-c \
+            && ./configure --prefix=/usr --without-cppunit \
+            && make ${MC} \
+            && make install ) \
+        || { echo "libzookeeper build failed"; exit 1; }
+        rm -rf /tmp/zookeeper-3.4.14 /tmp/zookeeper.tar.gz
+
         echo "---------- Installing PHP zookeeper extension ----------"
+        # PECL zookeeper >= 1.3.0 支持 PHP 8.5
         printf "\n" | pecl install zookeeper
-        
-        # 检查安装结果
-        if [ $? -ne 0 ]; then
-            echo "pecl install 失败，尝试从源码安装"
-            cd /tmp
-            wget https://pecl.php.net/get/zookeeper-1.2.0.tgz
-            tar -xzf zookeeper-1.2.0.tgz
-            cd zookeeper-1.2.0
-            phpize
-            ./configure
-            make && make install
-            cd /tmp
-            rm -rf zookeeper-1.2.0 zookeeper-1.2.0.tgz
-        fi
-        
         docker-php-ext-enable zookeeper
     else
         echo "---------- PHP Version>= 8.0 required for zookeeper extension ----------"
