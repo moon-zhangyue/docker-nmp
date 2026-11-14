@@ -844,6 +844,30 @@ services:
 #   networks:
 #     - default
 
+  # DPanel - Docker 可视化管理面板（lite 版）
+  # 为什么选 lite：标准版 dpanel/dpanel:latest 内置 nginx + acme.sh，需要 -p 80:80 -p 443:443
+  # 做域名转发，而本项目的 80/443 已被 nginx 服务占用，会和既有站点冲突；
+  # lite 版只做容器/镜像/compose/文件管理，参数与标准版一致，只是不含域名转发。
+  # 访问 http://127.0.0.1:8807 ，首次进入设置管理员账号密码。
+  dpanel:
+    image: dpanel/dpanel:${DPANEL_VERSION:-lite}
+    container_name: dpanel
+    restart: always
+    ports:
+      # 只绑定回环地址：dpanel 挂载了 docker.sock，等于宿主机 root 权限，
+      # 不应暴露到局域网/公网。需要局域网访问时改成 "${DPANEL_HOST_PORT:-8807}:8080"，并自行评估风险。
+      - "127.0.0.1:${DPANEL_HOST_PORT:-8807}:8080"
+    environment:
+      TZ: "$TZ"
+      APP_NAME: dpanel
+    volumes:
+      # 通过 docker.sock 管理宿主机上的容器 / 镜像 / compose 项目
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 面板自身数据（账号、配置、容器快照等）
+      - ${DATA_DIR}/dpanel:/dpanel
+    networks:
+      - default
+
 networks:
   default:
     driver: bridge

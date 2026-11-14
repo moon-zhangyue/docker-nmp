@@ -467,8 +467,8 @@ log-error               = /var/log/mysql/mysql.error.log
 
 
 
-## 6.数据库管理
-本项目默认在`docker-compose.yml`中不开启了用于MySQL在线管理的*phpMyAdmin*，以及用于redis在线管理的*phpRedisAdmin*，可以根据需要修改或删除。
+## 6.管理面板（数据库 / 容器）
+本项目默认在`docker-compose.yml`中不开启了用于MySQL在线管理的*phpMyAdmin*，以及用于redis在线管理的*phpRedisAdmin*，可以根据需要修改或删除。容器管理面板 DPanel 见 6.3。
 
 ### 6.1 phpMyAdmin
 phpMyAdmin容器映射到主机的端口地址是：`8080`，所以主机上访问phpMyAdmin的地址是：
@@ -492,12 +492,29 @@ Redis连接信息如下：
 - host: (本项目的Redis容器网络)
 - port: `6379`
 
+### 6.3 DPanel（Docker 容器管理面板）
+`docker-compose.yml` 中的 `dpanel` 服务用于可视化管理容器、镜像、compose 项目和容器文件。
+
+访问地址（只绑定回环，仅本机可访问）：
+```
+http://127.0.0.1:8807
+```
+首次打开需要设置管理员账号和密码，凭据与项目其他服务无关，保存在 `./data/dpanel/dpanel.db`。
+
+说明：
+- 使用 **lite 版**（`dpanel/dpanel:lite`）。标准版 `dpanel/dpanel:latest` 内置 nginx + acme.sh，需要占用宿主机 80/443 做域名转发，会与本项目的 nginx 冲突；lite 版只做容器管理，其余参数与标准版一致。
+- 版本和端口在 `.env` 中配置：`DPANEL_VERSION=lite`、`DPANEL_HOST_PORT=8807`。
+- 面板通过挂载 `/var/run/docker.sock` 管理宿主机 Docker，**等价于宿主机 root 权限**，因此默认只绑定 `127.0.0.1`。需要局域网访问时把 compose 里改成 `"${DPANEL_HOST_PORT:-8807}:8080"`，并确保强密码和网络隔离。
+- 数据目录 `./data/dpanel`（账号、配置、容器快照）；删除其中的 `dpanel.db` 可重置管理员账号。
+- 启停：`docker compose stop dpanel` / `docker compose up -d dpanel`。
+
 
 ## 7.在正式环境中安全使用
 要在正式环境中使用，请：
 1. 在php.ini中关闭XDebug调试
 2. 增强MySQL数据库访问的安全策略
 3. 增强redis访问的安全策略
+4. DPanel 挂载了 `docker.sock`（root 等价权限），默认只绑 `127.0.0.1`，不要直接暴露到公网；必须远程访问时请加反向代理 + 强认证 + IP 白名单
 
 
 ## 8 常见问题

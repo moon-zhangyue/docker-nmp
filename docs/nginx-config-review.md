@@ -11,7 +11,7 @@
 
 共 **24 项**问题：P0（会直接导致站点异常或安全风险）6 项、P1（明确的性能损失）8 项、P2（可观测性 / 健壮性 / 可维护性）10 项。
 
-> **状态更新**：P0（6 项 + 补充 1.7）与 P1（8 项）已于 2026-11-13 / 11-14 **全部处理并实测通过**（第 10、11 项）；P2 的 3.1–3.14、3.16 已于 2026-11-14 **全部改完**（第 12 项），3.15 此前已处理、3.17 为基准项。**本报告的 24 项问题至此全部有结论**，P2 的运行时验证待 Docker Desktop 启动后补做。
+> **状态更新**：P0（6 项 + 补充 1.7）与 P1（8 项）已于 2026-11-13 / 11-14 **全部处理并实测通过**（第 10、11 项）；P2 的 3.1–3.14、3.16 已于 2026-11-14 **全部改完**（第 12 项），3.15 此前已处理、3.17 为基准项。**本报告的 24 项问题至此全部处理并验证完毕**（P2 运行时验证于 2026-11-14 19:17 完成，nginx 容器 `Up (healthy)`）。
 
 | 优先级 | 一句话结论 |
 |---|---|
@@ -436,7 +436,9 @@ send_timeout            30s;
 | 3.16 | 已处理 | compose 加 `healthcheck: ["CMD","nginx","-t"]`（30s/5s/3/10s）；`nginx.conf` 定义 `limit_req_zone` / `limit_conn_zone`，XHGui 8142 启用 `limit_req burst=20 nodelay` |
 | 3.17 | 无需改动 | `fastcgi_params` 作为基准保留 |
 
-> **验证状态**：改动已完成静态校验 —— nginx 配置大括号配平、`docker compose config` 解析通过、`read_only` / `depends_on` / `healthcheck` 解析正确、`.gitignore` 放行结果符合预期。**运行时验证待 Docker Desktop 启动后补做**：`nginx -t`、`up -d --force-recreate nginx`（应用 `:ro` 与 healthcheck）、`access.log` 有输出且含 `rt=` / `urt=`、`Server` 头不含版本号、`tp8.local` 路由、healthcheck 转 healthy、8142 认证与限流、webman 不回归。
+> **验证状态（2026-11-14 19:17 实测通过）**：`docker compose up -d --force-recreate nginx` 后容器 `Up (healthy)`；`docker inspect` 确认 `/ssl`、`/etc/nginx/conf.d` 为只读（`rw=false`）；`nginx -t` 通过。实测：`logs/nginx/access.log` 已生成，记录形如 `rt=1.385 uct=0.000 uht=1.385 urt=1.385 ua=172.18.0.11:8787`（能区分 nginx 与上游耗时）；`Server: nginx`（无版本号）；`tp8.local` 的 `/`、`/index.php`、`/index.php/index/index`、`/favicon.ico` 全部 200；临时探针返回 `PATH_INFO=[/a/b/c]`（探针已删除）；8142 匿名 401 / 认证 200，40 并发出现 1 个 503（`limit_req` 生效）；`http://localhost/` 301、`/nginx_status` 200、`https://localhost/` 200、`ALPN h2`、`composer.json` / `.env` 仍 403；webman 首页 `Hello Webman!`、`/user/info` 业务 401、Cookie 无 `secure`。
+>
+> **注意**：nginx 配了 `depends_on: php85`，所以 `--force-recreate nginx` 会**连带重建 php85**，webman 进程随之丢失，需要重新手动启动（已按运行态方式拉起，27 个进程）。openresty 服务在 compose 中仍为注释状态，3.10 / 3.11 只做了配置层修改，无法运行时验证。
 
 ---
 
@@ -597,7 +599,7 @@ http {
     - **版本控制（3.12）**：`conf.d/.gitignore` 放行 `localhost.conf` / `workerman.conf` / `xhgui.conf` / `easyswoole.conf` / `hyperf.conf` / `php-fcgi.inc`；`.htpasswd` 保持忽略；删除从未生效的 `!certs/localhost/`。
     - **compose（3.13、3.14、3.16）**：`/ssl` 与 `/etc/nginx/conf.d` 由 `:rw` 改 `:ro`；加 `depends_on: php85 / xhgui (service_started)`；加 `healthcheck: ["CMD","nginx","-t"]`（30s/5s/3 次/10s）。`nginx.conf` 定义 `limit_req_zone` / `limit_conn_zone`，XHGui 8142 启用 `limit_req burst=20 nodelay`。
 
-    **静态校验（Docker Desktop 未运行，运行时验证待补）**：7 个 nginx 配置大括号配平；`docker compose config` 解析通过，确认 `/ssl`、`/etc/nginx/conf.d` 为 `read_only: true`，`depends_on` / `healthcheck` 结构正确，8142 仍为 `host_ip: 127.0.0.1`；`.gitignore` 用 `git check-ignore` 逐项验证（5 个 `.conf` + `.inc` 可提交，`.htpasswd` 仍忽略）。**未执行** `nginx -t` / recreate / 运行时请求验证 —— `docker info` 报 `npipe:////./pipe/dockerDesktopLinuxEngine` 连接失败，daemon 未启动。
+    **验证（2026-11-14 19:17 完成）**：静态侧 —— 7 个 nginx 配置大括号配平、`docker compose config` 解析通过（`/ssl` 与 `/etc/nginx/conf.d` 为 `read_only: true`，`depends_on` / `healthcheck` 结构正确，8142 仍 `host_ip: 127.0.0.1`）、`.gitignore` 用 `git check-ignore` 逐项确认（5 个 `.conf` + `.inc` 可提交，`.htpasswd` 仍忽略）。运行时侧 —— recreate 后 nginx `Up (healthy)`、挂载 `rw=false`、`nginx -t` 通过；`access.log` 含 `rt/uct/uht/urt/ua`；`Server` 无版本号；`tp8.local` 四条路径全 200；PATH_INFO 探针返回 `/a/b/c`（已删）；8142 认证 401/200 且 40 并发触发 1 个 503；webman 与敏感路径防护均未回归。详见第 3 节末尾的「验证状态」。
 
     **备份**：`backup/nginx-p2-2026-11-14/`（nginx.conf / fastcgi-php.conf / localhost.conf / xhgui.conf / .gitignore / openresty.conf / docker-compose.yml / 本文档）。
 
