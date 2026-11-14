@@ -1,4 +1,16 @@
+# 默认忽略 conf.d 下所有文件，避免把本地调试配置误提交
 *
 !.gitignore
-!certs/localhost/
+
+# P2-3.12：需要纳入版本控制的站点配置，逐个放行
+# （原来只放行 localhost.conf，导致 workerman / xhgui / hyperf 等站点换机器后直接消失）
 !localhost.conf
+!workerman.conf
+!xhgui.conf
+!easyswoole.conf
+!hyperf.conf
+!php-fcgi.inc
+
+# 注意：.htpasswd 是凭据文件，继续被上面的 * 忽略，不入库。
+# 原 `!certs/localhost/` 指向 conf.d/certs，而实际证书在 services/nginx/ssl/localhost，
+# 该规则从未生效，已删除。

@@ -15,14 +15,30 @@ services:
       - "${XHGUI_HOST_PORT:-8142}:8142"
     volumes:
       - ${SOURCE_DIR}:/www/:rw
-      - ${NGINX_SSL_CERTIFICATE_DIR}:/ssl:rw
-      - ${NGINX_CONFD_DIR}:/etc/nginx/conf.d/:rw
+      # P2-3.13：nginx 对证书与配置只需读，改成 :ro 缩小可写暴露面
+      - ${NGINX_SSL_CERTIFICATE_DIR}:/ssl:ro
+      - ${NGINX_CONFD_DIR}:/etc/nginx/conf.d/:ro
       - ${NGINX_CONF_FILE}:/etc/nginx/nginx.conf:ro
       - ${NGINX_FASTCGI_PHP_CONF}:/etc/nginx/fastcgi-php.conf:ro
       - ${NGINX_FASTCGI_PARAMS}:/etc/nginx/fastcgi_params:ro
       - ${NGINX_LOG_DIR}:/var/log/nginx/:rw
     environment:
       TZ: "$TZ"
+    # P2-3.14：fastcgi_pass / proxy_pass 里的 php85、xhgui 主机名是在配置加载时解析的，
+    # 若它们还没起来，nginx 会 [emerg] host not found in upstream 启动失败
+    #（只能靠 restart: always 反复重试）。用 depends_on 保证启动顺序。
+    depends_on:
+      php85:
+        condition: service_started
+      xhgui:
+        condition: service_started
+    # P2-3.16：healthcheck，容器状态能反映配置是否真的可用
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: always
     networks:
       - default

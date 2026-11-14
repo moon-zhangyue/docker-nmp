@@ -11,19 +11,19 @@
 
 共 **24 项**问题：P0（会直接导致站点异常或安全风险）6 项、P1（明确的性能损失）8 项、P2（可观测性 / 健壮性 / 可维护性）10 项。
 
-> **状态更新**：P0 的 6 项 + 补充项 1.7 已于 2026-11-13 **全部处理并实测通过**（见文末变更记录第 10 项）；P1 的 8 项已于 2026-11-14 **全部处理并实测通过**（见第 11 项）。**剩余未应用的是第 3 节 P2 表格中的 3.1–3.14、3.16 共 15 项**（3.15 已随"去掉 container_name"处理，3.17 是"保持不变"的基准项）。
+> **状态更新**：P0（6 项 + 补充 1.7）与 P1（8 项）已于 2026-11-13 / 11-14 **全部处理并实测通过**（第 10、11 项）；P2 的 3.1–3.14、3.16 已于 2026-11-14 **全部改完**（第 12 项），3.15 此前已处理、3.17 为基准项。**本报告的 24 项问题至此全部有结论**，P2 的运行时验证待 Docker Desktop 启动后补做。
 
 | 优先级 | 一句话结论 |
 |---|---|
 | P0（**已全部处理**） | 原问题：`tp6.local` 指向不存在的目录；workerman/webman 的 `upstream` 是死配置且强制给 HTTP 站点的 Cookie 加 `Secure`；8142 端口无鉴权暴露 XHGui；`stub_status` 白名单 `172.0.0.0/8` 过宽；nginx 1.20.2 已停止维护 |
 | P1（**已全部处理**） | 原问题：单 worker + 1024 连接数、`gzip` 关闭、FastCGI 缓冲默认 2×8k、反向代理无 keepalive、TLS 无会话复用 —— 五项都是"改一行就有收益" |
-| P2 | 全站 access_log 写进 `/dev/null`、`log_format` 定义了却没用、缺 `$request_time`，出问题时几乎无法定位慢在 nginx 还是 PHP |
+| P2（**已全部处理**） | 原问题：全站 access_log 写进 `/dev/null`、`log_format` 定义了却没用、缺 `$request_time`，出问题时几乎无法定位慢在 nginx 还是 PHP |
 
 **审查时投入产出比最高的三件事**（第 1、2 项已完成，第 3 项属 P2 仍未应用）：
 
 1. ~~把 `worker_processes` / `worker_connections` 调大并打开 gzip~~ —— **已处理**：`worker_processes 2` / `worker_connections 8192` / `multi_accept on` / `worker_rlimit_nofile 65535`，gzip 已开并对 JSON/JS/CSS/SVG 等生效（见文末第 11 项）。
 2. ~~修 `workerman.conf` 的 `proxy_pass` 与 `proxy_cookie_path`~~ —— **已处理**：upstream 已启用、`keepalive 32` + HTTP/1.1 生效，Cookie 不再加 `Secure`（见文末第 7、10 项）。
-3. 把 `access_log` 从 `/dev/null` 改成带缓冲的真实文件，并在 `log_format` 里补 `$request_time` / `$upstream_response_time` —— 否则后续所有性能调优都是盲调。（**仍未应用**，属 P2）
+3. ~~把 `access_log` 从 `/dev/null` 改成带缓冲的真实文件，并在 `log_format` 里补 `$request_time` / `$upstream_response_time`~~ —— **已处理**：`access_log /var/log/nginx/access.log main buffer=32k flush=5s`，格式补了 `rt/uct/uht/urt/ua`（见文末第 12 项）。
 
 ---
 
@@ -414,6 +414,30 @@ send_timeout            30s;
 | 3.16 | nginx 服务 | 无 healthcheck / 无 `limit_req` / 无 `limit_conn` | 加 `healthcheck: test: ["CMD", "nginx", "-t"]`；对外站点按需加限流 |
 | 3.17 | `fastcgi_params` | 这份是最规范的文件：`if_not_empty` 的 `HTTPS`、完整 CGI 变量、`SCRIPT_FILENAME` 都在 | 保持不变，可作为其他片段的基准 |
 
+**P2 落地情况（2026-11-14）**：
+
+| # | 状态 | 改动 |
+|---|---|---|
+| 3.1 | 已处理 | `nginx.conf` 改为 `access_log /var/log/nginx/access.log main buffer=32k flush=5s;`；`localhost.conf` 里 80 / 443 / tp8 三处 `access_log /dev/null` 删除（继承 http 级）；`/nginx_status` 与静态资源仍 `access_log off` |
+| 3.2 | 已处理 | `log_format main` 现在真正被使用；`xhgui.conf` 的 access_log 从默认 combined 改为 `main buffer=32k flush=5s` |
+| 3.3 | 已处理 | `main` 补 `rt=$request_time uct=$upstream_connect_time uht=$upstream_header_time urt=$upstream_response_time ua=$upstream_addr` |
+| 3.4 | 已处理 | http 级 `server_tokens off`（server 块里那行已在 P1 重写 80 server 时移除） |
+| 3.5 | 已处理（随 2.8） | `client_header_timeout 10s` / `client_body_timeout 30s` / `send_timeout 30s` |
+| 3.6 | 已处理 | `set $path_info` 移到 `try_files` **之前**（原顺序下 `$path_info` 恒为空），并启用 `fastcgi_param PATH_INFO $path_info;` |
+| 3.7 | 已处理 | `tp8.local` 的 `if (!-f ...) rewrite` → `try_files $uri $uri/ /index.php?s=$uri&$args;`（ThinkPHP 8 `pathinfo_depr='/'`，`?s=` 模式受支持） |
+| 3.8 | 已处理 | 新增 `conf.d/php-fcgi.inc`（`[^/]\.php(/|$)`），`localhost` 443 与 `tp8.local` 改为 `include /etc/nginx/conf.d/php-fcgi.inc;`；用 `.inc` 后缀避免被 http 级 `*.conf` 误加载 |
+| 3.9 | 已处理 | `error_log ... warn` → `notice`（调试期，生产可改回） |
+| 3.10 | 已处理 | openresty `log_format` 删除 `$request_body`，并修正原格式缺空格造成字段粘连的问题 |
+| 3.11 | 已处理 | openresty `include mime.types` → `/usr/local/openresty/nginx/conf/mime.types`；`access_log logs/access.log` → `/var/log/nginx/openresty.access.log`（与 error_log 同一挂载卷）；同步 `tcp_nopush` + gzip |
+| 3.12 | 已处理 | `conf.d/.gitignore` 放行 `localhost.conf` / `workerman.conf` / `xhgui.conf` / `easyswoole.conf` / `hyperf.conf` / `php-fcgi.inc`；`.htpasswd` 仍忽略；删除从未生效的 `!certs/localhost/` |
+| 3.13 | 已处理 | compose nginx 的 `/ssl`、`/etc/nginx/conf.d` 由 `:rw` 改 `:ro`（`docker compose config` 已确认 `read_only: true`） |
+| 3.14 | 已处理 | nginx 加 `depends_on: php85 / xhgui (service_started)`，避免上游主机名解析失败导致 `[emerg] host not found in upstream` |
+| 3.15 | 已处理（此前） | 已删除 `container_name` |
+| 3.16 | 已处理 | compose 加 `healthcheck: ["CMD","nginx","-t"]`（30s/5s/3/10s）；`nginx.conf` 定义 `limit_req_zone` / `limit_conn_zone`，XHGui 8142 启用 `limit_req burst=20 nodelay` |
+| 3.17 | 无需改动 | `fastcgi_params` 作为基准保留 |
+
+> **验证状态**：改动已完成静态校验 —— nginx 配置大括号配平、`docker compose config` 解析通过、`read_only` / `depends_on` / `healthcheck` 解析正确、`.gitignore` 放行结果符合预期。**运行时验证待 Docker Desktop 启动后补做**：`nginx -t`、`up -d --force-recreate nginx`（应用 `:ro` 与 healthcheck）、`access.log` 有输出且含 `rt=` / `urt=`、`Server` 头不含版本号、`tp8.local` 路由、healthcheck 转 healthy、8142 认证与限流、webman 不回归。
+
 ---
 
 ## 4. 可直接替换的优化版 `nginx.conf`
@@ -564,4 +588,17 @@ http {
 
     **备份**：`backup/nginx-p1-2026-11-14/`（nginx.conf / fastcgi-php.conf / localhost.conf / openresty.conf / 本文档）。`nginx.conf`、`fastcgi-php.conf` 是单文件 bind mount，编辑后容器内已确认读到新内容（`nginx -T` 可查），无需重建容器。
 
-剩余 **P2 中的 15 项**（第 3 节表格 3.1–3.14、3.16：`access_log /dev/null`、`log_format` 未被使用且缺 `$request_time`、`server_tokens on`、`PATH_INFO` 死代码、`if (!-f ...)` 写法、`conf.d/.gitignore` 白名单、volumes 读写权限、`depends_on`/healthcheck、限流等）仍未应用；3.15 已处理，3.17 为基准项无需改动。历次原文件备份在 `backup/nginx-upgrade-2026-11-13/`、`backup/nginx-rename-2026-11-13/`、`backup/nginx-remove-container-name-2026-11-13/`、`backup/webman-auth-fix-2026-11-13/`、`backup/nginx-p0-fix-2026-11-13/`、`backup/nginx-p1-2026-11-14/`。
+12. **P2 全量修复（用户要求「把 P2 也修改完」，2026-11-14）**：3.1–3.14、3.16 全部落地，3.15 此前已处理、3.17 为基准项。逐条改动见第 3 节末尾的「P2 落地情况」表。
+
+    - **日志与可观测性（3.1–3.3、3.9）**：`nginx.conf` 的 `access_log /dev/null` → `access_log /var/log/nginx/access.log main buffer=32k flush=5s;`；`log_format main` 补 `rt=$request_time uct=$upstream_connect_time uht=$upstream_header_time urt=$upstream_response_time ua=$upstream_addr`；`xhgui.conf` 的 access_log 从默认 combined 改为 main；`error_log` 级别 `warn → notice`。`localhost.conf` 中 80 / 443 / tp8 三处 `access_log /dev/null` 删除，改为继承 http 级（`/nginx_status` 与静态资源仍 `access_log off`）。
+    - **版本号（3.4）**：http 级 `server_tokens off`（server 块里那行已在 P1 重写 80 server 时移除）。
+    - **PHP 转发（3.6–3.8）**：`fastcgi-php.conf` 把 `set $path_info` 移到 `try_files` 之前（原顺序下 `$path_info` 恒空，PATH_INFO 是死代码）并启用 `fastcgi_param PATH_INFO $path_info;`；新增 `conf.d/php-fcgi.inc` 统一 `location ~ [^/]\.php(/|$)`，`localhost` 443 与 `tp8.local` 改为 `include`；`tp8.local` 的 `if (!-f ...) rewrite` 换成 `try_files $uri $uri/ /index.php?s=$uri&$args`（ThinkPHP 8 `pathinfo_depr='/'`，`?s=` 受支持）。
+    - **openresty（3.10–3.11）**：`log_format` 删除 `$request_body`（会记录密码/Token/上传内容）并修正字段粘连；`include mime.types` 改绝对路径 `/usr/local/openresty/nginx/conf/mime.types`；`access_log logs/access.log` 改 `/var/log/nginx/openresty.access.log`（与 error_log 同一挂载卷）；同步 `tcp_nopush` 与 gzip。该服务在 compose 中仍是注释状态。
+    - **版本控制（3.12）**：`conf.d/.gitignore` 放行 `localhost.conf` / `workerman.conf` / `xhgui.conf` / `easyswoole.conf` / `hyperf.conf` / `php-fcgi.inc`；`.htpasswd` 保持忽略；删除从未生效的 `!certs/localhost/`。
+    - **compose（3.13、3.14、3.16）**：`/ssl` 与 `/etc/nginx/conf.d` 由 `:rw` 改 `:ro`；加 `depends_on: php85 / xhgui (service_started)`；加 `healthcheck: ["CMD","nginx","-t"]`（30s/5s/3 次/10s）。`nginx.conf` 定义 `limit_req_zone` / `limit_conn_zone`，XHGui 8142 启用 `limit_req burst=20 nodelay`。
+
+    **静态校验（Docker Desktop 未运行，运行时验证待补）**：7 个 nginx 配置大括号配平；`docker compose config` 解析通过，确认 `/ssl`、`/etc/nginx/conf.d` 为 `read_only: true`，`depends_on` / `healthcheck` 结构正确，8142 仍为 `host_ip: 127.0.0.1`；`.gitignore` 用 `git check-ignore` 逐项验证（5 个 `.conf` + `.inc` 可提交，`.htpasswd` 仍忽略）。**未执行** `nginx -t` / recreate / 运行时请求验证 —— `docker info` 报 `npipe:////./pipe/dockerDesktopLinuxEngine` 连接失败，daemon 未启动。
+
+    **备份**：`backup/nginx-p2-2026-11-14/`（nginx.conf / fastcgi-php.conf / localhost.conf / xhgui.conf / .gitignore / openresty.conf / docker-compose.yml / 本文档）。
+
+**至此本报告的 24 项问题全部处理完毕**：P0 6 项 + 补充 1.7（第 10 项）、P1 8 项（第 11 项）、P2 的 3.1–3.14 与 3.16（第 12 项）；3.15 此前已处理、3.17 为基准项。历次原文件备份在 `backup/nginx-upgrade-2026-11-13/`、`backup/nginx-rename-2026-11-13/`、`backup/nginx-remove-container-name-2026-11-13/`、`backup/webman-auth-fix-2026-11-13/`、`backup/nginx-p0-fix-2026-11-13/`、`backup/nginx-p1-2026-11-14/`、`backup/nginx-p2-2026-11-14/`。

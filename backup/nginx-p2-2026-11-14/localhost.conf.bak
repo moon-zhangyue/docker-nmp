@@ -1,0 +1,113 @@
+server {
+    listen       80  default_server;
+    server_name  localhost;
+
+    access_log /dev/null;
+    error_log  /var/log/nginx/nginx.localhost.error.log  warn;
+
+    # P1-2.6：80 只做 HTTP -> HTTPS 跳转，PHP 统一在 443 处理（原 80/443 两套配置各跑一份 PHP）
+    # 例外 1：/nginx_status 继续走 HTTP，供容器内 exporter / 宿主 curl 采集
+    location = /nginx_status {
+        stub_status on;
+        access_log off;
+        allow 127.0.0.1;
+        allow 172.16.0.0/12;  # Docker 私有网段
+        deny all;
+    }
+
+    # 例外 2：ACME 校验必须走 HTTP，否则 certbot 续签会失败
+    location ^~ /.well-known/acme-challenge/ {
+        root /www/localhost;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443  default_server ssl;
+    # nginx >= 1.25.1 起 listen 的 http2 参数已废弃，改用独立指令
+    http2 on;
+    server_name  localhost;
+    root   /www/localhost;
+    index  index.php index.html index.htm;
+    #charset koi8-r;
+
+    access_log /dev/null;
+    #access_log  /var/log/nginx/nginx.localhost.access.log  main;
+    error_log  /var/log/nginx/nginx.localhost.error.log  warn;
+
+    #error_page  404              /404.html;
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # P0 敏感路径防护（正则 location 按出现顺序匹配，必须在静态/PHP 规则之前）
+    location ~ /\.(?!well-known)                      { deny all; }
+    location ~ ^/(vendor|composer\.(json|lock))(/|$)  { deny all; }
+    location ~ \.(?:sql|log|bak|swp)$                 { deny all; }
+
+    # P1-2.5：静态资源缓存（原来所有静态文件都没有 expires）
+    location ~* \.(?:js|css|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|map)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+        try_files $uri =404;
+    }
+
+    ssl_certificate /ssl/localhost/localhost.crt;
+    ssl_certificate_key /ssl/localhost/localhost.key;
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    location ~ [^/]\.php(/|$) {
+        fastcgi_pass   php85:9000;
+        include        fastcgi-php.conf;
+        include        fastcgi_params;
+    }
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+
+server {
+    listen       80;
+    server_name  tp8.local;
+    root   /www/thinkphp8/public;
+    index  index.php index.html index.htm;
+
+    location / {
+       if (!-f $request_filename) {
+            rewrite  ^(.*)$  /index.php?s=/$1  last;
+        }
+    }
+    access_log /dev/null;
+    error_log  /var/log/nginx/nginx.tp8.error.log  warn;
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # P1-2.5：静态资源缓存
+    location ~* \.(?:js|css|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|map)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+        try_files $uri =404;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass   php85:9000;
+        include        fastcgi-php.conf;
+        include        fastcgi_params;
+    }
+}
+
