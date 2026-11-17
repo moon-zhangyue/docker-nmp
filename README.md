@@ -1,4 +1,4 @@
-DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + MongoDB + RabbitMQ）是一款全功能的**LNMP一键安装程序，支持Arm CPU**。
+DNMP（Docker + Nginx/Openresty + MySQL5,8,9 + PHP7,8 + Redis + ElasticSearch + MongoDB + RabbitMQ）是一款全功能的**LNMP一键安装程序，支持Arm CPU**。
 
 
 <details>
@@ -6,19 +6,19 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
 
 1. `100%`开源
 2. `100%`遵循Docker标准
-3. 支持**多版本PHP**共存，可任意切换（PHP7.1、PHP7.2、PHP7.3、PHP7.4、PHP8.0、PHP8.2、PHP8.4、PHP8.5)
+3. 支持**多版本PHP**配置，当前启用PHP8.5.12
 4. 支持绑定**任意多个域名**
 5. 支持**HTTPS和HTTP/2**
 6. **PHP源代码、MySQL数据、配置文件、日志文件**都可在Host中直接修改查看
 7. 内置**完整PHP扩展安装**命令
 8. 默认支持`pdo_mysql`、`mysqli`、`mbstring`、`gd`、`curl`、`opcache`等常用热门扩展，根据环境灵活配置
 9. 可一键选配常用服务：
-    - 多PHP版本：PHP7.0-7.4、PHP8.2、PHP8.4、PHP8.5
-    - Golang、Gin框架
-    - Web服务：Nginx、Openresty
-    - 数据库：MySQL5、MySQL8、Redis、memcached、MongoDB、ElasticSearch
-    - 消息队列：RabbitMQ
-    - 辅助工具：Kibana、Logstash、phpMyAdmin、phpRedisAdmin、AdminMongo
+    - 多PHP版本：PHP8.5.12（启用）、PHP8.4.36（php82，可选）
+    - Golang 1.26、Gin框架
+    - Web服务：Nginx 1.28-alpine、Openresty（可选）
+    - 数据库：MySQL9.3.0、Redis 7.2-alpine、MongoDB 8.0、PostgreSQL 17.4-alpine；MySQL5.7.42、MySQL8.4.7、memcached、ElasticSearch（可选）
+    - 消息队列：RabbitMQ management、Kafka latest、ZooKeeper latest
+    - 辅助工具：Mongo Express latest、XHGui（PHP8.1）、DPanel lite；Kibana、Logstash、phpMyAdmin、phpRedisAdmin、AdminMongo（可选）
 10. 实际项目中应用，确保`100%`可用
 11. 所有镜像源于[Docker官方仓库](https://hub.docker.com)，安全可靠
 12. 一次配置，**Windows、Linux、MacOs**皆可用
@@ -45,9 +45,10 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
     - [5.1 Nginx日志](#51-nginx日志)
     - [5.2 PHP-FPM日志](#52-php-fpm日志)
     - [5.3 MySQL日志](#53-mysql日志)
-  - [6.数据库管理](#6数据库管理)
+  - [6.管理面板（数据库 / 容器）](#6管理面板数据库--容器)
     - [6.1 phpMyAdmin](#61-phpmyadmin)
     - [6.2 phpRedisAdmin](#62-phpredisadmin)
+    - [6.3 DPanel（Docker 容器管理面板）](#63-dpaneldocker-容器管理面板)
   - [7.在正式环境中安全使用](#7在正式环境中安全使用)
   - [8 常见问题](#8-常见问题)
     - [8.1 如何在PHP代码中使用curl？](#81-如何在php代码中使用curl)
@@ -55,8 +56,7 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
     - [8.3 Docker容器时间](#83-docker容器时间)
     - [8.4 如何连接MySQL和Redis服务器](#84-如何连接mysql和redis服务器)
     - [8.5 容器内的php如何连接宿主机MySQL](#85-容器内的php如何连接宿主机mysql)
-    - [8.6 SQLSTATE\[HY000\] \[1130\] Host '172.19.0.2' is not allowed to connect to this MySQL server](#86-sqlstatehy000-1130-host-1721902-is-not-allowed-to-connect-to-this-mysql-server)
-    - [8.7 Docker是如何生成容器名](#87-docker是如何生成容器名)
+    - [8.6 Docker是如何生成容器名](#86-docker是如何生成容器名)
   - [License](#license)
 
 
@@ -68,20 +68,23 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
 │   ├── esdata                  ElasticSearch 数据目录
 │   ├── mongo                   MongoDB 数据目录
 │   ├── mysql                   MySQL8 数据目录
-│   └── mysql5                  MySQL5 数据目录
+│   ├── mysql5                  MySQL5 数据目录
+│   └── mysql9                  MySQL9 数据目录
 ├── services                    服务构建文件和配置文件目录
 │   ├── elasticsearch           ElasticSearch 配置文件目录
 │   ├── mysql                   MySQL8 配置文件目录
 │   ├── mysql5                  MySQL5 配置文件目录
+│   ├── mysql9                  MySQL9 配置文件目录
 │   ├── nginx                   Nginx 配置文件目录
-│   ├── php                     PHP8.0 - PHP8.5 配置目录
-│   ├── php82                   PHP8.2 配置目录
+│   ├── php                     PHP7 配置目录
+│   ├── php80                   PHP8.0 配置目录
+│   ├── php82                   PHP配置目录（当前配置版本为8.4.36）
 │   ├── php84                   PHP8.4 配置目录
 │   ├── php85                   PHP8.5 配置目录
 │   └── redis                   Redis 配置目录
 ├── logs                        日志目录
-├── docker-compose.sample.yml   Docker 服务配置示例文件
-├── env.smaple                  环境配置示例文件
+├── docker-compose.yml          Docker 服务配置文件
+├── .env                        环境配置文件（镜像版本、端口、扩展列表等）
 └── www                         PHP 代码目录
 ```
 
@@ -89,7 +92,7 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
 1. 本地安装
     - `git`
     - `Docker`(系统需为Linux，Windows 10 Build 15063+，或MacOS 10.12+，且必须要`64`位）
-    - `docker-compose 1.7.0+`
+    - `Docker Compose V2`
 2. `clone`项目：
     ```
     $ git clone https://github.com/yeszao/dnmp.git
@@ -100,33 +103,28 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8 + PHP5,7,8 + Redis + ElasticSearch + 
     ```
     $ sudo gpasswd -a ${USER} docker
     ```
-4. 拷贝并命名配置文件（Windows系统请用`copy`命令），启动：
+4. 在项目目录中修改`.env`配置，然后启动：
     ```
-    $ cd dnmp                                           # 进入项目目录
-    $ cp env.sample .env                                # 复制环境变量文件
-    $ cp docker-compose.sample.yml docker-compose.yml   # 复制 docker-compose 配置文件。默认启动3个服务：
-                                                        # Nginx、PHP7和MySQL8。要开启更多其他服务，如Redis、
-                                                        # PHP8.4、PHP8.5、MongoDB，ElasticSearch等，请删
-                                                        # 除服务块前的注释
-    $ docker-compose up                                 # 启动
+    $ cd dnmp                  # 进入项目目录
+    $ docker compose up -d     # 启动docker-compose.yml中启用的服务
     ```
 5. 在浏览器中访问：`http://localhost`或`https://localhost`(自签名HTTPS演示)就能看到效果，PHP代码在文件`./www/localhost/index.php`。
 
 ## 3.PHP和扩展
 ### 3.1 切换Nginx使用的PHP版本
-首先，需要启动其他版本的PHP，比如PHP5.4，那就先在`docker-compose.yml`文件中删除PHP5.4前面的注释，再启动PHP5.4容器。
+首先，需要启动其他版本的PHP。例如，在`docker-compose.yml`文件中取消`php82`服务的注释，再启动该服务；其版本由`.env`中的`PHP82_VERSION`配置。
 
-PHP5.4启动后，打开Nginx 配置，修改`fastcgi_pass`的主机地址，由`php`改为`php54`，如下：
+启动后，打开Nginx配置`services/nginx/conf.d/php-fcgi.inc`，修改`fastcgi_pass`的主机地址，由`php85`改为`php82`，如下：
 ```
-    fastcgi_pass   php:9000;
+    fastcgi_pass   php85:9000;
 ```
 为：
 ```
     fastcgi_pass   php82:9000;
 ```
-其中 `php` 和 `php82` 是`docker-compose.yml`文件中服务器的名称。
+其中 `php85` 和 `php82` 是`docker-compose.yml`文件中的服务名称。
 
-最后，**重启 Nginx** 生效。
+最后，**重新加载 Nginx** 生效。
 ```bash
 $ docker compose exec nginx nginx -s reload
 ```
@@ -134,25 +132,20 @@ $ docker compose exec nginx nginx -s reload
 
 
 ### 3.2 安装PHP扩展
-PHP的很多功能都是通过扩展实现，而安装扩展是一个略费时间的过程，
-所以，除PHP内置扩展外，在`env.sample`文件中我们仅默认安装少量扩展，
-如果要安装更多扩展，请打开你的`.env`文件修改如下的PHP配置，
-增加需要的PHP扩展：
+PHP的很多功能都是通过扩展实现，如果要安装更多扩展，请打开`.env`文件，在现有`PHP85_EXTENSIONS`列表中增加需要的扩展，以英文逗号隔开。
+
+然后重新构建PHP镜像并重建容器：
 ```bash
-PHP_EXTENSIONS=pdo_mysql,opcache,redis       # PHP 要安装的扩展列表，英文逗号隔开
-PHP54_EXTENSIONS=opcache,redis                 # PHP 5.4要安装的扩展列表，英文逗号隔开
+docker compose build php85
+docker compose up -d php85
 ```
-然后重新build PHP镜像。
-```bash
-docker-compose build php
-```
-可用的扩展请看同文件的`env.sample`注释块说明。
+可用的扩展请看`.env`中的注释说明。
 
 ### 3.3 快速安装php扩展
 1.进入容器:
 
 ```sh
-docker exec -it php /bin/sh
+docker compose exec php85 /bin/sh
 
 install-php-extensions apcu 
 ```
@@ -319,20 +312,10 @@ install-php-extensions apcu
 
 ### 3.4 Host中使用php命令行（php-cli）
 
-1. 参考[bash.alias.sample](bash.alias.sample)示例文件，将对应 php cli 函数拷贝到主机的 `~/.bashrc`文件。
-2. 让文件起效：
-    ```bash
-    source ~/.bashrc
-    ```
-3. 然后就可以在主机中执行php命令了：
-    ```bash
-    ~ php -v
-    PHP 7.2.13 (cli) (built: Dec 21 2018 02:22:47) ( NTS )
-    Copyright (c) 1997-2018 The PHP Group
-    Zend Engine v3.2.0, Copyright (c) 1998-2018 Zend Technologies
-        with Zend OPcache v7.2.13, Copyright (c) 1999-2018, by Zend Technologies
-        with Xdebug v2.6.1, Copyright (c) 2002-2018, by Derick Rethans
-    ```
+在项目目录中执行：
+```bash
+docker compose exec php85 php -v
+```
 ### 3.5 使用composer
 **方法1：主机中使用composer命令**
 1. 确定composer缓存的路径。比如，我的dnmp下载在`~/dnmp`目录，那composer的缓存路径就是`~/dnmp/data/composer`。
@@ -362,9 +345,9 @@ install-php-extensions apcu
     ```
 **方法二：容器内使用composer命令**
 
-还有另外一种方式，就是进入容器，再执行`composer`命令，以PHP7容器为例：
+还有另外一种方式，就是进入容器，再执行`composer`命令，以PHP8.5容器为例：
 ```bash
-docker exec -it php /bin/sh
+docker compose exec php85 /bin/sh
 cd /www/localhost
 composer update
 ```
@@ -373,19 +356,17 @@ composer update
 ### 4.1 服务器启动和构建命令
 如需管理服务，请在命令后面加上服务器名称，例如：
 ```bash
-$ docker-compose up                         # 创建并且启动所有容器
-$ docker-compose up -d                      # 创建并且后台运行方式启动所有容器
-$ docker-compose up nginx php mysql         # 创建并且启动nginx、php、mysql的多个容器
-$ docker-compose up -d nginx php  mysql     # 创建并且已后台运行的方式启动nginx、php、mysql容器
+$ docker compose up                          # 创建并启动所有已启用的服务
+$ docker compose up -d                       # 后台启动所有已启用的服务
+$ docker compose up -d nginx php85 mysql9    # 后台启动nginx、php85、mysql9
 
+$ docker compose start php85                 # 启动服务
+$ docker compose stop php85                  # 停止服务
+$ docker compose restart php85               # 重启服务
+$ docker compose build php85                 # 构建或者重新构建服务
 
-$ docker-compose start php                  # 启动服务
-$ docker-compose stop php                   # 停止服务
-$ docker-compose restart php                # 重启服务
-$ docker-compose build php                  # 构建或者重新构建服务
-
-$ docker-compose rm php                     # 删除并且停止php容器
-$ docker-compose down                       # 停止并删除容器，网络，图像和挂载卷
+$ docker compose rm php85                    # 删除已停止的php85容器
+$ docker compose down                        # 停止并删除容器和网络
 ```
 
 ### 4.2 添加快捷命令
@@ -401,11 +382,9 @@ $ docker ps -a        # 所有容器
 然后，打开`~/.bashrc`或者`~/.zshrc`文件，加上：
 ```bash
 alias dnginx='docker compose exec nginx sh'
-alias dphp='docker exec -it php /bin/sh'
-alias dphp56='docker exec -it php56 /bin/sh'
-alias dphp54='docker exec -it php54 /bin/sh'
-alias dmysql='docker exec -it mysql /bin/bash'
-alias dredis='docker exec -it redis /bin/sh'
+alias dphp='docker compose exec php85 /bin/sh'
+alias dmysql='docker compose exec mysql9 /bin/bash'
+alias dredis='docker compose exec redis /bin/sh'
 ```
 下次进入容器就非常快捷了，如进入php容器：
 ```bash
@@ -445,7 +424,7 @@ ini_set('display_errors', 'on');
 
 1. 进入容器，创建日志文件并修改权限：
     ```bash
-    $ docker exec -it php /bin/sh
+    $ docker compose exec php85 /bin/sh
     $ mkdir /var/log/php
     $ cd /var/log/php
     $ touch php-fpm.error.log
@@ -533,7 +512,7 @@ http://127.0.0.1:8807
 第一种情况，在**PHP代码中**。
 ```php
 // 连接MySQL
-$dbh = new PDO('mysql:host=mysql;dbname=mysql', 'root', '123456');
+$dbh = new PDO('mysql:host=mysql9;dbname=mysql', 'root', '123456');
 
 // 连接Redis
 $redis = new Redis();
@@ -541,9 +520,9 @@ $redis->connect('redis', 6379);
 ```
 因为容器与容器是`expose`端口联通的，而且在同一个`networks`下，所以连接的`host`参数直接用容器名称，`port`参数就是容器内部的端口。更多请参考[《docker-compose ports和expose的区别》](https://www.awaimai.com/2138.html)。
 
-第二种情况，**在主机中**通过**命令行**或者**Navicat**等工具连接。主机要连接mysql和redis的话，要求容器必须经过`ports`把端口映射到主机了。以 mysql 为例，`docker-compose.yml`文件中有这样的`ports`配置：`3306:3306`，就是主机的3306和容器的3306端口形成了映射，所以我们可以这样连接：
+第二种情况，**在主机中**通过**命令行**或者**Navicat**等工具连接。主机要连接mysql和redis的话，要求容器必须经过`ports`把端口映射到主机了。以 mysql9 为例，当前配置为`3308:3306`，即主机的3308端口映射到容器的3306端口，所以我们可以这样连接：
 ```bash
-$ mysql -h127.0.0.1 -uroot -p123456 -P3306
+$ mysql -h127.0.0.1 -uroot -p -P3308
 $ redis-cli -h127.0.0.1
 ```
 这里`host`参数不能用localhost是因为它默认是通过sock文件与mysql通信，而容器与主机文件系统已经隔离，所以需要通过TCP方式连接，所以需要指定IP。
@@ -569,10 +548,7 @@ docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
 
 3.接着直接php容器使用`172.0.17.1:3306`连接即可
 
-### 8.6 SQLSTATE[HY000] [1130] Host '172.19.0.2' is not allowed to connect to this MySQL server
-1. 目前使用mysql-server `8.0.28`以上的版本,php版本需要`7.4.7`以上才能连接
-
-### 8.7 Docker是如何生成容器名
+### 8.6 Docker是如何生成容器名
 [在不指定容器名称时,是如何生成容器名](https://pet2cattle.com/2022/08/docker-container-names-generator)
 
 ## License
