@@ -14,7 +14,10 @@ Route::post('cs/chat/rate',     $ctrl . 'Chat/rate');
 Route::get ('cs/chat/intents',  $ctrl . 'Chat/intents');
 Route::post('cs/chat/sessions', $ctrl . 'Chat/sessions');
 
-// 管理后台 API
+// 管理后台 API（登录/登出/状态探测无需会话，其余接口由签名 Cookie 鉴权）
+Route::post('cs/admin/login',       $ctrl . 'Admin/login');
+Route::post('cs/admin/logout',      $ctrl . 'Admin/logout');
+Route::get ('cs/admin/check',       $ctrl . 'Admin/check');
 Route::get ('cs/admin/overview',     $ctrl . 'Admin/overview');
 Route::get ('cs/admin/conversations',$ctrl . 'Admin/conversations');
 Route::get ('cs/admin/conversation', $ctrl . 'Admin/conversation');

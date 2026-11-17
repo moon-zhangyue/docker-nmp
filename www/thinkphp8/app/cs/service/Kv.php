@@ -13,6 +13,29 @@ use RedisException;
 class Kv
 {
     private static ?Redis $redis = null;
+    private static ?Redis $rawRedis = null;
+
+    /**
+     * 不启用序列化的连接，专供 INCR / 限流等数值操作。
+     * PHP 序列化连接下 INCRBY 写入的是纯数字字符串，再用 get() 读取会被
+     * unserialize 成 false，导致计数读取恒为 0。
+     */
+    private static function raw(): Redis
+    {
+        if (self::$rawRedis === null) {
+            $c = Config::redis();
+            $r = new Redis();
+            $r->connect($c['host'], $c['port'], 2.0);
+            if ($c['pass'] !== '') {
+                $r->auth($c['pass']);
+            }
+            if ($c['select'] > 0) {
+                $r->select($c['select']);
+            }
+            self::$rawRedis = $r;
+        }
+        return self::$rawRedis;
+    }
 
     public static function redis(): Redis
     {
@@ -69,11 +92,26 @@ class Kv
     public static function incr(string $k, int $by = 1): int
     {
         try {
-            $r = self::redis();
-            $r->incrBy(self::key($k), $by);
-            return (int) $r->get(self::key($k));
+            return (int) self::raw()->incrBy(self::key($k), $by);
         } catch (RedisException $e) {
             return 0;
+        }
+    }
+
+    /** 固定窗口限流：窗口内不超过 limit 次返回 true */
+    public static function rateLimit(string $k, int $limit, int $window): bool
+    {
+        try {
+            $key = self::key('rl:' . $k);
+            $r = self::raw();
+            $n = (int) $r->incrBy($key, 1);
+            if ($n === 1) {
+                $r->expire($key, $window);
+            }
+            return $n <= $limit;
+        } catch (RedisException $e) {
+            // Redis 故障时不误伤正常流量
+            return true;
         }
     }
 

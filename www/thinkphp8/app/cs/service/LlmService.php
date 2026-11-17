@@ -30,16 +30,25 @@ class LlmService
     {
         $cfg = Config::llm();
         if ($cfg['mode'] === 'openai' && $cfg['api_key'] !== '') {
-            $content = self::callOpenAI($question, $history, $context, $cfg);
-            if ($content !== null) {
-                return ['content' => $content, 'source' => 'llm', 'model' => $cfg['model']];
+            // 每日调用配额，防止异常流量刷爆付费接口
+            if (Kv::incr('llm_quota:' . date('Ymd')) <= 500) {
+                $content = self::callOpenAI($question, $history, $context, $cfg);
+                if ($content !== null) {
+                    return [
+                        'content'  => $content,
+                        'source'   => 'llm',
+                        'model'    => $cfg['model'],
+                        'degraded' => false,
+                    ];
+                }
             }
-            // 接口失败则降级到演示模式
+            // 接口失败或超出配额：降级到规则回复，并如实标记来源
         }
         return [
-            'content' => self::demoReply($question, $context),
-            'source'  => 'llm',
-            'model'   => 'demo-llm',
+            'content'  => self::demoReply($question, $context),
+            'source'   => 'rule',
+            'model'    => 'demo-llm',
+            'degraded' => true,
         ];
     }
 

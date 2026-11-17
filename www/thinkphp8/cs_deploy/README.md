@@ -3,7 +3,7 @@
 ## 访问地址
 - 用户聊天端：<http://127.0.0.1:8099/cs/>
 - 管理后台：<http://127.0.0.1:8099/cs/admin.html>
-- 管理接口令牌：`cs-admin-token`（前端已内置）
+- 管理后台：使用管理员账号密码登录，凭据仅保存在服务端签名的 HttpOnly Cookie 中，前端不持有任何令牌
 
 ## 技术栈
 - 服务端：ThinkPHP 8（复用现有项目框架，独立命名空间 `app\cs\`，不污染现有业务）
@@ -34,7 +34,7 @@ cs_deploy/sql/cs_agent.sql                           建库建表 + FAQ 种子�
 - 提交评价仅记录打分，不再关闭会话、不清除对话上下文；评价后聊天记录保留，可继续聊天。
 - 同一会话重复评价为更新操作，不会重复计入满意度统计。
 - 顶部「历史」按钮可翻看本机保存过的历史会话，点击任一会话可查看完整记录并继续对话。
-- 会话 id 保存在浏览器 localStorage，历史入口据此拉取；上下文若过期会从 MySQL 消息表自动重建。
+- 会话 id 与签名访问令牌保存在浏览器 localStorage（key `cs_sessions`），历史入口按 `session_id + access_token` 拉取，服务端逐项校验归属；上下文若过期会从 MySQL 消息表自动重建。令牌过期/不匹配时接口返回 403，前端自动新建会话。
 
 ## 切换真实大模型
 编辑 `thinkphp8/.env` 的 `[CS]` 分节：
@@ -55,8 +55,21 @@ docker exec redis redis-cli DEL cs:faq:all
 ```
 注意：必须带 `--default-character-set=utf8mb4`，否则中文乱码。
 
-## 管理令牌修改
-`public/cs/config.js` 的 `adminToken` 与前端请求头一致即可（仅简单鉴权，生产建议接入正式登录）。
+## 管理账号与安全配置
+在 `thinkphp8/.env` 的 `[CS]` 分节配置（缺省值仅用于本地演示，部署到公网前务必修改）：
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `CS_ADMIN_USER` | `admin` | 管理后台账号 |
+| `CS_ADMIN_PASS` | `admin123` | 管理后台密码，支持 `password_hash` 生成的哈希 |
+| `CS_ADMIN_SECRET` | 由密码派生 | 管理会话签名密钥，留空则改密码后旧会话自动失效 |
+| `CS_SESSION_SECRET` | 由 `APP_KEY` 派生 | 用户会话令牌签名密钥 |
+| `CS_LLM_MODE` | `demo` | `demo`=规则回复；`openai`=调用真实模型 |
+
+安全机制：管理端为账号密码登录 + 服务端签名 HttpOnly Cookie；用户端会话绑定签名访问令牌；所有接口同源访问，未配置通配 CORS。
+
+## 限流
+按客户端 IP 做固定窗口限流：`chat/new` 20 次/分钟、`chat/send` 30 次/分钟、`chat/rate` 10 次/分钟、`chat/sessions` 30 次/分钟、管理登录 10 次/分钟。LLM 调用上限 500 次/天，超出后自动降级为规则回复并标记 `source=rule`。
 
 ## 服务运维
 ```bash

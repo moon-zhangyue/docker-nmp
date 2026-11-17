@@ -46,7 +46,7 @@ class ChatService
         self::appendContext($sessionId, 'user', $question);
 
         // 5. 转人工判定
-        $humanReason = self::decideHuman($question, $intent, $history);
+        $humanReason = self::decideHuman($sessionId, $question, $intent);
         if ($humanReason !== null) {
             $ticket = self::transferToHuman($sessionId, $question, $intent['intent'], $humanReason);
             $reply = "我已为您转接人工客服，工单号：{$ticket['ticket_no']}。人工客服会在稍后为您服务（服务时间 9:00-21:00），请稍候。";
@@ -59,6 +59,7 @@ class ChatService
                 'confidence'  => $intent['confidence'],
                 'source'      => 'agent',
                 'transferred' => true,
+                'degraded'    => false,
                 'ticket_no'   => $ticket['ticket_no'],
             ];
         }
@@ -67,6 +68,7 @@ class ChatService
         $faq = FaqService::search($question, $intent['intent']);
 
         // 7. 生成回复：FAQ 命中直接返回，否则交给 LLM
+        $degraded = false;
         if ($faq && $faq['score'] >= 3.0) {
             $reply = $faq['answer'];
             $source = 'faq';
@@ -81,6 +83,7 @@ class ChatService
             $source = $result['source'];
             $model = $result['model'];
             $matchedFaq = $faq['question'] ?? null;
+            $degraded = (bool)($result['degraded'] ?? false);
         }
 
         // 8. 持久化助手回复 + 更新上下文
@@ -102,11 +105,12 @@ class ChatService
             'model'        => $model,
             'matched_faq'  => $matchedFaq,
             'transferred'  => false,
+            'degraded'     => $degraded,
         ];
     }
 
     /** 转人工判定 */
-    private static function decideHuman(string $question, array $intent, array $history): ?string
+    private static function decideHuman(string $sessionId, string $question, array $intent): ?string
     {
         if ($intent['want_human']) {
             return '用户主动要求转人工';
@@ -118,9 +122,15 @@ class ChatService
                 return '用户表达问题未解决';
             }
         }
-        // 连续多轮低置信度且仍为 other
-        if ($intent['intent'] === 'other' && count($history) >= 4) {
-            return '多轮对话未能识别有效意图';
+        // 仅当“连续多轮低置信度的 other”才转人工，而非用历史总条数判断
+        if ($intent['intent'] === 'other' && $intent['confidence'] < 0.5) {
+            $streak = Kv::incr('other_streak:' . $sessionId);
+            Kv::expire('other_streak:' . $sessionId, Config::contextTtl());
+            if ($streak >= 3) {
+                return '多轮对话未能识别有效意图';
+            }
+        } else {
+            Kv::del('other_streak:' . $sessionId);
         }
         return null;
     }
@@ -216,23 +226,61 @@ class ChatService
         return ['ok' => true, 'rating' => $rating];
     }
 
-    /** 新建会话 */
+    /** 新建会话，返回会话 ID 与签名访问令牌（令牌绑定会话，缺令牌无法访问） */
     public static function newSession(array $extra = []): array
     {
         $sessionId = 'S' . date('YmdHis') . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
         self::ensureConversation($sessionId, $extra);
-        return ['session_id' => $sessionId];
+        return [
+            'session_id'   => $sessionId,
+            'access_token' => self::issueAccess($sessionId),
+        ];
+    }
+
+    /** 签发会话访问令牌（无状态 HMAC，有效期与上下文一致） */
+    public static function issueAccess(string $sessionId): string
+    {
+        $payload = rtrim(strtr(base64_encode((string) json_encode([
+            'sid' => $sessionId,
+            'exp' => time() + Config::contextTtl(),
+        ])), '+/', '-_'), '=');
+        return $payload . '.' . hash_hmac('sha256', $payload, Config::sessionSecret());
+    }
+
+    /** 校验访问令牌是否属于该会话且未过期 */
+    public static function verifyAccess(string $sessionId, string $token): bool
+    {
+        if ($sessionId === '' || $token === '' || substr_count($token, '.') !== 1) {
+            return false;
+        }
+        [$payload, $sig] = explode('.', $token, 2);
+        if (!hash_equals(hash_hmac('sha256', $payload, Config::sessionSecret()), $sig)) {
+            return false;
+        }
+        $data = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
+        return is_array($data)
+            && ($data['sid'] ?? '') === $sessionId
+            && (int)($data['exp'] ?? 0) > time();
     }
 
     /**
      * 按 session_id 列表查询会话摘要（供前端"历史记录"翻看）
      * 只返回确实存在的会话，避免伪造 id 干扰。
      */
-    public static function sessionsByIds(array $sessionIds): array
+    public static function sessionsByIds(array $items): array
     {
-        $sessionIds = array_values(array_filter(array_map('strval', $sessionIds)));
+        // 每项为 ['session_id'=>..., 'access_token'=>...]，仅返回令牌校验通过的会话
+        $sessionIds = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) continue;
+            $sid = (string)($item['session_id'] ?? '');
+            $token = (string)($item['access_token'] ?? '');
+            if ($sid !== '' && self::verifyAccess($sid, $token)) {
+                $sessionIds[] = $sid;
+            }
+        }
         if (empty($sessionIds)) return [];
-        $sessionIds = array_slice($sessionIds, 0, 100);
+        $sessionIds = array_slice(array_values(array_unique($sessionIds)), 0, 100);
         $in = implode(',', array_fill(0, count($sessionIds), '?'));
         $rows = Store::query(
             "SELECT c.session_id, c.status, c.last_intent, c.transferred, c.created_at, c.updated_at,

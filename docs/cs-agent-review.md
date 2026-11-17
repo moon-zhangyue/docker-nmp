@@ -9,7 +9,7 @@
 
 ## 0. 结论摘要
 
-共 **11 项**问题：P0 阻断 1 项、P1 高危 2 项、P2 改进 6 项、P3 轻微 2 项。
+共 **11 项**问题：P0 阻断 1 项、P1 高危 2 项、P2 改进 6 项、P3 轻微 2 项。**截至 2026-11-17 已全部修复**，修复方式见第 6 节。
 
 | 级别 | 数量 | 核心问题 |
 |---|---|---|
@@ -185,3 +185,27 @@ newSession();
 - **SQL 注入**：动态拼接处（`AdminService.php` 的 `WHERE`/`LIMIT`/`OFFSET`、`sessionsByIds` 的 `IN`）均使用占位符或已收敛为整数，未发现可注入点。
 - **XSS**：前端 `escapeHtml`（`index.html:138`）/`esc`（`admin.html:272`）覆盖了主要用户可控字段（`content`、`first_question`、`user_name`、`question`），未发现可利用的 DOM XSS。
 - **数据库脚本**：`cs_agent.sql` 结构、索引、utf8mb4 与服务端字段长度一致。
+
+---
+
+## 6. 修复记录（2026-11-17）
+
+11 项问题全部修复，改动文件 13 个。
+
+| 编号 | 问题 | 修复方式 |
+|---|---|---|
+| 1.1 | 管理鉴权失效 | 新增 `POST /cs/admin/login|logout|check`；凭据取自 `Config::admin()`（`.env`）；服务端下发 HMAC 签名 HttpOnly Cookie；`Base::json()` 移除 CORS `*`；前端删除 `config.js` 中的明文令牌与 `X-CS-Token` 头，`admin.html` 增加登录/登出界面 |
+| 2.1 | 会话越权 | `ChatService::newSession()` 签发绑定 `session_id` 的 7 天有效期 HMAC 令牌；`send`/`history`/`rate`/`sessions` 全部校验归属；前端 localStorage 改为 `{id, token}` 结构并携带令牌；403 时自动重建会话 |
+| 2.2 | 无限流 | `Kv::rateLimit()` 固定窗口限流；`chat/new` 20/min、`chat/send` 30/min、`chat/rate` 10/min、`chat/sessions` 30/min、管理登录 10/min；LLM 配额 500/day |
+| 3.1 | `Kv::incr()` 恒返回 0 | `Kv` 增加独立无序列化 Redis 连接，INCRBY 返回值直接作为结果；限流复用该连接 |
+| 3.2 | FAQ 缓存击穿 | 命中后不再 `Kv::del('faq:all')`，仅更新 `hit_count` |
+| 3.3 | 转人工误判 | `decideHuman()` 改用 `other_streak:<session_id>` 连续低置信度计数（阈值 3），去掉按历史总条数判断 |
+| 3.4 | token 走 GET | 管理鉴权改为仅从签名 Cookie 读取，彻底移除 `$request->get('token')` |
+| 3.5 | 空会话膨胀 | `index.html` 启动改为恢复 `getIds()[0]`，仅无历史会话时才新建 |
+| 3.6 | LLM 降级标记失真 | 降级返回 `source='rule'`、`degraded=true`，成功返回 `degraded=false`；`ChatService::handle()` 透传；前端与后台来源分布增加「规则回复」标签；超配额同样降级 |
+| 4.1 | `Config::admin()` 死配置 | `AdminService::verifyCredential()` 使用 `Config::admin()`，兼容明文与 `password_hash`；新增 `adminSecret()`/`sessionSecret()` 配置 |
+| 4.2 | 恒 HTTP 200 | `Base::fail()` 将合法业务码映射为真实 HTTP 状态码（401/403/404/429 等） |
+
+配套改动：`route/cs.php` 新增登录/登出/状态探测路由；`cs_deploy/README.md` 更新管理账号、安全配置与限流说明；针对全局 `app/middleware/Cors.php` 会给所有响应注入 CORS 头的情况，在 `app\cs\controller\Base::json()` 中显式移除，确保客服模块严格同源。
+
+> 校验说明：本环境未启动 Docker（`php85` 容器不可用），无法执行运行时接口测试；已通过静态检查确认前端请求字段与后端校验一一对应，且无 lint 错误。管理会话与用户会话均使用 HMAC 签名，密钥可通过 `.env` 覆盖。

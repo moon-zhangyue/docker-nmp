@@ -71,6 +71,14 @@
     .reply-row input { flex:1; padding:8px 12px; border:1px solid var(--line); border-radius:8px; }
     .reply-row button { padding:8px 14px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; }
     .empty { text-align:center; color:var(--muted); padding:30px; }
+    .login-mask { display:none; position:fixed; inset:0; background:rgba(17,24,39,.85); z-index:100; align-items:center; justify-content:center; }
+    .login-mask.show { display:flex; }
+    .login-box { background:#fff; border-radius:14px; padding:32px; width:340px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+    .login-box h2 { font-size:20px; margin-bottom:6px; }
+    .login-box .tip { color:var(--muted); font-size:12px; margin-bottom:20px; }
+    .login-box input { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; margin-bottom:12px; font-size:14px; box-sizing:border-box; }
+    .login-box button { width:100%; padding:10px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer; }
+    .login-box .err { color:var(--red); font-size:12px; min-height:18px; margin-bottom:6px; }
 </style>
 </head>
 <body>
@@ -82,6 +90,7 @@
             <a data-page="conv" onclick="switchPage('conv')">💬 对话记录</a>
             <a data-page="ticket" onclick="switchPage('ticket')">🎫 人工工单</a>
             <a data-page="faq" onclick="switchPage('faq')">📚 FAQ 知识库</a>
+            <a onclick="doLogout()" style="margin-top:16px">🚪 退出登录</a>
         </div>
     </div>
     <div class="main">
@@ -157,6 +166,18 @@
     </div>
 </div>
 
+<!-- 登录遮罩 -->
+<div class="login-mask" id="loginMask">
+    <div class="login-box">
+        <h2>智能客服后台登录</h2>
+        <p class="tip">请使用管理员账号登录</p>
+        <input id="loginUser" placeholder="账号" autocomplete="username">
+        <input id="loginPass" type="password" placeholder="密码" autocomplete="current-password" onkeydown="if(event.key=='Enter')doLogin()">
+        <div class="err" id="loginErr"></div>
+        <button onclick="doLogin()">登 录</button>
+    </div>
+</div>
+
 <script src="config.js"></script>
 <script>
 var convPage = 1, currentTicketId = 0;
@@ -171,7 +192,7 @@ function switchPage(p) {
     if (p==='ticket') loadTickets();
     if (p==='faq') loadFaqs();
 }
-function api(path, options){ options=options||{}; options.admin=true; return csApi(path, options); }
+function api(path, options){ return csApi(path, options); }
 
 function loadDashboard() {
     api('/admin/overview').then(function(r){
@@ -196,7 +217,7 @@ function loadDashboard() {
 }
 function renderBars(id, obj) {
     var entries=Object.entries(obj); var max=Math.max(1,...entries.map(function(e){return e[1];}));
-    var labels={refund:'退款',order_query:'查询订单',tech_support:'技术支持',other:'其他',faq:'知识库',llm:'AI生成',agent:'人工'};
+    var labels={refund:'退款',order_query:'查询订单',tech_support:'技术支持',other:'其他',faq:'知识库',llm:'AI生成',rule:'规则回复',agent:'人工'};
     document.getElementById(id).innerHTML = entries.length ? entries.map(function(e){
         return '<div class="bar-row"><span class="name">'+(labels[e[0]]||e[0])+'</span><div class="bar-track"><div class="bar-fill" style="width:'+(e[1]/max*100)+'%">'+e[1]+'</div></div></div>';
     }).join('') : '<div class="empty">暂无数据</div>';
@@ -270,7 +291,34 @@ function loadFaqs() {
 }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-loadDashboard();
+
+function showLogin(msg) {
+    document.getElementById('loginMask').classList.add('show');
+    document.getElementById('loginErr').textContent = msg || '';
+    setTimeout(function () { document.getElementById('loginUser').focus(); }, 50);
+}
+function doLogin() {
+    var u = document.getElementById('loginUser').value.trim();
+    var p = document.getElementById('loginPass').value;
+    if (!u || !p) { document.getElementById('loginErr').textContent = '请输入账号和密码'; return; }
+    csApi('/admin/login', { method: 'POST', body: { user: u, pass: p } }).then(function (r) {
+        if (r.code === 0) {
+            document.getElementById('loginMask').classList.remove('show');
+            document.getElementById('loginPass').value = '';
+            switchPage('dash');
+        } else {
+            document.getElementById('loginErr').textContent = r.msg || '登录失败';
+        }
+    }).catch(function () {
+        document.getElementById('loginErr').textContent = '网络异常，请稍后重试';
+    });
+}
+function doLogout() {
+    csApi('/admin/logout', { method: 'POST' }).then(function () { showLogin('已退出登录'); });
+}
+csApi('/admin/check').then(function (r) {
+    if (r.code === 0) loadDashboard(); else showLogin();
+}).catch(function () { showLogin('无法连接服务'); });
 </script>
 </body>
 </html>

@@ -119,8 +119,9 @@
 </div>
 <script src="config.js"></script>
 <script>
-var STORE_KEY = 'cs_session_ids';
+var STORE_KEY = 'cs_sessions';
 var sessionId = '';
+var accessToken = '';
 var rating = 0;
 var busy = false;
 var ratedThisSession = false;
@@ -129,22 +130,37 @@ var messages = [];
 var GREETING = '您好！我是智能客服小智 😊\n我可以帮您处理退款、查询订单、技术支持等问题。请问有什么可以帮您？';
 
 function getIds() {
-    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (e) { return []; }
+    try {
+        var ids = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+        return Array.isArray(ids) ? ids.filter(function (x) { return x && x.id && x.token; }) : [];
+    } catch (e) { return []; }
 }
-function remember(id) {
+function remember(id, token) {
     var ids = getIds();
-    if (ids.indexOf(id) === -1) { ids.unshift(id); localStorage.setItem(STORE_KEY, JSON.stringify(ids.slice(0, 50))); }
+    var found = false;
+    ids.forEach(function (x) { if (x.id === id) { x.token = token; found = true; } });
+    if (!found) ids.unshift({ id: id, token: token });
+    localStorage.setItem(STORE_KEY, JSON.stringify(ids.slice(0, 50)));
+}
+function getToken(sid) {
+    var ids = getIds();
+    for (var i = 0; i < ids.length; i++) { if (ids[i].id === sid) return ids[i].token; }
+    return '';
+}
+function sessionItems() {
+    return getIds().map(function (x) { return { session_id: x.id, access_token: x.token }; });
 }
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
 
 function newSession() {
     csApi('/chat/new', { method: 'POST', body: { user_name: '访客' } }).then(function (r) {
-        if (r.code === 0) { remember(r.session_id); loadSession(r.session_id, true); }
+        if (r.code === 0) { remember(r.session_id, r.access_token); loadSession(r.session_id, true); }
     });
 }
 
 function loadSession(sid, fresh) {
     sessionId = sid;
+    accessToken = getToken(sid);
     ratedThisSession = false;
     rating = 0;
     resetRateBox();
@@ -154,19 +170,21 @@ function loadSession(sid, fresh) {
         renderMessages();
         addMsg('bot', GREETING);
     } else {
-        csApi('/chat/history?session_id=' + encodeURIComponent(sid)).then(function (r) {
+        csApi('/chat/history?session_id=' + encodeURIComponent(sid) + '&access_token=' + encodeURIComponent(accessToken)).then(function (r) {
             if (r.code === 0) {
                 messages = r.messages || [];
                 renderMessages();
                 // 回看时若该会话已有评价，展示已评价状态
                 checkRated(sid);
+            } else if (r.code === 403) {
+                newSession();
             }
         });
     }
 }
 
 function checkRated(sid) {
-    csApi('/chat/sessions', { method: 'POST', body: { session_ids: [sid] } }).then(function (r) {
+    csApi('/chat/sessions', { method: 'POST', body: { sessions: [{ session_id: sid, access_token: accessToken }] } }).then(function (r) {
         if (r.code === 0 && r.sessions && r.sessions[0] && r.sessions[0].rating) {
             showRated(r.sessions[0].rating);
         }
@@ -215,24 +233,26 @@ function send() {
     var text = input.value.trim();
     if (!text) return;
     if (!sessionId) { setTimeout(send, 200); return; }
-    remember(sessionId);
     input.value = ''; busy = true;
     document.getElementById('sendBtn').disabled = true;
     addMsg('user', text);
     showTyping();
-    csApi('/chat/send', { method: 'POST', body: { session_id: sessionId, message: text } }).then(function (r) {
+    csApi('/chat/send', { method: 'POST', body: { session_id: sessionId, access_token: accessToken, message: text } }).then(function (r) {
         var t = document.getElementById('typing'); if (t) t.remove();
         if (r.code === 0) {
             var tags = [{ text: r.intent_label || '其他', cls: '' }, { text: sourceLabel(r.source), cls: 'src' }];
             addMsg(r.transferred ? 'system' : 'bot', r.reply, tags);
             if (r.transferred && !ratedThisSession) showRate();
+        } else if (r.code === 403) {
+            addMsg('bot', '会话已失效，正在为您新建会话…');
+            setTimeout(newSession, 300);
         } else {
             addMsg('bot', '抱歉，服务暂时不可用：' + r.msg);
         }
     }).catch(function(){ var t=document.getElementById('typing'); if(t)t.remove(); addMsg('bot','网络异常，请稍后重试。'); })
     .finally(function(){ busy=false; document.getElementById('sendBtn').disabled=false; });
 }
-function sourceLabel(s){return {faq:'知识库',llm:'AI生成',agent:'人工客服',user:'用户',system:'系统'}[s]||s;}
+function sourceLabel(s){return {faq:'知识库',llm:'AI生成',rule:'规则回复',agent:'人工客服',user:'用户',system:'系统'}[s]||s;}
 function intentLabel(i){return {refund:'退款',order_query:'查订单',tech_support:'技术支持',other:'其他'}[i]||i;}
 
 function showRate() { if (!ratedThisSession) document.getElementById('rateBox').classList.add('show'); }
@@ -265,7 +285,7 @@ function submitRate() {
     if (!rating) { alert('请先选择星级'); return; }
     if (!sessionId) return;
     var r0 = rating;
-    csApi('/chat/rate', { method: 'POST', body: { session_id: sessionId, rating: rating, comment: '' } }).then(function(r){
+    csApi('/chat/rate', { method: 'POST', body: { session_id: sessionId, access_token: accessToken, rating: rating, comment: '' } }).then(function(r){
         if (r.code === 0) {
             showRated(r0);
         }
@@ -280,7 +300,7 @@ function openHistory() {
         list.innerHTML = '<div class="empty">暂无历史会话<br>开始聊天后，记录会自动保存在这里</div>';
     } else {
         list.innerHTML = '<div class="empty">加载中...</div>';
-        csApi('/chat/sessions', { method: 'POST', body: { session_ids: ids } }).then(function (r) {
+        csApi('/chat/sessions', { method: 'POST', body: { sessions: sessionItems() } }).then(function (r) {
             if (r.code !== 0) { list.innerHTML = '<div class="empty">加载失败</div>'; return; }
             var items = r.sessions || [];
             if (!items.length) { list.innerHTML = '<div class="empty">暂无历史会话</div>'; return; }
@@ -307,7 +327,11 @@ function pickSession(sid) {
 }
 
 bindStars();
-newSession();
+(function boot() {
+    var ids = getIds();
+    if (ids.length) loadSession(ids[0].id, false);
+    else newSession();
+})();
 </script>
 </body>
 </html>

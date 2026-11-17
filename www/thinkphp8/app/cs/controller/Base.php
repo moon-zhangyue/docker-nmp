@@ -7,17 +7,20 @@ use think\Request;
 use think\Response;
 
 /**
- * 客服模块基础控制器：统一 JSON 响应 + CORS
+ * 客服模块基础控制器：统一 JSON 响应
+ * 前后端同源部署，不输出 Access-Control-Allow-Origin: *，避免任意站点跨域调用
  */
 abstract class Base
 {
     protected function json(array $data, int $code = 200): Response
     {
-        return json($data, $code)->header([
-            'Access-Control-Allow-Origin'  => '*',
-            'Access-Control-Allow-Methods' => 'GET,POST,PUT,DELETE,OPTIONS',
-            'Access-Control-Allow-Headers' => 'Content-Type,Authorization,X-Requested-With,X-CS-Token',
-        ]);
+        // 全局 Cors 中间件会给所有响应加跨域头；客服模块前后端同源部署，
+        // 显式移除，避免任何跨站页面读取本模块接口数据
+        header_remove('Access-Control-Allow-Origin');
+        header_remove('Access-Control-Allow-Credentials');
+        header_remove('Access-Control-Allow-Headers');
+        header_remove('Access-Control-Allow-Methods');
+        return json($data, $code);
     }
 
     protected function ok(array $data = []): Response
@@ -27,7 +30,9 @@ abstract class Base
 
     protected function fail(string $msg, int $code = 400): Response
     {
-        return $this->json(['code' => $code, 'msg' => $msg], 200);
+        // 业务码与 HTTP 状态码保持一致，便于网关/监控识别 401/429 等
+        $httpCode = ($code >= 100 && $code <= 599) ? $code : 400;
+        return $this->json(['code' => $code, 'msg' => $msg], $httpCode);
     }
 
     /** 获取 JSON 请求体 */

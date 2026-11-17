@@ -84,9 +84,8 @@ class FaqService
             return null;
         }
 
-        // 命中次数 +1
+        // 命中次数 +1：hit_count 不参与检索，无需因此清空全量缓存
         Store::execute("UPDATE cs_faq SET hit_count=hit_count+1 WHERE id=?", [(int)$best['id']]);
-        Kv::del(self::CACHE_KEY);
 
         return [
             'id'       => $best['id'],

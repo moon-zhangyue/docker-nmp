@@ -65,6 +65,26 @@ class Config
         ];
     }
 
+    /** 管理会话签名密钥：优先 .env，缺省由管理员密码派生（改密码即让旧会话失效） */
+    public static function adminSecret(): string
+    {
+        $secret = env('CS.CS_ADMIN_SECRET', '');
+        return $secret !== '' ? $secret : hash('sha256', 'cs-admin:' . self::admin()['pass']);
+    }
+
+    /** 用户会话访问令牌的签名密钥：优先 .env，缺省从 .env 的应用密钥派生 */
+    public static function sessionSecret(): string
+    {
+        $secret = env('CS.CS_SESSION_SECRET', '');
+        return $secret !== '' ? $secret : hash('sha256', 'cs-session:' . env('APP_KEY', 'cs-agent-dev-key'));
+    }
+
+    /** 管理会话有效期（秒，8 小时） */
+    public static function adminSessionTtl(): int
+    {
+        return 8 * 3600;
+    }
+
     /** 会话上下文在 Redis 中的过期时间（秒） */
     public static function contextTtl(): int
     {

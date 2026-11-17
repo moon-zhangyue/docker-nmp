@@ -8,6 +8,20 @@ namespace app\cs\service;
  */
 class AdminService
 {
+    /** 校验管理后台账号密码（兼容 password_hash 与 .env 明文默认值） */
+    public static function verifyCredential(string $user, string $pass): bool
+    {
+        $adm = Config::admin();
+        if (!hash_equals($adm['user'], $user)) {
+            return false;
+        }
+        $stored = $adm['pass'];
+        if (str_starts_with($stored, '$2y$') || str_starts_with($stored, '$argon2')) {
+            return password_verify($pass, $stored);
+        }
+        return hash_equals($stored, $pass);
+    }
+
     /** 总览统计 */
     public static function overview(): array
     {
@@ -143,10 +157,13 @@ class AdminService
     /** 处理/回复工单 */
     public static function replyTicket(int $id, string $reply, string $assignee = '客服'): bool
     {
-        Store::execute(
+        $affected = Store::execute(
             "UPDATE cs_ticket SET reply=?, status=2, assignee=?, updated_at=NOW() WHERE id=?",
             [$reply, $assignee, $id]
         );
+        if ($affected < 1) {
+            return false;
+        }
         // 将人工回复写入会话
         $ticket = Store::one("SELECT session_id, user_question FROM cs_ticket WHERE id=?", [$id]);
         if ($ticket) {
