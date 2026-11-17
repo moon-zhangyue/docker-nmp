@@ -60,5 +60,6 @@ return [
         'mongo',  // MongoDB API路由
         'redis',  // Redis相关路由
         'pg',     // PostgreSQL API路由
+        'cs',     // 智能客服 Agent 路由
     ],
 ];
