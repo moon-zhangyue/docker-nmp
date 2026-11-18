@@ -89,6 +89,23 @@ class Kv
         }
     }
 
+    /**
+     * 写入不经过 PHP 序列化的原始字符串（带 TTL）。
+     * 供跨语言/跨进程读取的数据使用，例如 WebSocket 一次性票据：
+     * WS 服务用 Lua 脚本 GET+DEL 原子消费，必须拿到纯 JSON 而不是序列化串。
+     */
+    public static function setRaw(string $k, string $value, int $ttl): bool
+    {
+        if ($ttl <= 0) {
+            return false;
+        }
+        try {
+            return (bool) self::raw()->setex(self::key($k), $ttl, $value);
+        } catch (RedisException $e) {
+            return false;
+        }
+    }
+
     public static function incr(string $k, int $by = 1): int
     {
         try {
@@ -115,31 +132,27 @@ class Kv
         }
     }
 
-    /** 向列表右侧追加 */
-    public static function rpush(string $k, $v): int
-    {
-        try {
-            return (int) self::redis()->rPush(self::key($k), $v);
-        } catch (RedisException $e) {
-            return 0;
-        }
-    }
-
-    public static function lrange(string $k, int $start, int $end): array
-    {
-        try {
-            return self::redis()->lRange(self::key($k), $start, $end) ?: [];
-        } catch (RedisException $e) {
-            return [];
-        }
-    }
-
     public static function expire(string $k, int $ttl): bool
     {
         try {
             return (bool) self::redis()->expire(self::key($k), $ttl);
         } catch (RedisException $e) {
             return false;
+        }
+    }
+
+    /**
+     * 追加一条 Redis Stream 记录（不走 PHP 序列化）。
+     * 消费端为独立的 cs-ws 服务，此处只负责写入。
+     * @return string 条目 ID，失败返回空串
+     */
+    public static function xadd(string $k, array $fields, int $maxLen = 500): string
+    {
+        try {
+            $id = self::raw()->xAdd(self::key($k), '*', $fields, $maxLen, true);
+            return is_string($id) ? $id : '';
+        } catch (RedisException $e) {
+            return '';
         }
     }
 }

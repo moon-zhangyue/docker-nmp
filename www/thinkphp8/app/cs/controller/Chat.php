@@ -7,6 +7,7 @@ use think\Request;
 use app\cs\service\ChatService;
 use app\cs\service\IntentService;
 use app\cs\service\Kv;
+use app\cs\service\WsTicket;
 
 /**
  * 用户端对话 API
@@ -105,5 +106,25 @@ class Chat extends Base
         $items = $body['sessions'] ?? [];
         if (!is_array($items)) $items = [];
         return $this->ok(['sessions' => ChatService::sessionsByIds($items)]);
+    }
+
+    /**
+     * POST /cs/ws/ticket —— 签发 WebSocket 一次性票据
+     * 复用会话签名令牌鉴权，签发的票据仅能订阅本会话的事件。
+     */
+    public function wsTicket(Request $request)
+    {
+        if ($this->rateLimited($request, 'chat_ws_ticket', 30, 60)) {
+            return $this->fail('操作过于频繁，请稍后再试', 429);
+        }
+        $body = $this->body($request);
+        $sessionId = trim((string)($body['session_id'] ?? ''));
+        if ($sessionId === '') return $this->fail('缺少 session_id');
+        if (!ChatService::verifyAccess($sessionId, $this->accessToken($request, $body))) {
+            return $this->fail('无权访问该会话', 403);
+        }
+        $ticket = WsTicket::issueSession($sessionId);
+        if ($ticket === '') return $this->fail('推送服务暂不可用', 503);
+        return $this->ok(['ticket' => $ticket, 'ttl' => WsTicket::TTL, 'path' => '/cs/ws']);
     }
 }

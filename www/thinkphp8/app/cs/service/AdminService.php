@@ -171,6 +171,21 @@ class AdminService
                 "INSERT INTO cs_message (session_id, role, content, intent, source) VALUES (?,'agent',?,'other','agent')",
                 [$ticket['session_id'], $reply]
             );
+            Store::execute("UPDATE cs_conversation SET updated_at=NOW() WHERE session_id=?", [$ticket['session_id']]);
+
+            // 实时推送给该会话的用户（用户端立即看到人工回复）
+            EventBus::session((string) $ticket['session_id'], 'agent_message', [
+                'session_id' => (string) $ticket['session_id'],
+                'content'    => $reply,
+                'assignee'   => $assignee,
+                'ticket_id'  => $id,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+            // 通知后台其他标签页刷新工单列表
+            EventBus::admin('ticket_replied', [
+                'ticket_id'  => $id,
+                'session_id' => (string) $ticket['session_id'],
+            ]);
         }
         return true;
     }

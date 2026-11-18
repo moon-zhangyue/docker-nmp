@@ -44,6 +44,14 @@ class ChatService
         // 4. 保存用户消息
         self::saveMessage($sessionId, 'user', $question, $intent['intent'], 'user');
         self::appendContext($sessionId, 'user', $question);
+        // 实时推送到管理后台（用户自己的页面由 HTTP 响应渲染，无需推送）
+        EventBus::admin('user_message', [
+            'session_id'   => $sessionId,
+            'content'      => $question,
+            'intent'       => $intent['intent'],
+            'intent_label' => $intent['label'],
+            'created_at'   => date('Y-m-d H:i:s'),
+        ]);
 
         // 5. 转人工判定
         $humanReason = self::decideHuman($sessionId, $question, $intent);
@@ -52,6 +60,12 @@ class ChatService
             $reply = "我已为您转接人工客服，工单号：{$ticket['ticket_no']}。人工客服会在稍后为您服务（服务时间 9:00-21:00），请稍候。";
             self::saveMessage($sessionId, 'system', $reply, $intent['intent'], 'agent');
             self::appendContext($sessionId, 'assistant', $reply);
+            EventBus::admin('transfer', [
+                'session_id' => $sessionId,
+                'ticket_no'  => $ticket['ticket_no'],
+                'reason'     => $humanReason,
+                'reply'      => $reply,
+            ]);
             return [
                 'reply'       => $reply,
                 'intent'      => $intent['intent'],
@@ -95,6 +109,14 @@ class ChatService
         Kv::incr('stat:messages');
         Kv::incr('stat:intent:' . $intent['intent']);
         Kv::incr('stat:source:' . $source);
+
+        EventBus::admin('bot_message', [
+            'session_id' => $sessionId,
+            'content'    => $reply,
+            'source'     => $source,
+            'intent'     => $intent['intent'],
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
 
         return [
             'reply'        => $reply,
@@ -223,6 +245,11 @@ class ChatService
             Kv::incr('stat:ratings');
         }
         // 不再关闭会话、不清除上下文，保证评价后可继续聊天与翻看记录
+        EventBus::admin('rating', [
+            'session_id' => $sessionId,
+            'rating'     => $rating,
+            'comment'    => mb_substr($comment, 0, 100),
+        ]);
         return ['ok' => true, 'rating' => $rating];
     }
 
@@ -231,6 +258,10 @@ class ChatService
     {
         $sessionId = 'S' . date('YmdHis') . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
         self::ensureConversation($sessionId, $extra);
+        EventBus::admin('session_new', [
+            'session_id' => $sessionId,
+            'user_name'  => (string) ($extra['user_name'] ?? '访客'),
+        ]);
         return [
             'session_id'   => $sessionId,
             'access_token' => self::issueAccess($sessionId),

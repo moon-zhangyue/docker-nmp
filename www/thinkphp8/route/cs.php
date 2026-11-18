@@ -14,6 +14,10 @@ Route::post('cs/chat/rate',     $ctrl . 'Chat/rate');
 Route::get ('cs/chat/intents',  $ctrl . 'Chat/intents');
 Route::post('cs/chat/sessions', $ctrl . 'Chat/sessions');
 
+// 实时推送：WebSocket 一次性票据（WS 服务在 cs-ws，经 Nginx /cs/ws 同源反代）
+Route::post('cs/ws/ticket',        $ctrl . 'Chat/wsTicket');
+Route::post('cs/admin/ws/ticket',  $ctrl . 'Admin/wsTicket');
+
 // 管理后台 API（登录/登出/状态探测无需会话，其余接口由签名 Cookie 鉴权）
 Route::post('cs/admin/login',       $ctrl . 'Admin/login');
 Route::post('cs/admin/logout',      $ctrl . 'Admin/logout');

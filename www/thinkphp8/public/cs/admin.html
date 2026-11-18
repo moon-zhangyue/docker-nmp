@@ -79,6 +79,10 @@
     .login-box input { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; margin-bottom:12px; font-size:14px; box-sizing:border-box; }
     .login-box button { width:100%; padding:10px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer; }
     .login-box .err { color:var(--red); font-size:12px; min-height:18px; margin-bottom:6px; }
+    .live-pill { display:inline-block; margin-left:8px; padding:3px 10px; border-radius:20px; background:#f3f4f6; color:var(--muted); font-size:12px; vertical-align:middle; }
+    .live-pill.on { background:#dcfce7; color:#166534; }
+    .live-toast { position:fixed; right:22px; top:18px; background:#111827; color:#fff; padding:10px 16px; border-radius:10px; font-size:13px; opacity:0; transform:translateY(-8px); transition:opacity .2s, transform .2s; z-index:60; pointer-events:none; max-width:320px; }
+    .live-toast.show { opacity:1; transform:translateY(0); }
 </style>
 </head>
 <body>
@@ -97,7 +101,9 @@
         <div class="topbar">
             <div><h2 id="pageTitle">数据总览</h2><div class="sub">智能客服 Agent 运营数据面板</div></div>
             <span class="badge"><span class="dot" style="display:inline-block;width:7px;height:7px;background:#10b981;border-radius:50%"></span> 系统运行中</span>
+            <span class="live-pill" id="livePill" onclick="connectAdminLive()" style="cursor:pointer" title="点击重新连接实时推送">实时连接中</span>
         </div>
+        <div class="live-toast" id="liveToast"></div>
 
         <!-- 数据总览 -->
         <div class="page active" id="page-dash">
@@ -180,9 +186,10 @@
 
 <script src="config.js"></script>
 <script>
-var convPage = 1, currentTicketId = 0;
+var convPage = 1, currentTicketId = 0, currentPage = 'dash';
 var pageTitles = { dash:'数据总览', conv:'对话记录', ticket:'人工工单', faq:'FAQ 知识库' };
 function switchPage(p) {
+    currentPage = p;
     document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active');});
     document.getElementById('page-'+p).classList.add('active');
     document.querySelectorAll('.nav a').forEach(function(a){a.classList.toggle('active', a.dataset.page===p);});
@@ -306,6 +313,7 @@ function doLogin() {
             document.getElementById('loginMask').classList.remove('show');
             document.getElementById('loginPass').value = '';
             switchPage('dash');
+            connectAdminLive();
         } else {
             document.getElementById('loginErr').textContent = r.msg || '登录失败';
         }
@@ -314,11 +322,72 @@ function doLogin() {
     });
 }
 function doLogout() {
+    closeAdminLive();
     csApi('/admin/logout', { method: 'POST' }).then(function () { showLogin('已退出登录'); });
 }
 csApi('/admin/check').then(function (r) {
-    if (r.code === 0) loadDashboard(); else showLogin();
+    if (r.code === 0) { loadDashboard(); connectAdminLive(); } else showLogin();
 }).catch(function () { showLogin('无法连接服务'); });
+
+/* ================= 实时推送（WebSocket） ================= */
+var adminLive = null, refreshTimer = null, toastTimer = null;
+
+function setAdminLive(state) {
+    var p = document.getElementById('livePill');
+    if (!p) return;
+    var text = { online: '实时已连接', connecting: '连接中', offline: '连接中断，重连中', denied: '实时连接不可用' };
+    p.textContent = text[state] || '连接中';
+    p.className = 'live-pill' + (state === 'online' ? ' on' : '');
+}
+
+function adminToast(text) {
+    var t = document.getElementById('liveToast');
+    if (!t) return;
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 4000);
+}
+
+/** 多个事件短时间内到达时合并成一次刷新，避免频繁请求 */
+function scheduleRefresh() {
+    if (refreshTimer) return;
+    refreshTimer = setTimeout(function () {
+        refreshTimer = null;
+        if (currentPage === 'dash') loadDashboard();
+        else if (currentPage === 'conv') loadConvs();
+        else if (currentPage === 'ticket') loadTickets();
+    }, 800);
+}
+
+function connectAdminLive() {
+    if (adminLive) { adminLive.close(); adminLive = null; }
+
+    adminLive = csConnect({
+        ticketPath: '/admin/ws/ticket',
+        onStatus: function (s) {
+            setAdminLive(s);
+            // 重连后用 HTTP 拉一次当前页，补齐断线期间的变更
+            if (s === 'online') scheduleRefresh();
+        },
+        onEvent: function (event, d) {
+            if (event === 'user_message') {
+                var text = String(d.content || '').slice(0, 22);
+                adminToast('💬 新消息（' + (d.intent_label || '其他') + '）：' + text);
+                scheduleRefresh();
+            } else if (event === 'transfer') {
+                adminToast('🎫 新工单：' + (d.ticket_no || '') + '（' + (d.reason || '') + '）');
+                scheduleRefresh();
+            } else if (event === 'session_new' || event === 'rating' || event === 'ticket_replied') {
+                scheduleRefresh();
+            }
+        }
+    });
+}
+
+function closeAdminLive() {
+    if (adminLive) { adminLive.close(); adminLive = null; }
+}
 </script>
 </body>
 </html>

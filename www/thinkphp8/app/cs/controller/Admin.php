@@ -8,6 +8,7 @@ use think\Response;
 use app\cs\service\AdminService;
 use app\cs\service\Config;
 use app\cs\service\Kv;
+use app\cs\service\WsTicket;
 
 /**
  * 管理后台 API
@@ -15,32 +16,11 @@ use app\cs\service\Kv;
  */
 class Admin extends Base
 {
-    private const COOKIE = 'cs_admin';
-
-    /** 生成会话签名 */
-    private function sign(string $payload): string
-    {
-        return hash_hmac('sha256', $payload, Config::adminSecret());
-    }
-
-    /** 校验签名 Cookie */
-    private function auth(): bool
-    {
-        $token = $_COOKIE[self::COOKIE] ?? '';
-        if (!is_string($token) || substr_count($token, '.') !== 1) {
-            return false;
-        }
-        [$payload, $sig] = explode('.', $token, 2);
-        if (!hash_equals($this->sign($payload), $sig)) {
-            return false;
-        }
-        $data = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
-        return is_array($data) && (int)($data['exp'] ?? 0) > time();
-    }
+    private const COOKIE = self::ADMIN_COOKIE;
 
     private function guard(): ?Response
     {
-        return $this->auth() ? null : $this->fail('未授权', 401);
+        return $this->adminAuthed() ? null : $this->fail('未授权', 401);
     }
 
     /** POST /cs/admin/login —— 账号密码登录 */
@@ -60,7 +40,7 @@ class Admin extends Base
             'u'   => $user,
             'exp' => time() + Config::adminSessionTtl(),
         ])), '+/', '-_'), '=');
-        $token = $payload . '.' . $this->sign($payload);
+        $token = $payload . '.' . $this->adminSign($payload);
         setcookie(self::COOKIE, $token, [
             'expires'  => time() + Config::adminSessionTtl(),
             'path'     => '/',
@@ -158,5 +138,17 @@ class Admin extends Base
         if ($e = $this->guard()) return $e;
         $llm = Config::llm();
         return $this->ok(['llm_mode' => $llm['mode'], 'llm_model' => $llm['model']]);
+    }
+
+    /**
+     * POST /cs/admin/ws/ticket —— 签发后台 WebSocket 一次性票据
+     * 依赖 HttpOnly 签名 Cookie，前端不接触任何长期凭据。
+     */
+    public function wsTicket(Request $request)
+    {
+        if ($e = $this->guard()) return $e;
+        $ticket = WsTicket::issueAdmin();
+        if ($ticket === '') return $this->fail('推送服务暂不可用', 503);
+        return $this->ok(['ticket' => $ticket, 'ttl' => WsTicket::TTL, 'path' => '/cs/ws']);
     }
 }

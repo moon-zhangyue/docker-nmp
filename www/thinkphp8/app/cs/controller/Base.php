@@ -12,6 +12,29 @@ use think\Response;
  */
 abstract class Base
 {
+    public const ADMIN_COOKIE = 'cs_admin';
+
+    /** 后台会话 Cookie 签名 */
+    protected function adminSign(string $payload): string
+    {
+        return hash_hmac('sha256', $payload, \app\cs\service\Config::adminSecret());
+    }
+
+    /** 校验后台签名 Cookie 是否有效 */
+    protected function adminAuthed(): bool
+    {
+        $token = $_COOKIE[self::ADMIN_COOKIE] ?? '';
+        if (!is_string($token) || substr_count($token, '.') !== 1) {
+            return false;
+        }
+        [$payload, $sig] = explode('.', $token, 2);
+        if (!hash_equals($this->adminSign($payload), $sig)) {
+            return false;
+        }
+        $data = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
+        return is_array($data) && (int)($data['exp'] ?? 0) > time();
+    }
+
     protected function json(array $data, int $code = 200): Response
     {
         // 全局 Cors 中间件会给所有响应加跨域头；客服模块前后端同源部署，

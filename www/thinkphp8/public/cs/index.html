@@ -77,6 +77,8 @@
     .sess .badge.human { background: #fee2e2; color: #991b1b; }
     .sess .time { margin-left: auto; }
     .empty { text-align: center; color: var(--muted); padding: 50px 20px; font-size: 13px; line-height: 1.8; }
+    .live-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 10px; background: #f3f4f6; color: var(--muted); font-size: 11px; vertical-align: middle; }
+    .live-tag.on { background: #dcfce7; color: #166534; }
 </style>
 </head>
 <body>
@@ -85,7 +87,7 @@
         <div class="avatar">🤖</div>
         <div>
             <h1>智能客服 · 小智</h1>
-            <p><span class="dot"></span> <span id="sessLabel">在线 · 7×24 小时为您服务</span></p>
+            <p><span class="dot"></span> <span id="sessLabel">在线 · 7×24 小时为您服务</span> <span class="live-tag" id="liveTag" onclick="connectLive()" style="cursor:pointer" title="点击重新连接实时推送">实时连接中</span></p>
         </div>
         <div class="acts">
             <button onclick="openHistory()">历史</button>
@@ -165,6 +167,7 @@ function loadSession(sid, fresh) {
     rating = 0;
     resetRateBox();
     document.getElementById('sessLabel').textContent = '会话 ' + sid.slice(-8);
+    connectLive();
     if (fresh) {
         messages = [];
         renderMessages();
@@ -288,6 +291,56 @@ function submitRate() {
     csApi('/chat/rate', { method: 'POST', body: { session_id: sessionId, access_token: accessToken, rating: rating, comment: '' } }).then(function(r){
         if (r.code === 0) {
             showRated(r0);
+        }
+    });
+}
+
+/* ============ 实时推送（WebSocket） ============ */
+var live = null;
+var lastAgentContent = '';
+var liveWasOffline = false;
+
+function setLive(state) {
+    var t = document.getElementById('liveTag');
+    if (!t) return;
+    var text = { online: '实时已连接', connecting: '连接中', offline: '连接中断，重连中', denied: '实时连接不可用' };
+    t.textContent = text[state] || '连接中';
+    t.className = 'live-tag' + (state === 'online' ? ' on' : '');
+}
+
+// 断线期间可能错过人工回复，重连成功后按 MySQL 补齐
+function syncHistory() {
+    if (!sessionId || !accessToken) return;
+    csApi('/chat/history?session_id=' + encodeURIComponent(sessionId) + '&access_token=' + encodeURIComponent(accessToken))
+        .then(function (r) {
+            if (r.code === 0 && r.messages && r.messages.length > messages.length) {
+                messages = r.messages;
+                renderMessages();
+            }
+        });
+}
+
+function connectLive() {
+    if (live) { live.close(); live = null; }
+    if (!sessionId || !accessToken) return;
+
+    live = csConnect({
+        ticketPath: '/ws/ticket',
+        ticketBody: function () { return { session_id: sessionId, access_token: accessToken }; },
+        onStatus: function (s) {
+            setLive(s);
+            if (s === 'online' && liveWasOffline) { liveWasOffline = false; syncHistory(); }
+            if (s === 'offline') { liveWasOffline = true; }
+        },
+        onEvent: function (event, d) {
+            if (event === 'agent_message' && d.content) {
+                if (d.content === lastAgentContent) return;
+                lastAgentContent = d.content;
+                var t = document.getElementById('typing'); if (t) t.remove();
+                addMsg('bot', d.content, [{ text: '人工客服', cls: 'src' }]);
+            } else if (event === 'transfer' && d.ticket_no) {
+                addMsg('system', '您的会话已转接人工客服，工单号：' + d.ticket_no);
+            }
         }
     });
 }
