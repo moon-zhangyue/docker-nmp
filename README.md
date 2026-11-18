@@ -95,9 +95,7 @@ DNMP（Docker + Nginx/Openresty + MySQL5,8,9 + PHP7,8 + Redis + ElasticSearch + 
     - `Docker Compose V2`
 2. `clone`项目：
     ```
-    $ git clone https://github.com/yeszao/dnmp.git
-    # 假如速度太慢，可以使用加速拉取镜像
-    $ git clone https://github.com.cnpmjs.org/yeszao/dnmp.git
+    $ https://github.com/moon-zhangyue/docker-nmp.git
     ```
 3. 如果主机是 Linux系统，且当前用户不是`root`用户，还需将当前用户加入`docker`用户组：
     ```

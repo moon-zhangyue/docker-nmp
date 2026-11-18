@@ -1,0 +1,281 @@
+// Copyright (c) 2026 erik <erik@erik.xyz> — https://erik.xyz
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:dio/dio.dart';
+import '../../config/api_config.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/captcha_service.dart';
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  static final _headers = {'API-Version': 'v1'};
+  final _dio = Dio(BaseOptions(baseUrl: ApiService.baseUrl, headers: _headers));
+  final _captcha = CaptchaService(Dio(BaseOptions(baseUrl: ApiService.baseUrl, headers: _headers)));
+
+  bool _loading = false;
+  String? _error;
+
+  // Captcha state
+  CaptchaData? _captchaData;
+  Uint8List? _captchaImage;
+  // 验证码图片真实原生像素尺寸（解码后填入，不写死，随难度/包版本自适应）
+  double _imgW = 0;
+  double _imgH = 0;
+  final List<Offset> _clicks = [];
+  final List<String> _clickLabels = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCaptcha();
+  }
+
+  Future<void> _loadCaptcha() async {
+    try {
+      _captchaData = await _captcha.generate();
+      final bytes = base64Decode(
+          _captchaData!.imageBase64.replaceFirst(RegExp(r'^data:image/\w+;base64,'), ''));
+      // 解码取图片真实原生尺寸，点击坐标与标记都依此换算
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      if (!mounted) return;
+      setState(() {
+        _captchaImage = bytes;
+        _imgW = frame.image.width.toDouble();
+        _imgH = frame.image.height.toDouble();
+        _clicks.clear();
+        _clickLabels.clear();
+      });
+    } catch (_) {
+      setState(() => _error = '验证码加载失败');
+    }
+  }
+
+  void _onCaptchaTap(TapUpDetails detail, double displayW, double displayH) {
+    if (_captchaData == null || _imgW <= 0 || _imgH <= 0 || displayW <= 0 || displayH <= 0) return;
+    if (_clicks.length >= _captchaData!.targets.length) return;
+
+    // 图片以 BoxFit.fill 铺满 displayW×displayH，将组件坐标等比换算回原生像素坐标
+    final imgX = (detail.localPosition.dx * (_imgW / displayW)).round().clamp(0, _imgW.round());
+    final imgY = (detail.localPosition.dy * (_imgH / displayH)).round().clamp(0, _imgH.round());
+
+    final target = _captchaData!.targets[_clicks.length];
+    setState(() {
+      _clicks.add(Offset(imgX.toDouble(), imgY.toDouble()));
+      _clickLabels.add('${target.order}');
+      _error = null;
+    });
+  }
+
+  Future<void> _login() async {
+    final username = _usernameCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    if (username.isEmpty || password.isEmpty) {
+      setState(() => _error = '请输入用户名和密码');
+      return;
+    }
+    if (_captchaData == null) {
+      setState(() => _error = '请加载验证码');
+      return;
+    }
+    if (_clicks.length < _captchaData!.targets.length) {
+      setState(() => _error = '请按顺序点击图中文字『${_captchaData!.targets[_clicks.length].text}』');
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      final resp = await _dio.post(ApiConfig.authLogin, data: {
+        'username': username,
+        'password': password,
+        'captcha_key': _captchaData!.key,
+        'clicks': _clicks.map((c) => {'x': c.dx.round(), 'y': c.dy.round()}).toList(),
+      });
+
+      if (resp.data['code'] == 0) {
+        final data = resp.data['data'];
+        await AuthService.saveLogin(
+          token: data['access_token'] as String,
+          refreshToken: data['refresh_token'] as String,
+          username: data['user']['username'] as String,
+        );
+        if (mounted) Navigator.of(context).pushReplacementNamed('/dashboard');
+      } else {
+        setState(() => _error = resp.data['message'] ?? '登录失败');
+        _loadCaptcha();
+      }
+    } catch (e) {
+      setState(() => _error = '网络错误，请检查连接');
+      _loadCaptcha();
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _usernameCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 项目宠物「小筑」— 楼宇管家（矢量图，源自 docs/images/pet_xiaozhu.svg）
+                SvgPicture.asset('assets/pet_xiaozhu.svg', width: 76, height: 96),
+                const SizedBox(height: 12),
+                const Text('开放管理后台', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1677FF))),
+                const SizedBox(height: 32),
+
+                // Username
+                TextField(
+                  controller: _usernameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: '用户名',
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Password
+                TextField(
+                  controller: _passwordCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: '密码',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _login(),
+                ),
+                const SizedBox(height: 20),
+
+                // Click Captcha
+                if (_captchaImage != null && _captchaData != null && _imgW > 0 && _imgH > 0) ...[
+                  Text('请按顺序点击图中文字: ${_captchaData!.targets.map((t) => '"${t.text}"').join(' → ')}',
+                      style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // 显示宽度不超过容器宽度，等比缩放；坐标在点击时再换算回原生像素
+                        final displayW = _imgW <= constraints.maxWidth ? _imgW : constraints.maxWidth;
+                        final displayH = displayW * _imgH / _imgW;
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: GestureDetector(
+                            onTapUp: (d) => _onCaptchaTap(d, displayW, displayH),
+                            child: SizedBox(
+                              width: displayW,
+                              height: displayH,
+                              child: Stack(
+                                children: [
+                                  Image.memory(_captchaImage!, width: displayW, height: displayH, fit: BoxFit.fill),
+                                  // Click markers
+                                  ..._clicks.asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final c = entry.value;
+                                    final widgetX = (c.dx / _imgW) * displayW;
+                                    final widgetY = (c.dy / _imgH) * displayH;
+                                    return Positioned(
+                                      left: widgetX - 14,
+                                      top: widgetY - 14,
+                                      child: Container(
+                                        width: 28,
+                                        height: 28,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF1677FF).withValues(alpha: 0.8),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Center(
+                                          child: Text('${idx + 1}', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('已点击 ${_clicks.length}/${_captchaData!.targets.length}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      TextButton.icon(
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('换一张'),
+                        onPressed: _loadCaptcha,
+                      ),
+                    ],
+                  ),
+                ] else
+                  const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+
+                // Error
+                if (_error != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(6)),
+                    child: Row(children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                    ]),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Login button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: _loading ? null : _login,
+                    child: _loading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('登 录', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                Text('Copyright (c) 2026 erik — https://erik.xyz',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

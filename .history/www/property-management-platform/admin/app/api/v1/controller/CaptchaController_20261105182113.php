@@ -1,0 +1,83 @@
+<?php
+/*
+ * Copyright (c) 2026 erik <erik@erik.xyz> — https://erik.xyz
+ */
+
+declare(strict_types=1);
+
+namespace app\api\v1\controller;
+use hg\apidoc\annotation as Apidoc;
+
+use support\Request;
+use support\Response;
+use Throwable;
+
+/**
+ * 通用接口
+ * @Apidoc\Group("common")
+ * @Apidoc\Sort(1)
+ */
+class CaptchaController
+{
+    /**
+     * 生成点击验证码
+     * 返回: { key, image (data-URI), extra: { texts: [{order, text}] } }
+     * @Apidoc\Method("POST")
+     * @Apidoc\Url("/api/v1/captcha/generate")
+     */
+    public function generate(Request $request): Response
+    {
+        $difficulty = $request->input('difficulty', 'medium');
+
+        try {
+            $result = captcha_create('click', ['difficulty' => $difficulty]);
+
+            return json([
+                'code'    => 0,
+                'message' => 'success',
+                'data'    => [
+                    'key'   => $result['key'],
+                    // 包契约（GdDriver::output）返回的已是完整 data-URI（data:image/png;base64,...），
+                    // 不可再 base64_encode，否则双重编码导致前端解出文本字节而非 PNG 二进制
+                    'image' => $result['image'],
+                    'extra' => [
+                        'texts' => $result['extra']['texts'],
+                    ],
+                ],
+            ]);
+        } catch (Throwable $e) {
+            return json([
+                'code'    => 500,
+                'message' => '验证码生成失败',
+                'data'    => [],
+            ]);
+        }
+    }
+
+    /**
+     * 校验点击验证码
+     * 请求: { key, clicks: [{x, y}, ...] }
+     * @Apidoc\Method("POST")
+     * @Apidoc\Url("/api/v1/captcha/verify")
+     */
+    public function verify(Request $request): Response
+    {
+        $key    = $request->input('key', '');
+        $clicks = $request->input('clicks', []);
+
+        if (empty($key) || empty($clicks)) {
+            return json(['code' => 422, 'message' => '缺少验证参数', 'data' => []]);
+        }
+
+        // 归一化为数字索引坐标 [[x,y],...]（包契约要求）
+        $clicks = array_map(fn($c) => [(int) ($c['x'] ?? 0), (int) ($c['y'] ?? 0)], $clicks);
+
+        $valid = captcha_verify($key, 'click', $clicks);
+
+        return json([
+            'code'    => $valid ? 0 : 422,
+            'message' => $valid ? '验证通过' : '验证失败，请重试',
+            'data'    => ['valid' => $valid],
+        ]);
+    }
+}
