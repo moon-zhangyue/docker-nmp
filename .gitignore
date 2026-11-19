@@ -12,3 +12,6 @@ logs
 package-lock.json
 node_modules
 /www/hyperf-skeleton/.devcontainer
+
+# www 下的项目均为独立嵌套 Git 仓库，由各项目自行管理
+/www/*/
