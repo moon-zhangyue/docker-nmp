@@ -1,0 +1,12 @@
+/vendor/
+/runtime/
+node_modules/
+/.idea/
+/.vscode/
+/.history/
+/.lingma/
+/.qoder/
+/.cursor/
+/.phpunit.cache/
+*.log
+.env

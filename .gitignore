@@ -15,3 +15,5 @@ node_modules
 
 # www 下的项目均为独立嵌套 Git 仓库，由各项目自行管理
 /www/*/
+# localhost 由主仓库直接管理
+!/www/localhost/
